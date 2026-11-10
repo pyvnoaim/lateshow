@@ -3,14 +3,14 @@
 import { useEffect } from "react";
 
 /**
- * Feeds the pointer position into whatever `.glass` element is under it (--mx, --my), so the glass style can draw
+ * Feeds the pointer position into whatever `.glass` / `.glass-tint` element is under it (--mx, --my), so the glass style can draw
  * a soft highlight that follows the pointer. One listener for the whole page. Skipped on touch screens.
  */
 export function GlassSheen() {
   useEffect(() => {
     if (!matchMedia("(hover: hover)").matches) return;
     const move = (e: PointerEvent) => {
-      const glass = (e.target as Element | null)?.closest?.(".glass");
+      const glass = (e.target as Element | null)?.closest?.(".glass, .glass-tint");
       if (!(glass instanceof HTMLElement)) return;
       const r = glass.getBoundingClientRect();
       glass.style.setProperty("--mx", `${e.clientX - r.left}px`);

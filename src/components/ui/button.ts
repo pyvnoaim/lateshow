@@ -2,8 +2,8 @@ const base =
   "press inline-flex shrink-0 items-center justify-center gap-2 rounded-full font-semibold disabled:pointer-events-none disabled:opacity-50";
 
 const tones = {
-  /** White pill, the one main action on a screen. */
-  primary: "bg-fg text-bg hover:bg-fg/85",
+  /** Tinted (milky white) glass, the one main action on a screen. */
+  primary: "glass-tint",
   /** Frosted glass, secondary actions over images. */
   glass: "glass",
   /** Quiet raised pill, lists of choices (services, filters). */
