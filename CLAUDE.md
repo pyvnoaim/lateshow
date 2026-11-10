@@ -252,6 +252,17 @@ Rules:
 - Process: polish the title page fully first as the bar. Screenshot desktop and phone width after every UI change before calling it done.
   Show ideas on real pages, not concept boards, before committing.
 
+## Todo (agreed 2026-11-11, in this order)
+
+- [ ] Dead nav links: "Watchlist" and "Rooms" in the top bar both go to the 404 page. Watchlist -> the profile's
+      Watchlist tab (or its own page), Rooms -> build the page or hide the link until rooms exist.
+- [ ] Phone navigation: Home / Watchlist / Rooms are hidden below `sm` with nothing replacing them. Needs a small menu.
+- [ ] Settings page: language (TMDB titles and descriptions) and your streaming services (powers "My services" on
+      Trending, picks only from your services, sorts them first). Country stays auto-detected.
+- [ ] Before going public: privacy page (Datenschutz) + Impressum, real login emails (Resend), nightly SQLite backup
+      off the VPS, Docker deploy behind Nginx Proxy Manager + Cloudflare, buy lateshow.app.
+- [ ] Later: browse by genre or mood row on Home, TMDB account import (v4).
+
 ## Open
 
 - Verify current free limits of JustWatch GraphQL / Streaming Availability before building links.
