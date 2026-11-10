@@ -20,7 +20,7 @@ export function RatingsGrid({ seasons, watched }: { seasons: SeasonData[]; watch
   return (
     <Section title="Ratings">
       <div className="flex flex-col gap-4">
-        <div className="overflow-x-auto pb-1">
+        <div className="max-h-list scroll-box pb-1">
           <div className="flex flex-col gap-1">
             {seasons.map((s) => (
               <div key={s.number} className="flex items-center gap-2">

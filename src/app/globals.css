@@ -54,6 +54,7 @@
   --spacing-section: 72px; /* rhythm between sections */
   --spacing-hero: 600px;
   --spacing-hero-sm: 520px;
+  --spacing-list: 540px; /* long lists (episodes, ratings) scroll inside this height */
 
   /* motion */
   --ease-spring: cubic-bezier(0.2, 0.8, 0.2, 1);
@@ -150,6 +151,15 @@
         linear-gradient(180deg, var(--color-tint-hi-hover), var(--color-tint-lo-hover));
     }
   }
+}
+/* A box that scrolls inside a fixed height: the content fades out at the top and bottom edge instead of being cut,
+   with a thin quiet scrollbar. */
+@utility scroll-box {
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgb(255 255 255 / 0.18) transparent;
+  mask-image: linear-gradient(to bottom, transparent, black 20px, black calc(100% - 28px), transparent);
 }
 /* Blue tinted glass: "this is on" (watched, on the watchlist). Same material as the other glass. */
 @utility glass-accent {

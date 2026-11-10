@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { LibraryToggle } from "@/components/library/LibraryToggle";
 import { TmdbImage } from "@/components/TmdbImage";
 import { Section } from "@/components/ui/Section";
@@ -19,10 +19,24 @@ export type SeasonData = {
   }[];
 };
 
-export type EpisodeLibrary = { signedIn: boolean; watched: string[]; ref: TitleRef; startSeason?: number };
+export type EpisodeLibrary = {
+  signedIn: boolean;
+  watched: string[];
+  ref: TitleRef;
+  startSeason?: number;
+  /** Episode number of your next episode in startSeason: the list opens scrolled to it. */
+  nextEpisode?: number;
+};
 
 export function Episodes({ seasons, library }: { seasons: SeasonData[]; library: EpisodeLibrary }) {
   const [active, setActive] = useState(library.startSeason ?? seasons[0]?.number);
+  const list = useRef<HTMLOListElement>(null);
+
+  // Open on your next episode instead of episode 1 (only inside the list, the page itself doesn't move).
+  useEffect(() => {
+    const row = list.current?.querySelector<HTMLElement>("[data-next]");
+    if (row && list.current) list.current.scrollTop = row.offsetTop - 12;
+  }, []);
   const season = seasons.find((s) => s.number === active) ?? seasons[0];
   if (!season) return null;
   const watched = new Set(library.watched);
@@ -42,10 +56,11 @@ export function Episodes({ seasons, library }: { seasons: SeasonData[]; library:
         />
       }
     >
-      <ol className="flex flex-col">
+      <ol ref={list} className="relative flex max-h-list scroll-box flex-col pr-2">
         {season.episodes.map((e, i) => (
           <li
             key={`${season.number}-${e.n}`}
+            data-next={season.number === library.startSeason && e.n === library.nextEpisode ? "" : undefined}
             className="flex rise items-center gap-4 py-2"
             style={{ animationDelay: `${Math.min(i, 10) * 40}ms` }}
           >

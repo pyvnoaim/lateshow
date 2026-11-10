@@ -64,7 +64,7 @@ export async function TitleView({ type, id }: { type: string; id: string }) {
       <Container as="main" className="flex flex-col gap-section pt-section">
         {type === "tv" && (
           <Suspense fallback={<div className="h-80 sk rounded-banner" />}>
-            <SeasonSections t={t} library={library} startSeason={next?.season} />
+            <SeasonSections t={t} library={library} next={next} />
           </Suspense>
         )}
         <Cast t={t} />
@@ -193,7 +193,7 @@ function WhereToWatch({ links, fallback, country }: { links: WatchLink[]; fallba
   );
 }
 
-async function SeasonSections({ t, library, startSeason }: { t: Title; library: Library; startSeason?: number }) {
+async function SeasonSections({ t, library, next }: { t: Title; library: Library; next: EpisodeRef | null }) {
   const numbers = (t.seasons ?? [])
     .filter((s) => s.season_number > 0 && s.episode_count > 0)
     .map((s) => s.season_number);
@@ -211,11 +211,22 @@ async function SeasonSections({ t, library, startSeason }: { t: Title; library: 
   }));
   return (
     <div className="grid grid-cols-1 gap-section lg:grid-cols-main-aside">
-      <Episodes
-        seasons={seasons}
-        library={{ signedIn: library.signedIn, watched: library.watched, ref: library.ref, startSeason }}
-      />
-      <RatingsGrid seasons={seasons} watched={library.watched} />
+      {/* min-w-0: wide content (a show with 60 episodes a season) scrolls inside its column instead of pushing it */}
+      <div className="min-w-0">
+        <Episodes
+          seasons={seasons}
+          library={{
+            signedIn: library.signedIn,
+            watched: library.watched,
+            ref: library.ref,
+            startSeason: next?.season,
+            nextEpisode: next?.episode,
+          }}
+        />
+      </div>
+      <div className="min-w-0">
+        <RatingsGrid seasons={seasons} watched={library.watched} />
+      </div>
     </div>
   );
 }
