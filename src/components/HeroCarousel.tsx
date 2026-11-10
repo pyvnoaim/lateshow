@@ -42,7 +42,8 @@ export function HeroCarousel({ slides }: { slides: HeroSlide[] }) {
           <div
             key={s.key}
             aria-hidden={i !== index}
-            className={`absolute inset-0 transition-opacity duration-900 ease-out ${i === index ? "opacity-100" : "opacity-0"}`}
+            // the incoming backdrop fades in while settling from a slight zoom, like a slow camera move
+            className={`absolute inset-0 transition-all duration-1400 ease-spring ${i === index ? "scale-100 opacity-100" : "scale-106 opacity-0"}`}
           >
             <Image src={s.backdrop} alt="" fill sizes="100vw" priority={i === 0} className="object-cover" />
           </div>
@@ -74,7 +75,7 @@ export function HeroCarousel({ slides }: { slides: HeroSlide[] }) {
           )
         }
       >
-        <div key={slide.key} className="flex rise flex-col gap-5">
+        <div key={slide.key} className="flex stagger flex-col gap-5">
           {slide.logo ? (
             <HeroLogo src={slide.logo.src} aspectRatio={slide.logo.aspectRatio} name={slide.name} />
           ) : (

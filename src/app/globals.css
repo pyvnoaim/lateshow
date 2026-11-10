@@ -52,6 +52,7 @@
   --duration-hover: 200ms;
   --duration-lift: 240ms;
   --duration-rise: 520ms;
+  --duration-settle: 800ms; /* hero text coming in */
   --duration-slide: 7000ms; /* hero carousel: the dash fill is the timer */
 
   /* shape */
@@ -163,6 +164,36 @@
 @utility fill-bar {
   transform-origin: left;
   animation: fill-bar var(--duration-slide) linear both;
+}
+/* Hero switch: the new slide's pieces (logo, meta, text, buttons) come in one after another */
+@utility stagger {
+  & > * {
+    animation: settle var(--duration-settle) var(--ease-spring) both;
+  }
+  & > :nth-child(2) {
+    animation-delay: 70ms;
+  }
+  & > :nth-child(3) {
+    animation-delay: 140ms;
+  }
+  & > :nth-child(4) {
+    animation-delay: 210ms;
+  }
+  & > :nth-child(5) {
+    animation-delay: 280ms;
+  }
+}
+@keyframes settle {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+    filter: blur(6px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+    filter: none;
+  }
 }
 @utility paused {
   animation-play-state: paused;
