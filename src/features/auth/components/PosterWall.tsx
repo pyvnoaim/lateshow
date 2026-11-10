@@ -9,14 +9,17 @@ const PER_COLUMN = 8;
  * behind everything on narrower screens. Plain blocks if TMDB isn't reachable.
  */
 export async function PosterWall() {
-  const posters = await getTrending()
-    .then((cards) => cards.map((c) => img(c.poster_path, "w342")).filter((p): p is string => p !== null))
-    .catch(() => []);
+  // Two pages of trending: 40 posters for 32 slots, so no title shows twice on the wall.
+  const pages = await Promise.all([1, 2].map((page) => getTrending("all", page).catch(() => [])));
+  const posters = [...new Set(pages.flat().map((c) => img(c.poster_path, "w342")))].filter(
+    (p): p is string => p !== null,
+  );
 
   const columns = SPEEDS.map((speed, ci) => {
+    // each column gets its own run of posters (wrapping only if TMDB returned fewer than 32)
     const own = Array.from(
       { length: PER_COLUMN },
-      (_, i) => posters.at((ci * 5 + i) % Math.max(posters.length, 1)) ?? null,
+      (_, i) => posters.at((ci * PER_COLUMN + i) % Math.max(posters.length, 1)) ?? null,
     );
     return { speed, posters: [...own, ...own] };
   });

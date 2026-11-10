@@ -1,7 +1,7 @@
 "use client";
 
 import { Mail } from "lucide-react";
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { buttonStyles } from "@/components/ui/button";
 import { fieldInputStyles, fieldStyles } from "@/components/ui/field";
 import { authClient } from "@/lib/authClient";
@@ -14,6 +14,12 @@ export function SignInForm({ linkError, minutes, devHint }: { linkError: boolean
   const [pending, setPending] = useState(false);
   const [error, setError] = useState(linkError ? "That link expired or was already used. Get a new one below." : "");
   const [wait, setWait] = useState(0);
+  const emailInput = useRef<HTMLInputElement>(null);
+
+  // Ready to type on computers. Not on phones: the keyboard would cover the page before you've seen it.
+  useEffect(() => {
+    if (matchMedia("(hover: hover) and (pointer: fine)").matches) emailInput.current?.focus();
+  }, []);
 
   useEffect(() => {
     if (wait <= 0) return;
@@ -109,6 +115,7 @@ export function SignInForm({ linkError, minutes, devHint }: { linkError: boolean
             Email
           </label>
           <input
+            ref={emailInput}
             id="email"
             type="email"
             required

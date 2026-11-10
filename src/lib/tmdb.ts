@@ -88,10 +88,10 @@ export function cinemaDate(t: Pick<Title, "release_date" | "release_dates">, cou
 
 export type Kind = MediaType | "all";
 
-export async function getTrending(kind: Kind = "all") {
+export async function getTrending(kind: Kind = "all", page = 1) {
   "use cache";
   cacheLife("hours");
-  const data = await tmdb<{ results: Card[] }>(`/trending/${kind}/week`);
+  const data = await tmdb<{ results: Card[] }>(`/trending/${kind}/week`, { page: String(page) });
   return data.results.filter((r) => r.media_type === "movie" || r.media_type === "tv");
 }
 
