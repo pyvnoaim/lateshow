@@ -10,27 +10,40 @@ import { PosterGrid, PosterGridSkeleton } from "@/components/ui/PosterGrid";
 import { Section } from "@/components/ui/Section";
 import { getWatchLinks, type WatchLink } from "@/lib/justwatch";
 import { COUNTRY, getSeasons, getTitle, img, type MediaType, type Title } from "@/lib/tmdb";
+import { LibraryToggle } from "@/components/library/LibraryToggle";
+import { getSession } from "@/lib/auth";
+import { setOnWatchlist, setWatched, type TitleRef } from "@/lib/library/actions";
+import { nextEpisode } from "@/lib/library/progress";
+import { getTitleLibrary } from "@/lib/library/queries";
 import { Episodes, type SeasonData } from "./components/Episodes";
 import { Heatmap } from "./components/Heatmap";
 import { Trailer } from "./components/Trailer";
+
+type Library = { signedIn: boolean; onWatchlist: boolean; watched: string[]; ref: TitleRef };
 
 export async function TitleView({ type, id }: { type: string; id: string }) {
   if ((type !== "movie" && type !== "tv") || !/^\d+$/.test(id)) notFound();
   const t = await getTitle(type, id).catch(() => notFound());
   const name = t.title ?? t.name ?? "";
-  const links = await getWatchLinks(type, t.id, name);
+  const [links, session] = await Promise.all([getWatchLinks(type, t.id, name), getSession()]);
+  const lib = session ? await getTitleLibrary(session.user.id, type, t.id) : { onWatchlist: false, watched: [] };
+  const library: Library = {
+    signedIn: session !== null,
+    ...lib,
+    ref: { type, tmdbId: t.id, title: name, posterPath: t.poster_path },
+  };
   const trailer =
     t.videos.results.find((v) => v.site === "YouTube" && v.type === "Trailer" && v.official) ??
     t.videos.results.find((v) => v.site === "YouTube" && v.type === "Trailer");
 
   return (
     <>
-      <Hero t={t} type={type} name={name} links={links} trailerKey={trailer?.key} />
+      <Hero t={t} type={type} name={name} links={links} trailerKey={trailer?.key} library={library} />
       <Container as="main" className="flex flex-col gap-section pt-12">
         <WhereToWatch links={links} fallback={t["watch/providers"].results[COUNTRY]?.link} />
         {type === "tv" && (
           <Suspense fallback={<div className="h-40 sk rounded-banner" />}>
-            <SeasonSections t={t} />
+            <SeasonSections t={t} library={library} />
           </Suspense>
         )}
         <Cast t={t} />
@@ -69,12 +82,14 @@ function Hero({
   name,
   links,
   trailerKey,
+  library,
 }: {
   t: Title;
   type: MediaType;
   name: string;
   links: WatchLink[];
   trailerKey?: string;
+  library: Library;
 }) {
   const backdrop = img(t.backdrop_path, "w1280");
   const primary = links[0];
@@ -104,6 +119,20 @@ function Hero({
                 </a>
               )}
               {trailerKey && <Trailer youtubeKey={trailerKey} title={name} />}
+              <LibraryToggle
+                kind="watchlist"
+                signedIn={library.signedIn}
+                initial={library.onWatchlist}
+                toggle={setOnWatchlist.bind(null, library.ref)}
+              />
+              {type === "movie" && (
+                <LibraryToggle
+                  kind="watched"
+                  signedIn={library.signedIn}
+                  initial={library.watched.includes("0-0")}
+                  toggle={setWatched.bind(null, { ...library.ref, minutes: t.runtime ?? 0 })}
+                />
+              )}
             </div>
           </div>
         </div>
@@ -161,7 +190,7 @@ function WhereToWatch({ links, fallback }: { links: WatchLink[]; fallback?: stri
   );
 }
 
-async function SeasonSections({ t }: { t: Title }) {
+async function SeasonSections({ t, library }: { t: Title; library: Library }) {
   const numbers = (t.seasons ?? [])
     .filter((s) => s.season_number > 0 && s.episode_count > 0)
     .map((s) => s.season_number);
@@ -177,10 +206,21 @@ async function SeasonSections({ t }: { t: Title }) {
       runtime: e.runtime,
     })),
   }));
+  const watchedRefs = library.watched.map((k) => {
+    const [season, episode] = k.split("-").map(Number);
+    return { season, episode };
+  });
+  const next = nextEpisode(
+    seasons.map((s) => ({ number: s.number, episodeCount: s.episodes.length })),
+    watchedRefs,
+  );
   return (
     <>
       <Heatmap seasons={seasons} />
-      <Episodes seasons={seasons} />
+      <Episodes
+        seasons={seasons}
+        library={{ signedIn: library.signedIn, watched: library.watched, ref: library.ref, startSeason: next?.season }}
+      />
     </>
   );
 }

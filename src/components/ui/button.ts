@@ -12,6 +12,8 @@ const tones = {
   ghost: "hover:bg-fg/10",
   /** Raised round background, for icons over content. */
   raised: "bg-raised",
+  /** Blue, for something that is on (watched, on the watchlist). */
+  accent: "bg-accent text-bg",
 } as const;
 
 const sizes = {
