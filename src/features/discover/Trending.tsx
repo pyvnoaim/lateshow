@@ -1,14 +1,42 @@
 import { PosterLink } from "@/components/PosterLink";
 import { PosterGrid } from "@/components/ui/PosterGrid";
-import { getTrending } from "@/lib/tmdb";
+import { Section } from "@/components/ui/Section";
+import { SegmentedTabs } from "@/components/ui/SegmentedTabs";
+import { getTrending, type Kind } from "@/lib/tmdb";
+import { homeHref, readHome, type HomeSearch } from "./params";
 
-export async function Trending() {
-  const cards = await getTrending();
+const TABS: { kind: Kind; label: string; param?: string }[] = [
+  { kind: "all", label: "All" },
+  { kind: "movie", label: "Movies", param: "movie" },
+  { kind: "tv", label: "Series", param: "series" },
+];
+
+// ponytail: "My services" tab comes with the service picker in settings.
+export async function Trending({ searchParams }: { searchParams: Promise<HomeSearch> }) {
+  const current = readHome(await searchParams);
+  const active = TABS.find((t) => t.param === current.trending) ?? TABS[0];
+  const cards = (await getTrending(active.kind)).slice(0, 12);
+
   return (
-    <PosterGrid>
-      {cards.map((c, i) => (
-        <PosterLink key={`${c.media_type}-${c.id}`} card={c} index={i} />
-      ))}
-    </PosterGrid>
+    <Section
+      title="Trending"
+      aside={
+        <SegmentedTabs
+          label="Trending filter"
+          items={TABS.map((t) => ({
+            key: t.kind,
+            label: t.label,
+            active: t === active,
+            href: homeHref(current, { trending: t.param }),
+          }))}
+        />
+      }
+    >
+      <PosterGrid>
+        {cards.map((c, i) => (
+          <PosterLink key={`${c.media_type}-${c.id}`} card={c} index={i} />
+        ))}
+      </PosterGrid>
+    </Section>
   );
 }

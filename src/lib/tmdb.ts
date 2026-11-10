@@ -23,6 +23,8 @@ export type Card = {
   title?: string;
   name?: string;
   poster_path: string | null;
+  backdrop_path?: string | null;
+  overview?: string;
   release_date?: string;
   first_air_date?: string;
 };
@@ -55,11 +57,31 @@ export type Title = {
   "watch/providers": { results: Record<string, { link: string } | undefined> };
 };
 
-export async function getTrending() {
+export type Kind = MediaType | "all";
+
+export async function getTrending(kind: Kind = "all") {
   "use cache";
   cacheLife("hours");
-  const data = await tmdb<{ results: Card[] }>("/trending/all/week");
+  const data = await tmdb<{ results: Card[] }>(`/trending/${kind}/week`);
   return data.results.filter((r) => r.media_type === "movie" || r.media_type === "tv");
+}
+
+/**
+ * Well rated titles that are on a subscription service in COUNTRY, one page of results.
+ * Feeds "Can't decide?". Discover results have no media_type, so it's added here.
+ */
+export async function discoverOnSubscription(type: MediaType, page: number): Promise<Card[]> {
+  "use cache";
+  cacheLife("days");
+  const data = await tmdb<{ results: Omit<Card, "media_type">[] }>(`/discover/${type}`, {
+    watch_region: COUNTRY,
+    with_watch_monetization_types: "flatrate",
+    "vote_average.gte": "7",
+    "vote_count.gte": "300",
+    sort_by: "popularity.desc",
+    page: String(page),
+  });
+  return data.results.map((r) => ({ ...r, media_type: type }));
 }
 
 export async function getTitle(type: MediaType, id: string) {

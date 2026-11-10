@@ -58,9 +58,6 @@
   --radius-banner: 28px;
 }
 
-@utility grid-cols-posters {
-  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
-}
 @utility grid-cols-people {
   grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
 }

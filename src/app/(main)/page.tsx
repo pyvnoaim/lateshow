@@ -1,18 +1,25 @@
 import { Suspense } from "react";
+import { BackdropHeroSkeleton } from "@/components/BackdropHero";
 import { Container } from "@/components/ui/Container";
 import { PosterGridSkeleton } from "@/components/ui/PosterGrid";
-import { Section } from "@/components/ui/Section";
+import { Decide } from "@/features/discover/Decide";
+import { HomeHero } from "@/features/discover/HomeHero";
 import { Trending } from "@/features/discover/Trending";
 
-// ponytail: home is just trending for now, enough to reach title pages. The full home from the canvas needs the TMDB token.
-export default function HomePage() {
+export default function HomePage({ searchParams }: PageProps<"/">) {
   return (
-    <Container as="main" className="pt-page-top">
-      <Section title="Trending this week">
-        <Suspense fallback={<PosterGridSkeleton />}>
-          <Trending />
+    <>
+      <Suspense fallback={<BackdropHeroSkeleton />}>
+        <HomeHero />
+      </Suspense>
+      <Container as="main" className="flex flex-col gap-section pt-section">
+        <Suspense fallback={<div className="h-24 sk rounded-banner" />}>
+          <Decide searchParams={searchParams} />
         </Suspense>
-      </Section>
-    </Container>
+        <Suspense fallback={<PosterGridSkeleton />}>
+          <Trending searchParams={searchParams} />
+        </Suspense>
+      </Container>
+    </>
   );
 }

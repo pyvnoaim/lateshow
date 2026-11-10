@@ -16,6 +16,7 @@ export function SegmentedTabs({ label, items }: { label: string; items: Segment[
         s.href !== undefined ? (
           <Link
             key={s.key}
+            scroll={false}
             href={s.href}
             aria-current={s.active ? "page" : undefined}
             className={`${item} ${s.active ? on : off}`}

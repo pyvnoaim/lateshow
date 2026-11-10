@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 
-const GRID = "grid grid-cols-posters gap-x-5 gap-y-8";
+// Fixed column counts that all divide 12, so a grid of 12 or 24 always ends on a full row.
+const GRID = "grid grid-cols-2 gap-x-5 gap-y-8 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6";
 
 /** Every poster grid on the site uses this, so columns and gaps never drift. */
 export function PosterGrid({ children }: { children: ReactNode }) {

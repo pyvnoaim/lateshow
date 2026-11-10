@@ -11,6 +11,14 @@ function allEpisodes(seasons: SeasonInfo[]): EpisodeRef[] {
 
 const key = (e: EpisodeRef) => `${e.season}-${e.episode}`;
 
+/** Library keys ("2-4") back into episode refs. */
+export function parseEpisodeKeys(keys: string[]): EpisodeRef[] {
+  return keys.map((k) => {
+    const [season, episode] = k.split("-").map(Number);
+    return { season, episode };
+  });
+}
+
 /**
  * The episode to watch next: the first unwatched one after the furthest watched episode.
  * Skipped episodes earlier in the show don't pull you back. Null when you're caught up.

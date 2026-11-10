@@ -1,5 +1,5 @@
 import "server-only";
-import { and, count, desc, eq, gte, sum } from "drizzle-orm";
+import { and, count, desc, eq, gte, max, sum } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import { watched, watchlist } from "@/lib/db/schema";
 import type { MediaType } from "@/lib/tmdb";
@@ -47,4 +47,16 @@ export async function getWatchTimes(userId: string, since: Date) {
     .select({ at: watched.watchedAt, minutes: watched.minutes })
     .from(watched)
     .where(and(eq(watched.userId, userId), gte(watched.watchedAt, since)));
+}
+
+/** Shows you watched episodes of, most recent first. */
+export async function getRecentShows(userId: string, limit = 5) {
+  const last = max(watched.watchedAt);
+  return db
+    .select({ tmdbId: watched.tmdbId, title: watched.title, last })
+    .from(watched)
+    .where(and(eq(watched.userId, userId), eq(watched.mediaType, "tv")))
+    .groupBy(watched.tmdbId)
+    .orderBy(desc(last))
+    .limit(limit);
 }

@@ -1,10 +1,10 @@
 import { ArrowUpRight, Play, Star } from "lucide-react";
 import Image from "next/image";
 import { notFound } from "next/navigation";
-import { Suspense, ViewTransition } from "react";
+import { Suspense } from "react";
 import { LibraryToggle } from "@/components/library/LibraryToggle";
 import { PosterLink } from "@/components/PosterLink";
-import { TmdbImage } from "@/components/TmdbImage";
+import { BackdropHero, BackdropHeroSkeleton, heroTitle } from "@/components/BackdropHero";
 import { buttonStyles } from "@/components/ui/button";
 import { Container } from "@/components/ui/Container";
 import { PosterGrid, PosterGridSkeleton } from "@/components/ui/PosterGrid";
@@ -12,7 +12,7 @@ import { Section } from "@/components/ui/Section";
 import { getSession } from "@/lib/auth";
 import { getWatchLinks, type WatchLink } from "@/lib/justwatch";
 import { setOnWatchlist, setWatched, type TitleRef } from "@/lib/library/actions";
-import { nextEpisode, type EpisodeRef } from "@/lib/library/progress";
+import { nextEpisode, parseEpisodeKeys, type EpisodeRef } from "@/lib/library/progress";
 import { getTitleLibrary } from "@/lib/library/queries";
 import { COUNTRY, getSeasons, getTitle, img, type MediaType, type Title } from "@/lib/tmdb";
 import { Episodes, type SeasonData } from "./components/Episodes";
@@ -20,12 +20,6 @@ import { RatingsGrid } from "./components/RatingsGrid";
 import { Trailer } from "./components/Trailer";
 
 type Library = { signedIn: boolean; onWatchlist: boolean; watched: string[]; ref: TitleRef };
-
-const toRefs = (keys: string[]): EpisodeRef[] =>
-  keys.map((k) => {
-    const [season, episode] = k.split("-").map(Number);
-    return { season, episode };
-  });
 
 export async function TitleView({ type, id }: { type: string; id: string }) {
   if ((type !== "movie" && type !== "tv") || !/^\d+$/.test(id)) notFound();
@@ -46,7 +40,7 @@ export async function TitleView({ type, id }: { type: string; id: string }) {
     type === "tv" && lib.watched.length > 0
       ? nextEpisode(
           (t.seasons ?? []).map((s) => ({ number: s.season_number, episodeCount: s.episode_count })),
-          toRefs(lib.watched),
+          parseEpisodeKeys(lib.watched),
         )
       : null;
 
@@ -108,58 +102,47 @@ function Hero({
   library: Library;
   next: EpisodeRef | null;
 }) {
-  const backdrop = img(t.backdrop_path, "original");
   const primary = links[0];
   const watchLabel = primary
     ? `${next ? `S${next.season} E${next.episode}` : primary.included ? "Watch" : "Rent or buy"} on ${primary.service}`
     : null;
 
   return (
-    <section className="relative flex min-h-hero flex-col justify-end overflow-hidden bg-raised max-sm:min-h-hero-sm">
-      <ViewTransition name={`title-${type}-${t.id}`} share="morph" default="none">
-        <div className="absolute inset-0">
-          {backdrop && (
-            <TmdbImage src={backdrop} lowSrc={img(t.backdrop_path, "w300")!} alt="" sizes="100vw" priority />
-          )}
-        </div>
-      </ViewTransition>
-      <div className="absolute inset-0 bg-linear-to-t from-bg via-bg/35 to-bg/60" />
-      <Container className="relative flex rise flex-col gap-5 pt-bar pb-14">
-        <h1 className="text-hero leading-display font-bold tracking-display max-sm:text-page">{name}</h1>
-        <div className="flex flex-wrap items-center gap-x-2 text-label text-fg/80 nums">
-          <span>{meta(t, type)}</span>
-          {t.vote_average > 0 && (
-            <span className="inline-flex items-center gap-1">
-              · <Star size={13} strokeWidth={2} aria-hidden /> {t.vote_average.toFixed(1)}
-            </span>
-          )}
-        </div>
-        {t.overview && <p className="line-clamp-3 max-w-search text-body leading-normal text-fg/80">{t.overview}</p>}
-        <div className="flex flex-wrap items-center gap-3 pt-2">
-          {primary && watchLabel && (
-            <a href={primary.url} target="_blank" rel="noopener noreferrer" className={buttonStyles("primary")}>
-              <Play size={14} fill="currentColor" strokeWidth={0} aria-hidden />
-              {watchLabel}
-            </a>
-          )}
-          {trailerKey && <Trailer youtubeKey={trailerKey} title={name} />}
+    <BackdropHero backdropPath={t.backdrop_path} transitionName={`title-${type}-${t.id}`}>
+      <h1 className={heroTitle}>{name}</h1>
+      <div className="flex flex-wrap items-center gap-x-2 text-label text-fg/80 nums">
+        <span>{meta(t, type)}</span>
+        {t.vote_average > 0 && (
+          <span className="inline-flex items-center gap-1">
+            · <Star size={13} strokeWidth={2} aria-hidden /> {t.vote_average.toFixed(1)}
+          </span>
+        )}
+      </div>
+      {t.overview && <p className="line-clamp-3 max-w-search text-body leading-normal text-fg/80">{t.overview}</p>}
+      <div className="flex flex-wrap items-center gap-3 pt-2">
+        {primary && watchLabel && (
+          <a href={primary.url} target="_blank" rel="noopener noreferrer" className={buttonStyles("primary")}>
+            <Play size={14} fill="currentColor" strokeWidth={0} aria-hidden />
+            {watchLabel}
+          </a>
+        )}
+        {trailerKey && <Trailer youtubeKey={trailerKey} title={name} />}
+        <LibraryToggle
+          kind="watchlist"
+          signedIn={library.signedIn}
+          initial={library.onWatchlist}
+          toggle={setOnWatchlist.bind(null, library.ref)}
+        />
+        {type === "movie" && (
           <LibraryToggle
-            kind="watchlist"
+            kind="watched"
             signedIn={library.signedIn}
-            initial={library.onWatchlist}
-            toggle={setOnWatchlist.bind(null, library.ref)}
+            initial={library.watched.includes("0-0")}
+            toggle={setWatched.bind(null, { ...library.ref, minutes: t.runtime ?? 0 })}
           />
-          {type === "movie" && (
-            <LibraryToggle
-              kind="watched"
-              signedIn={library.signedIn}
-              initial={library.watched.includes("0-0")}
-              toggle={setWatched.bind(null, { ...library.ref, minutes: t.runtime ?? 0 })}
-            />
-          )}
-        </div>
-      </Container>
-    </section>
+        )}
+      </div>
+    </BackdropHero>
   );
 }
 
@@ -257,7 +240,7 @@ function Cast({ t }: { t: Title }) {
 export function TitleSkeleton() {
   return (
     <>
-      <div className="min-h-hero sk max-sm:min-h-hero-sm" />
+      <BackdropHeroSkeleton />
       <Container className="flex flex-col gap-6 pt-section">
         <div className="h-8 w-72 sk rounded-lg" />
         <PosterGridSkeleton count={6} />
