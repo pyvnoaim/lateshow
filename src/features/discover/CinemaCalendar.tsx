@@ -1,14 +1,14 @@
 import { PosterGrid } from "@/components/ui/PosterGrid";
 import { Section } from "@/components/ui/Section";
-import { getUpcomingInCinemas } from "@/lib/tmdb";
+import { getCinemaCalendar } from "@/lib/tmdb";
 import { CinemaPoster } from "./CinemaPoster";
 
 const longDate = (iso: string) =>
   new Date(iso).toLocaleDateString("en", { weekday: "long", month: "long", day: "numeric", timeZone: "UTC" });
 
-/** Every upcoming German cinema release, grouped by release day. */
+/** German cinema releases for the next 6 months, grouped by release day. */
 export async function CinemaCalendar() {
-  const movies = await getUpcomingInCinemas().catch(() => []);
+  const movies = await getCinemaCalendar().catch(() => []);
   if (movies.length === 0) {
     return <p className="text-body text-muted">No upcoming releases right now. Check back soon.</p>;
   }

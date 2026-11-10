@@ -293,3 +293,43 @@ export async function getGenreNames(): Promise<Record<number, string>> {
   );
   return Object.fromEntries(lists.flatMap((l) => l.genres.map((g) => [g.id, shortGenre(g.name)])));
 }
+
+/**
+ * German cinema releases for the next 6 months (theatrical or limited), with the German date and a trailer.
+ * Discover filters by German release dates when `region` is set. Feeds the /cinemas calendar.
+ */
+export async function getCinemaCalendar() {
+  "use cache";
+  cacheLife("hours");
+  const day = 24 * 60 * 60 * 1000;
+  const today = new Date().toISOString().slice(0, 10);
+  const until = new Date(Date.now() + 182 * day).toISOString().slice(0, 10);
+  const pages = await Promise.all(
+    [1, 2, 3].map((page) =>
+      tmdb<{ results: Omit<Card, "media_type">[] }>("/discover/movie", {
+        region: COUNTRY,
+        with_release_type: "2|3",
+        "release_date.gte": today,
+        "release_date.lte": until,
+        sort_by: "popularity.desc",
+        page: String(page),
+      }),
+    ),
+  );
+  const unique = [...new Map(pages.flatMap((p) => p.results).map((m) => [m.id, m])).values()];
+  const movies = await Promise.all(
+    unique.map(async (m) => {
+      const t = await getTitle("movie", String(m.id)).catch(() => null);
+      return t
+        ? {
+            card: { ...m, media_type: "movie" as const },
+            date: cinemaDate(t),
+            trailer: pickTrailer(t.videos.results)?.key,
+          }
+        : null;
+    }),
+  );
+  return movies
+    .filter((m): m is NonNullable<typeof m> => m !== null && m.date !== null && m.date >= today && m.date <= until)
+    .toSorted((a, b) => a.date!.localeCompare(b.date!));
+}
