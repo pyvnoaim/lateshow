@@ -72,6 +72,7 @@ export function Episodes({ seasons, library }: { seasons: SeasonData[]; library:
             {e.runtime ? <span className="text-caption text-muted nums">{e.runtime} min</span> : null}
             <LibraryToggle
               kind="watched"
+              size="iconSm"
               signedIn={library.signedIn}
               initial={watched.has(`${season.number}-${e.n}`)}
               toggle={(on) =>

@@ -163,10 +163,15 @@ function WhereToWatch({ links, fallback, country }: { links: WatchLink[]; fallba
       href={l.url}
       target="_blank"
       rel="noopener noreferrer"
-      className="inline-flex items-center gap-1 transition-colors hover:text-fg"
+      className="group -mx-2.5 inline-flex h-9 items-center gap-1 rounded-full px-2.5 transition-colors duration-200 hover:bg-fg/10"
     >
       {l.service}
-      <ArrowUpRight size={14} strokeWidth={2} className="text-muted" aria-hidden />
+      <ArrowUpRight
+        size={14}
+        strokeWidth={2}
+        aria-hidden
+        className="text-muted transition-all duration-200 ease-spring group-hover:translate-x-0.5 group-hover:-translate-y-0.5 group-hover:text-fg"
+      />
     </a>
   );
 

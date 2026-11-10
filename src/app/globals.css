@@ -159,7 +159,9 @@
   overscroll-behavior: contain;
   scrollbar-width: thin;
   scrollbar-color: rgb(255 255 255 / 0.18) transparent;
-  mask-image: linear-gradient(to bottom, transparent, black 20px, black calc(100% - 28px), transparent);
+  mask-image: linear-gradient(to bottom, transparent, black 16px, black calc(100% - 24px), transparent);
+  /* content starts and ends inside the faded strips, so nothing looks dimmed until it actually scrolls under them */
+  padding-block: 16px 24px;
 }
 /* Blue tinted glass: "this is on" (watched, on the watchlist). Same material as the other glass. */
 @utility glass-accent {

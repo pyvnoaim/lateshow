@@ -16,6 +16,8 @@ const sizes = {
   md: "h-12 px-6 text-base",
   sm: "h-11 px-5 text-label",
   icon: "size-11",
+  /** Small round icon for dense lists. The invisible ring keeps the tap target finger-sized. */
+  iconSm: "relative size-8 before:absolute before:-inset-1.5",
 } as const;
 
 export type ButtonTone = keyof typeof tones;

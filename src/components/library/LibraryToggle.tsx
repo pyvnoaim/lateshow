@@ -25,7 +25,7 @@ export function LibraryToggle({
   initial: boolean;
   toggle: (on: boolean) => Promise<void>;
   signedIn: boolean;
-  size?: Extract<ButtonSize, "icon">;
+  size?: Extract<ButtonSize, "icon" | "iconSm">;
 }) {
   const k = kinds[kind];
   const [saved, setSaved] = useState(initial);
@@ -36,7 +36,7 @@ export function LibraryToggle({
   if (!signedIn) {
     return (
       <Link href="/login" aria-label={`${k.off} (sign in first)`} className={buttonStyles("glass", size)}>
-        <Icon size={20} strokeWidth={1.75} aria-hidden />
+        <Icon size={size === "iconSm" ? 16 : 20} strokeWidth={1.75} aria-hidden />
       </Link>
     );
   }
@@ -62,7 +62,13 @@ export function LibraryToggle({
       onClick={flip}
       className={buttonStyles(on ? "accent" : "glass", size)}
     >
-      <Icon key={String(on)} size={20} strokeWidth={on ? 2.25 : 1.75} aria-hidden className="pop" />
+      <Icon
+        key={String(on)}
+        size={size === "iconSm" ? 16 : 20}
+        strokeWidth={on ? 2.25 : 1.75}
+        aria-hidden
+        className="pop"
+      />
     </button>
   );
 }
