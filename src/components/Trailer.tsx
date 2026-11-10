@@ -2,6 +2,7 @@
 
 import * as Dialog from "@radix-ui/react-dialog";
 import { Play, X } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
 import { buttonStyles } from "./ui/button";
 
 /** Trailer in a dialog. `pill` is the labelled glass button, `text` a small grey link (under posters). */
@@ -14,8 +15,23 @@ export function Trailer({
   title: string;
   variant?: "pill" | "text";
 }) {
+  const [open, setOpen] = useState(false);
+  const close = useRef<HTMLButtonElement>(null);
+
+  // Clicking into the YouTube player moves keyboard focus into its frame, and the page never sees Esc again.
+  // Take focus back right after (the click itself still reaches YouTube), so Esc keeps closing the dialog.
+  useEffect(() => {
+    if (!open) return;
+    const reclaim = () =>
+      setTimeout(() => {
+        if (document.activeElement?.tagName === "IFRAME") close.current?.focus({ preventScroll: true });
+      }, 0);
+    window.addEventListener("blur", reclaim);
+    return () => window.removeEventListener("blur", reclaim);
+  }, [open]);
+
   return (
-    <Dialog.Root>
+    <Dialog.Root open={open} onOpenChange={setOpen}>
       <Dialog.Trigger
         aria-label={variant === "text" ? `Play the ${title} trailer` : undefined}
         className={
@@ -41,6 +57,7 @@ export function Trailer({
             />
           </div>
           <Dialog.Close
+            ref={close}
             aria-label="Close trailer"
             className={buttonStyles("raised", "icon", "absolute -top-14 right-0")}
           >

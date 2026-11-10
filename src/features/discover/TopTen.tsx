@@ -2,7 +2,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { Section } from "@/components/ui/Section";
 import { getTopInCountry } from "@/lib/justwatch";
-import { getTitle, img } from "@/lib/tmdb";
+import { ServiceBadge } from "@/components/ServiceBadge";
+import { getTitle, img, subscriptionServices } from "@/lib/tmdb";
 
 /** The 10 most watched titles in Germany right now, big rank numbers, scrolls sideways. */
 export async function TopTen() {
@@ -27,11 +28,20 @@ export async function TopTen() {
               aria-label={`${i + 1}. ${t.title ?? t.name}`}
               className="group flex items-end"
             >
-              <span aria-hidden className="-mr-3 text-hero leading-display font-bold tracking-display text-fg/15 nums">
+              <span
+                aria-hidden
+                className="-mr-3 pb-6.5 text-hero leading-display font-bold tracking-display text-fg/15 nums"
+              >
                 {i + 1}
               </span>
-              <div className="relative aspect-poster w-36 lift overflow-hidden rounded-poster bg-raised outline-1 -outline-offset-1 outline-hairline">
-                <Image src={img(t.poster_path, "w342")!} alt="" fill sizes="144px" className="object-cover" />
+              <div className="flex w-36 flex-col gap-2.5">
+                <div className="relative aspect-poster lift overflow-hidden rounded-poster bg-raised outline-1 -outline-offset-1 outline-hairline">
+                  <Image src={img(t.poster_path, "w342")!} alt="" fill sizes="144px" className="object-cover" />
+                </div>
+                {/* fixed height so every column lines up, logo or not */}
+                <span className="flex h-4 text-caption text-muted">
+                  {subscriptionServices(t)[0] && <ServiceBadge service={subscriptionServices(t)[0]} />}
+                </span>
               </div>
             </Link>
           </li>

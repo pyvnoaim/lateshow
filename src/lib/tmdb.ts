@@ -55,7 +55,10 @@ export type Title = {
   videos: { results: { key: string; site: string; type: string; official: boolean }[] };
   recommendations: { results: Card[] };
   "watch/providers": {
-    results: Record<string, { link: string; flatrate?: { provider_id: number; provider_name: string }[] } | undefined>;
+    results: Record<
+      string,
+      { link: string; flatrate?: { provider_id: number; provider_name: string; logo_path: string }[] } | undefined
+    >;
   };
   next_episode_to_air?: { air_date: string; season_number: number; episode_number: number; name: string } | null;
   release_dates?: { results: { iso_3166_1: string; release_dates: { type: number; release_date: string }[] }[] };
@@ -184,9 +187,14 @@ export async function getUpcomingInCinemas() {
     .toSorted((a, b) => a.date!.localeCompare(b.date!));
 }
 
-/** Services in COUNTRY that include this title in a subscription (Netflix, Prime Video...). */
-export function subscriptionServices(t: Pick<Title, "watch/providers">) {
-  return t["watch/providers"].results[COUNTRY]?.flatrate?.map((p) => p.provider_name) ?? [];
+export type Service = { name: string; logoPath: string };
+
+/** Services in COUNTRY that include this title in a subscription (Netflix, Prime Video...), TMDB's order. */
+export function subscriptionServices(t: Pick<Title, "watch/providers">): Service[] {
+  return (
+    t["watch/providers"].results[COUNTRY]?.flatrate?.map((p) => ({ name: p.provider_name, logoPath: p.logo_path })) ??
+    []
+  );
 }
 
 const daysAgo = (n: number) => new Date(Date.now() - n * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);

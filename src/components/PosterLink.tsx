@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ViewTransition, type CSSProperties } from "react";
-import { img, type Card } from "@/lib/tmdb";
+import { img, type Card, type Service } from "@/lib/tmdb";
+import { ServiceBadge } from "./ServiceBadge";
 import { TmdbImage } from "./TmdbImage";
 
 /**
@@ -12,12 +13,15 @@ export function PosterLink({
   index = 0,
   morph = true,
   caption,
+  service,
 }: {
   card: Card;
   index?: number;
   morph?: boolean;
   /** Replaces the "Movie · 2024" line. `null` hides it (the caller renders its own line under the link). */
   caption?: string | null;
+  /** Shows the service logo and name as the caption instead. */
+  service?: Service;
 }) {
   const name = card.title ?? card.name ?? "";
   const year = (card.release_date ?? card.first_air_date ?? "").slice(0, 4);
@@ -51,10 +55,16 @@ export function PosterLink({
         artwork
       )}
       <span className="text-label font-medium">{name}</span>
-      {caption !== null && (
-        <span className="-mt-2 text-caption text-muted">
-          {caption ?? `${card.media_type === "tv" ? "Series" : "Movie"}${year ? ` · ${year}` : ""}`}
+      {service ? (
+        <span className="-mt-2 flex text-caption text-muted">
+          <ServiceBadge service={service} />
         </span>
+      ) : (
+        caption !== null && (
+          <span className="-mt-2 text-caption text-muted">
+            {caption ?? `${card.media_type === "tv" ? "Series" : "Movie"}${year ? ` · ${year}` : ""}`}
+          </span>
+        )
       )}
     </Link>
   );
