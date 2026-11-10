@@ -1,6 +1,5 @@
 import type { Metadata } from "next";
 import { Inter_Tight } from "next/font/google";
-import { Dock } from "@/components/Dock";
 import { TopBar } from "@/components/TopBar";
 import "./globals.css";
 
@@ -17,9 +16,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="relative min-h-dvh bg-bg text-fg">
         <TopBar />
         {children}
-        {/* room so the floating dock never covers the end of a page. TMDB credit lives on /about */}
-        <div aria-hidden className="h-40" />
-        <Dock />
+        <div aria-hidden className="h-24" />
       </body>
     </html>
   );

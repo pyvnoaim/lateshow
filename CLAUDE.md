@@ -146,10 +146,10 @@ Rules:
 - No signature motif. Plain black stays. Tried and rejected: ambient poster-color glow behind pages (liked as a concept board,
   disliked once applied to the real pages), cinema craft (letterbox, grain, mono details), serif accent type (Instrument Serif italic), ticket stubs.
   Premium has to come from states, glass, motion and type details, not decoration.
-- Navigation (picked 2026-11-10 on the canvas "Lateshow drafts", https://claude.ai/artifact/8EkS5HkArQEZrCnRYzy1vi):
-  top bar = name left, wide glass search center (`/` focuses it), "up next" chip right (play + show + S2 E4 + progress, opens the service).
-  Bottom = floating glass dock: Home, Watchlist, Rooms, You. Chip hidden on Home (the hero is already Continue watching).
-  Phone: top bar shrinks to name + search icon, dock stays.
+- Navigation (2026-11-10, "navbar C" on the canvas https://claude.ai/artifact/8EkS5HkArQEZrCnRYzy1vi): one top bar, no dock.
+  Left: name + Home / Watchlist / Rooms. Right: "up next" chip (play + show + S2 E4 + progress, opens the service), search icon, avatar.
+  Search is its own page (/search), "/" anywhere opens it. Earlier picks (B+C+D with dock, wide center search) were dropped.
+  Phone: links hidden for now, needs a phone menu later.
 - Page drafts on that canvas: full-bleed backdrop hero on Home and Title, compact episode list with ratings grid beside it,
   profile led by one big sentence ("312 hours watched.") + Watching cards + year heatmap (white) + recent posters, History/Watchlist as tabs.
   Posters 2:3, 10 px corners, 1 px 8% white inner outline.

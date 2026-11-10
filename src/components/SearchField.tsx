@@ -3,8 +3,8 @@
 import { Search } from "lucide-react";
 import { useEffect, useRef } from "react";
 
-/** Wide glass search in the top bar. "/" anywhere focuses it. Submits to /search?q= */
-export function SearchField({ defaultValue = "" }: { defaultValue?: string }) {
+/** Glass search pill on /search. "/" anywhere on the page focuses it. Submits to /search?q= */
+export function SearchField({ defaultValue = "", autoFocus = false }: { defaultValue?: string; autoFocus?: boolean }) {
   const ref = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -28,6 +28,7 @@ export function SearchField({ defaultValue = "" }: { defaultValue?: string }) {
         name="q"
         type="search"
         defaultValue={defaultValue}
+        autoFocus={autoFocus}
         placeholder="Find a movie, series or person"
         autoComplete="off"
         className="min-w-0 flex-1 bg-transparent text-[15px] text-fg outline-none placeholder:text-muted"
