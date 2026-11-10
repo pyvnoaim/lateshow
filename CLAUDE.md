@@ -26,27 +26,32 @@ Design draft (canvas, 3 pages): https://claude.ai/artifact/CXbsoho5g1QCQkmL31d93
 
 ## Layers (build in order, each works without the next)
 
+Minimal design, few features, mostly quality of life (decided 2026-11-10).
+
 1. **Core**
-   - Home: search, "Continue watching" hero, trending (All / Movies / Series / On my services), leaving soon, watch room CTA, "I can't decide" wheel.
-   - Title page (what clicking a poster opens): backdrop hero, overview, Mark next episode watched, Catch me up, watchlist, rate.
+   - Home: search, "Continue watching", trending (All / Movies / Series / On my services), watch room CTA, "I can't decide".
+   - Title page (what clicking a poster opens): backdrop hero, overview, Mark next episode watched, watchlist, mark watched.
      Where to watch in Germany with direct "Watch on <service> ↗" links, trailer, "Because you liked X" row,
      episode ratings heatmap (brighter = better, ring = seen), episode list with season tabs and watched ticks, cast.
+   - "I can't decide" (solo): pick Movie or Series, get 3 picks from your services.
 2. **Profile**
-   - Watched history (diary by month: date, title, episode or movie, stars), watchlist, progress per show, stats (hours, movies, episodes, top genre, genres, hours per month).
+   - Watched history, watchlist, progress per show, stats (hours, movies, episodes, top genre, genres, hours per month).
    - Import history from Netflix (viewing history CSV), Letterboxd and Trakt exports.
-   - Calendar feed (.ics) of new episodes for shows you watch, subscribe in Apple Calendar.
-   - Alerts: watchlist titles leaving your services soon, and titles newly arriving on your services.
-   - Year in review card (shareable, Wrapped style).
 3. **Friends**
    - Follow by link or username, friends' activity this week, taste match %, friends' ratings on title pages, invite friends to rooms.
-4. **Spoiler-free recaps**: "catch me up to S2 E4", written by Claude from TMDB episode summaries (small cost per recap).
-5. **Watch together rooms**
-   - Every pick game (swipe, bracket, wheel, solo wheel) starts with one choice: Movie or Series. The game then only uses that type.
-     In a room, the host picks it.
+4. **Watch together rooms**
+   - Every pick game starts with one choice: Movie or Series. The game then only uses that type. The host picks it.
    - Default: everyone swipes on titles available on the group's shared services, first match wins.
    - Game mode, main game: tournament bracket, 8 titles, vote head to head 8 → 4 → 2 → 1.
-   - Category wheel: everyone adds a category, wheel spins, 3 picks from it. Also solo on home as "I can't decide".
-   - Maybe later: hot seat (each round one person picks genre / bans one / picks decade).
+   - Category wheel: everyone adds a category, wheel spins, 3 picks from it.
+
+### Later (not planned now)
+
+- Calendar feed (.ics) of new episodes. Alerts when watchlist titles leave your services. Rating titles.
+
+### Cut (2026-11-10)
+
+- Claude spoiler-free recaps, year in review card, hot seat game.
 
 ## Data (must be free)
 
@@ -85,7 +90,7 @@ One Next.js app on the VPS. No separate backend, no paid services.
 - Hosting: Docker on the VPS behind Nginx Proxy Manager, Cloudflare DNS, subdomain on pyvno.xyz once there's a real name.
 - Screenshot checks: Playwright (playwright-core + system Chrome).
 - Backups: nightly copy of the SQLite file off the VPS, set up in layer 2 BEFORE the first real account. There are no backups anywhere today.
-- Later: watch rooms (layer 5) need realtime, decide then (SSE vs a tiny WebSocket service). Recaps (layer 4) use the Claude API.
+- Later: watch rooms (layer 4) need realtime, decide then (SSE vs a tiny WebSocket service).
 - Considered and skipped: SvelteKit (lighter, but Radix and Motion are React), Astro (better for content sites).
 
 ## Design decisions
@@ -125,5 +130,5 @@ One Next.js app on the VPS. No separate backend, no paid services.
 ## Open
 
 - Verify current free limits of JustWatch GraphQL / Streaming Availability before building links.
-- Next design pass: Watch on button, trailer, "Because you liked" on title page; import, calendar, year in review, friends on profile;
+- Next design pass: Watch on button, trailer, "Because you liked" on title page; import, friends on profile;
   new import page; room screen with bracket; wheel on home.
