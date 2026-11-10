@@ -4,14 +4,15 @@ export type Segment = { key: string; label: string; active: boolean } & (
   { href: string; onSelect?: never } | { onSelect: () => void; href?: never }
 );
 
-const item = "press flex h-9 items-center rounded-full px-4 text-small font-semibold transition-colors";
-const on = "bg-fg text-bg";
+// Plain text like the top bar links: active is white, the rest grey. Tall rows keep a 44px tap target.
+const item = "flex h-11 items-center text-label transition-colors";
+const on = "text-fg";
 const off = "text-muted hover:text-fg";
 
-/** Pill switcher. Links when the choice lives in the URL (profile tabs), buttons when it's local state (season tabs). */
+/** Text switcher. Links when the choice lives in the URL (profile tabs), buttons when it's local state (season tabs). */
 export function SegmentedTabs({ label, items }: { label: string; items: Segment[] }) {
   return (
-    <nav aria-label={label} className="flex w-fit flex-wrap gap-1 rounded-full bg-raised p-1">
+    <nav aria-label={label} className="flex w-fit flex-wrap gap-x-6">
       {items.map((s) =>
         s.href !== undefined ? (
           <Link

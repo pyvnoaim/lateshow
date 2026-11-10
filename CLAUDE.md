@@ -200,6 +200,8 @@ Run `pnpm check` before every commit. It must pass.
 - Sign in page (canvas "Sign in", approved 2026-11-10): only the name at the top, no search or dock. Headline "Everything you watch. One place.",
   email + white "Email me a link" button inside ONE glass pill (same shape as the search bar). Then "Check your inbox." state with resend after 30 s.
   Rule: inputs are glass pills like search, never boxes with their own radius.
+- Switchers (tabs, filters, Movie/Series, seasons) are plain text like the top bar links: active white, rest grey, no pill or box.
+  The white pill switcher was disliked (2026-11-10). One component: `SegmentedTabs`.
   Layout: split. Form left-aligned on the left half, right half = wall of real posters (4 columns, tilted -6deg, each drifting up
   slowly at its own speed, looping), faded into black toward the form and at top/bottom. Hidden on phones, static with reduced motion.
 - Posters in the draft are colored placeholder blocks until TMDB images are in.
