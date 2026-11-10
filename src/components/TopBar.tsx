@@ -3,16 +3,17 @@ import { Suspense } from "react";
 import { AccountButton } from "./AccountButton";
 import { NavLinks, NavLinksView } from "./NavLinks";
 import { NavSearch } from "./NavSearch";
+import { ScrollHeader } from "./ScrollHeader";
 import { Container } from "./ui/Container";
 
 /**
- * Navbar C: name + links left, (up next chip) + search + you right. Sits over the page so backdrops run underneath.
+ * Navbar C: name + links left, search + you right. Fixed, clear over heroes, frosted glass once you scroll.
  * ponytail: the "up next" chip comes with the library feature (needs watch progress). Watchlist, Rooms and the profile (/u/me) land with later layers.
  * ponytail: links are hidden on phones until there's a phone menu.
  */
 export function TopBar() {
   return (
-    <header className="absolute inset-x-0 top-0 z-20">
+    <ScrollHeader>
       <Container className="flex h-bar items-center gap-8">
         <Link href="/" className="text-logo font-bold tracking-tight">
           Lateshow
@@ -29,6 +30,6 @@ export function TopBar() {
           </Suspense>
         </div>
       </Container>
-    </header>
+    </ScrollHeader>
   );
 }
