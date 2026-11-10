@@ -224,8 +224,8 @@ Rules:
 - Switchers (tabs, filters, Movie/Series, seasons) are plain text like the top bar links: active white, rest grey, no pill or box.
   The white pill switcher was disliked (2026-11-10). One component: `SegmentedTabs`.
 - Posters stay clean: no buttons on the artwork. Extra actions go in the caption line under the title (e.g. "Nov 12 · ▶ Trailer").
-  Layout: split. Form left-aligned on the left half, right half = wall of real posters (4 columns, tilted -6deg, each drifting up
-  slowly at its own speed, looping), faded into black toward the form and at top/bottom. Hidden on phones, static with reduced motion.
+  Layout (2026-11-11): the drifting poster wall fills the whole page behind the form (8 tilted columns), dark on the form
+  side; below desktop width it's blurred and dimmed so the text reads. Logo and form on the shared page column (Container).
 - Posters in the draft are colored placeholder blocks until TMDB images are in.
 - Design system (own, no UI kit), drawn on the canvas as "Design system":
   - Colors (only these 6): bg #000, surface #111112, raised #1d1d1f, text #f5f5f7, muted #86868b, accent #2997ff.
