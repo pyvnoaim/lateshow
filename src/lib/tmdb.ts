@@ -9,7 +9,7 @@ const API = "https://api.themoviedb.org/3";
 
 async function tmdb<T>(path: string, params: Record<string, string> = {}): Promise<T> {
   const url = `${API}${path}?${new URLSearchParams({ language: "en-US", ...params })}`;
-  const res = await fetch(url, { headers: { Authorization: `Bearer ${env().TMDB_TOKEN}` } });
+  const res = await fetch(url, { headers: { Authorization: `Bearer ${env("tmdb").TMDB_TOKEN}` } });
   if (!res.ok) throw new Error(`TMDB ${res.status} for ${path}`);
   return res.json();
 }

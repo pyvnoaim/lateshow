@@ -1,25 +1,33 @@
 const base =
-  "press inline-flex shrink-0 items-center justify-center gap-2 rounded-full font-semibold transition-colors";
+  "press inline-flex shrink-0 items-center justify-center gap-2 rounded-full font-semibold transition-colors disabled:pointer-events-none disabled:opacity-50";
 
-const variants = {
+const tones = {
   /** White pill, the one main action on a screen. */
-  primary: "h-12 bg-fg px-6 text-base text-bg",
+  primary: "bg-fg text-bg hover:bg-fg/90",
   /** Frosted glass, secondary actions over images. */
-  glass: "glass h-12 px-6 text-base",
+  glass: "glass",
   /** Quiet raised pill, lists of choices (services, filters). */
-  quiet: "h-11 bg-raised px-5 text-label",
-  /** Round icon button without a background until hover. */
-  icon: "size-11 hover:bg-fg/10",
-  /** Round icon button on a raised background. */
-  iconRaised: "size-11 bg-raised",
+  quiet: "bg-raised",
+  /** No background until hover, for icons and text actions. */
+  ghost: "hover:bg-fg/10",
+  /** Raised round background, for icons over content. */
+  raised: "bg-raised",
 } as const;
 
-export type ButtonVariant = keyof typeof variants;
+const sizes = {
+  md: "h-12 px-6 text-base",
+  sm: "h-11 px-5 text-label",
+  icon: "size-11",
+} as const;
+
+export type ButtonTone = keyof typeof tones;
+export type ButtonSize = keyof typeof sizes;
 
 /**
  * Class names for anything that looks like a button: <button>, <a>, <Link>, Radix triggers.
- * A helper instead of a component so it works on every element without prop forwarding.
+ * Tone and size are separate so no caller ever has to override a height or padding.
+ * `className` is for layout only (position, margin), never for look.
  */
-export function buttonStyles(variant: ButtonVariant = "primary", className = "") {
-  return `${base} ${variants[variant]} ${className}`.trim();
+export function buttonStyles(tone: ButtonTone = "primary", size: ButtonSize = "md", className = "") {
+  return `${base} ${tones[tone]} ${sizes[size]} ${className}`.trim();
 }

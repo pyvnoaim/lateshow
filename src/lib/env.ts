@@ -2,24 +2,34 @@ import "server-only";
 import { z } from "zod";
 
 const TMDB_MISSING = 'TMDB "API Read Access Token" missing. Put it in .env.local, see .env.example';
+const SECRET_MISSING =
+  "BETTER_AUTH_SECRET missing or shorter than 32 characters. Generate one with: openssl rand -base64 32";
 
-const schema = z.object({
-  TMDB_TOKEN: z.string({ error: TMDB_MISSING }).min(1, TMDB_MISSING),
-});
+/** Grouped by area, so a page that only needs auth still works while the TMDB token isn't set up. */
+const schemas = {
+  tmdb: z.object({ TMDB_TOKEN: z.string({ error: TMDB_MISSING }).min(1, TMDB_MISSING) }),
+  auth: z.object({
+    BETTER_AUTH_SECRET: z.string({ error: SECRET_MISSING }).min(32, SECRET_MISSING),
+    BETTER_AUTH_URL: z.url().default("http://localhost:3000"),
+  }),
+  db: z.object({ DATABASE_PATH: z.string().min(1).default("data/lateshow.db") }),
+};
 
-let cached: z.infer<typeof schema> | undefined;
+type Area = keyof typeof schemas;
+type Env<A extends Area> = z.infer<(typeof schemas)[A]>;
+const cache = new Map<Area, unknown>();
 
-/**
- * The only place that reads process.env. Validated on first use and cached.
- * ponytail: lazy instead of at boot so pages without TMDB (about, sign in) still run during setup.
- */
-export function env() {
-  if (cached) return cached;
-  const result = schema.safeParse(process.env);
-  if (!result.success) {
-    const lines = result.error.issues.map((i) => `- ${i.path.join(".")}: ${i.message}`);
-    throw new Error(`Invalid environment:\n${lines.join("\n")}`);
+/** The only place that reads process.env. Validated on first use per area, then cached. */
+export function env<A extends Area>(area: A): Env<A> {
+  if (!cache.has(area)) {
+    const result = schemas[area].safeParse(process.env);
+    if (!result.success) {
+      const lines = result.error.issues.map((i) => `- ${i.path.join(".")}: ${i.message}`);
+      throw new Error(`Invalid environment (${area}):\n${lines.join("\n")}`);
+    }
+    cache.set(area, result.data);
   }
-  cached = result.data;
-  return cached;
+  return cache.get(area) as Env<A>;
 }
+
+export const isProduction = process.env.NODE_ENV === "production";

@@ -37,6 +37,7 @@
   --container-reading: 816px;
   --container-hero-text: 700px;
   --container-search: 560px;
+  --container-form: 480px;
   --container-trailer: 1100px;
   --spacing-bar: 88px; /* top bar height, also the offset for heroes under it */
   --spacing-page-top: 120px; /* top padding of pages without a hero */
@@ -124,6 +125,31 @@
   animation: rise var(--duration-rise) var(--ease-spring) both;
 }
 
+/* Sign in poster wall: each column holds its posters twice and moves up by half, so the loop has no jump */
+@utility drift {
+  animation: drift 80s linear infinite;
+}
+@utility pop {
+  animation: pop 420ms var(--ease-spring) both;
+}
+@keyframes drift {
+  to {
+    transform: translateY(-50%);
+  }
+}
+@keyframes pop {
+  0% {
+    transform: scale(0.6);
+    opacity: 0;
+  }
+  70% {
+    transform: scale(1.08);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
 @keyframes shimmer {
   from {
     background-position: -400px 0;

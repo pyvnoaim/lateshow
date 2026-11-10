@@ -145,7 +145,7 @@ function WhereToWatch({ links, fallback }: { links: WatchLink[]; fallback?: stri
                       href={l.url}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className={buttonStyles("quiet")}
+                      className={buttonStyles("quiet", "sm")}
                     >
                       {l.service}
                       <ArrowUpRight size={16} strokeWidth={2} className="text-muted" aria-hidden />

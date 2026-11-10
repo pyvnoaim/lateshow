@@ -23,7 +23,10 @@ export function Trailer({ youtubeKey, title }: { youtubeKey: string; title: stri
               allow="autoplay; encrypted-media; picture-in-picture; fullscreen"
             />
           </div>
-          <Dialog.Close aria-label="Close trailer" className={buttonStyles("iconRaised", "absolute -top-14 right-0")}>
+          <Dialog.Close
+            aria-label="Close trailer"
+            className={buttonStyles("raised", "icon", "absolute -top-14 right-0")}
+          >
             <X size={20} strokeWidth={1.75} aria-hidden />
           </Dialog.Close>
         </Dialog.Content>
