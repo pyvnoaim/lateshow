@@ -9,9 +9,10 @@ import { SearchField } from "./SearchField";
 export function TopBar() {
   return (
     <header className="absolute inset-x-0 top-0 z-20">
-      <div className="mx-auto flex h-[88px] max-w-[1280px] items-center justify-between gap-6 px-4 sm:grid sm:grid-cols-[1fr_minmax(0,520px)_1fr] sm:px-12">
+      <div className="mx-auto flex h-[88px] max-w-[1280px] items-center justify-between gap-8 px-4 sm:px-12">
         <Link href="/" className="text-[22px] font-bold tracking-[-0.035em]">Lateshow</Link>
-        <div className="hidden sm:block">
+        {/* auto margins split the leftover space evenly, so the gaps on both sides match whatever sits right */}
+        <div className="mx-auto hidden max-w-[560px] flex-1 sm:block">
           <SearchField />
         </div>
         <div className="flex justify-end">
