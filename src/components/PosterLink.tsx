@@ -15,7 +15,7 @@ export function PosterLink({ card, index = 0 }: { card: Card; index?: number }) 
       style={{ animationDelay: `${Math.min(index, 12) * 80}ms` } as CSSProperties}
     >
       <ViewTransition name={`title-${card.media_type}-${card.id}`} share="morph" default="none">
-        <div className="lift relative aspect-[2/3] overflow-hidden rounded-poster bg-raised">
+        <div className="lift relative aspect-[2/3] overflow-hidden rounded-poster bg-raised outline-1 -outline-offset-1 outline-fg/8">
           {poster ? (
             <TmdbImage src={poster} lowSrc={img(card.poster_path, "w92")!} alt={name} sizes="(max-width: 640px) 45vw, 200px" />
           ) : (
@@ -23,7 +23,8 @@ export function PosterLink({ card, index = 0 }: { card: Card; index?: number }) 
           )}
         </div>
       </ViewTransition>
-      <span className="text-[13px] text-muted">
+      <span className="text-[15px] font-medium">{name}</span>
+      <span className="-mt-2 text-[13px] text-muted">
         {card.media_type === "tv" ? "Series" : "Movie"}
         {year && ` · ${year}`}
       </span>

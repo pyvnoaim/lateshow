@@ -79,3 +79,16 @@ export async function getSeasons(id: string, numbers: number[]) {
     })),
   );
 }
+
+type SearchHit = Card | { media_type: "person"; known_for?: Card[] };
+
+/** Movies and series matching the query. A person match adds the titles they're known for. */
+export async function searchTitles(query: string) {
+  "use cache";
+  cacheLife("hours");
+  const data = await tmdb<{ results: SearchHit[] }>("/search/multi", { query, include_adult: "false" });
+  const seen = new Set<string>();
+  return data.results
+    .flatMap((r) => (r.media_type === "person" ? (r.known_for ?? []) : [r]))
+    .filter((r) => (r.media_type === "movie" || r.media_type === "tv") && !seen.has(`${r.media_type}-${r.id}`) && seen.add(`${r.media_type}-${r.id}`));
+}

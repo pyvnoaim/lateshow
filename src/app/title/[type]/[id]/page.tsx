@@ -71,7 +71,7 @@ function Hero({ t, type, name, links, trailerKey }: { t: Title; type: MediaType;
   const backdrop = img(t.backdrop_path, "w1280");
   const primary = links[0];
   return (
-    <div className="mx-auto max-w-[1280px] px-8 pt-6">
+    <div className="mx-auto max-w-[1280px] px-8 pt-[88px]">
       <ViewTransition name={`title-${type}-${t.id}`} share="morph" default="none">
         <div className="relative flex min-h-[600px] items-end overflow-hidden rounded-banner bg-raised p-14 max-sm:min-h-[520px] max-sm:p-6">
           {backdrop && (
@@ -201,7 +201,7 @@ function Cast({ t }: { t: Title }) {
 function TitleSkeleton() {
   return (
     <>
-      <div className="mx-auto max-w-[1280px] px-8 pt-6">
+      <div className="mx-auto max-w-[1280px] px-8 pt-[88px]">
         <div className="sk min-h-[600px] rounded-banner" />
       </div>
       <main className="mx-auto flex max-w-[1280px] flex-col gap-6 px-8 pt-12">

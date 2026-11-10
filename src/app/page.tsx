@@ -5,7 +5,7 @@ import { getTrending } from "@/lib/tmdb";
 // ponytail: step 1 home is just trending, enough to reach title pages. Full home (continue watching, leaving soon) comes with layer 2.
 export default function Home() {
   return (
-    <main className="mx-auto flex max-w-[1280px] flex-col gap-6 px-8 pt-10 pb-24">
+    <main className="mx-auto flex max-w-[1280px] flex-col gap-6 px-4 pt-[120px] sm:px-12">
       <h1 className="text-section font-bold">Trending this week</h1>
       <Suspense fallback={<PosterGridSkeleton />}>
         <Trending />
