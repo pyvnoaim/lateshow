@@ -1,8 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { usePathname } from "next/navigation";
 
 const links = [
   { href: "/", label: "Home" },
@@ -12,21 +11,6 @@ const links = [
 
 export function NavLinks() {
   const path = usePathname();
-  const router = useRouter();
-
-  // "/" anywhere opens search. On /search itself the field handles it.
-  useEffect(() => {
-    if (path === "/search") return;
-    const onKey = (e: KeyboardEvent) => {
-      const t = e.target as HTMLElement;
-      if (e.key !== "/" || t.isContentEditable || /^(INPUT|TEXTAREA|SELECT)$/.test(t.tagName)) return;
-      e.preventDefault();
-      router.push("/search");
-    };
-    window.addEventListener("keydown", onKey);
-    return () => window.removeEventListener("keydown", onKey);
-  }, [path, router]);
-
   return <NavLinksView path={path} />;
 }
 
