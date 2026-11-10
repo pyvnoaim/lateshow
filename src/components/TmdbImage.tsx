@@ -1,0 +1,36 @@
+"use client";
+
+import Image from "next/image";
+import { useState } from "react";
+
+// Space is always reserved by the parent (fill). A tiny blurred copy shows first, the sharp one fades in over it.
+export function TmdbImage({
+  src,
+  lowSrc,
+  alt,
+  sizes,
+  priority,
+}: {
+  src: string;
+  lowSrc: string;
+  alt: string;
+  sizes: string;
+  priority?: boolean;
+}) {
+  const [loaded, setLoaded] = useState(false);
+  return (
+    <>
+      {/* eslint-disable-next-line @next/next/no-img-element -- 92px placeholder, not worth optimizing */}
+      <img src={lowSrc} alt="" aria-hidden className="absolute inset-0 size-full scale-110 object-cover blur-xl" />
+      <Image
+        src={src}
+        alt={alt}
+        fill
+        sizes={sizes}
+        priority={priority}
+        onLoad={() => setLoaded(true)}
+        className={`object-cover transition-opacity duration-[600ms] ease-out ${loaded ? "opacity-100" : "opacity-0"}`}
+      />
+    </>
+  );
+}
