@@ -63,6 +63,8 @@
   --duration-hover: 200ms;
   --duration-lift: 240ms;
   --duration-rise: 520ms;
+  --duration-shimmer: 2200ms; /* one sweep of the skeleton light */
+  --delay-skeleton: 150ms; /* skeletons only show if loading takes longer than this */
   --duration-settle: 800ms; /* hero text coming in */
   --duration-slide: 7000ms; /* hero carousel: the dash fill is the timer */
 
@@ -292,10 +294,20 @@
     transition-duration: var(--duration-press-in);
   }
 }
+/* Skeleton: a placeholder with the same hairline and top edge as real cards. One soft diagonal light sweeps across
+   the whole screen (background fixed to the viewport), so every placeholder shines in sync. Fades in after a moment,
+   so fast loads never flash a skeleton. */
 @utility sk {
-  background: linear-gradient(90deg, var(--color-raised) 0%, var(--color-heat-1) 50%, var(--color-raised) 100%);
-  background-size: 800px 100%;
-  animation: shimmer 1.4s linear infinite;
+  background-color: var(--color-raised);
+  background-image: linear-gradient(100deg, transparent 35%, rgb(255 255 255 / 0.07) 50%, transparent 65%);
+  background-size: 250% 100%;
+  background-attachment: fixed;
+  box-shadow:
+    inset 0 1px 0 0 rgb(255 255 255 / 0.05),
+    inset 0 0 0 1px var(--color-hairline);
+  animation:
+    shimmer var(--duration-shimmer) var(--ease-spring) infinite,
+    sk-in 400ms ease-out var(--delay-skeleton) both;
 }
 @utility rise {
   animation: rise var(--duration-rise) var(--ease-spring) both;
@@ -393,10 +405,15 @@
 }
 @keyframes shimmer {
   from {
-    background-position: -400px 0;
+    background-position: 125% 0;
   }
   to {
-    background-position: 400px 0;
+    background-position: -125% 0;
+  }
+}
+@keyframes sk-in {
+  from {
+    opacity: 0;
   }
 }
 @keyframes rise {

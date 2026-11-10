@@ -16,7 +16,7 @@ import { WatchlistStreaming } from "@/features/discover/WatchlistStreaming";
 
 /** Every row loads on its own. Personal rows render nothing when you're signed out or have nothing there yet. */
 const Row = ({ children, skeleton = false }: { children: ReactNode; skeleton?: boolean }) => (
-  <Suspense fallback={skeleton ? <PosterGridSkeleton count={6} /> : null}>{children}</Suspense>
+  <Suspense fallback={skeleton ? <PosterGridSkeleton count={6} heading /> : null}>{children}</Suspense>
 );
 
 export default function HomePage({ searchParams }: PageProps<"/">) {

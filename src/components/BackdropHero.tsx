@@ -40,6 +40,20 @@ export function BackdropHero({
   );
 }
 
+/** Placeholder in the hero's shape: dark backdrop, then bars where the title, meta line and buttons will be. */
 export function BackdropHeroSkeleton() {
-  return <div className="min-h-hero sk max-sm:min-h-hero-sm" />;
+  return (
+    <HeroShell media={<div className="absolute inset-0 bg-surface" />}>
+      <div aria-hidden className="flex flex-col gap-5">
+        <div className="h-20 w-96 max-w-full sk rounded-banner max-sm:h-14" />
+        <div className="h-4 w-64 sk rounded-full" />
+        <div className="h-4 w-80 max-w-full sk rounded-full" />
+        <div className="flex gap-3 pt-2">
+          <div className="h-12 w-36 sk rounded-full" />
+          <div className="h-12 w-28 sk rounded-full" />
+          <div className="size-12 sk rounded-full" />
+        </div>
+      </div>
+    </HeroShell>
+  );
 }
