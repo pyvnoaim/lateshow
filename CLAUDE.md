@@ -162,7 +162,11 @@ Rules:
 
 ## Code conventions (2026-11-10, enforced by `pnpm check` = prettier + typecheck + eslint + vitest)
 
-Run `pnpm check` before every commit. It must pass.
+- **Dev gotcha:** Turbopack sometimes keeps serving old CSS after editing `@utility` or `@theme` in globals.css.
+  If a style change doesn't show, stop the dev server, `rm -rf .next`, start again, and check the served CSS before debugging.
+- **Interaction feel:** buttons use `press` (springy dip on click), cards and posters use `lift` inside a `group` link
+  (hover anywhere on the card lifts it). Hover effects only on real pointers. Durations and easing are tokens.
+  Run `pnpm check` before every commit. It must pass.
 
 - **Design tokens only.** Every color, type size, width, spacing, radius, easing and duration is a token in `src/app/globals.css`
   (`@theme`). Components use token classes (`text-label`, `pt-bar`, `max-w-page`, `aspect-poster`, `gap-section`).

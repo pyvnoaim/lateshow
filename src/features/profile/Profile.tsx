@@ -113,7 +113,10 @@ export async function Profile({ searchParams }: { searchParams: Promise<{ tab?: 
           <ol className="flex max-w-reading flex-col">
             {history.map((r) => (
               <li key={r.id}>
-                <Link href={`/title/${r.mediaType}/${r.tmdbId}`} className="flex h-16 items-center gap-6">
+                <Link
+                  href={`/title/${r.mediaType}/${r.tmdbId}`}
+                  className="-mx-3 flex h-16 items-center gap-6 rounded-thumb px-3 transition-colors duration-200 hover:bg-fg/5"
+                >
                   <span className="w-16 text-small text-muted nums">{shortDate(r.watchedAt)}</span>
                   <span className="min-w-0 flex-1 truncate text-body font-medium">{r.title}</span>
                   <span className="text-small text-muted nums">

@@ -47,7 +47,9 @@
 
   /* motion */
   --ease-spring: cubic-bezier(0.2, 0.8, 0.2, 1);
-  --duration-press: 120ms;
+  --duration-press: 260ms; /* release, springs back */
+  --duration-press-in: 90ms; /* the dip itself */
+  --duration-hover: 200ms;
   --duration-lift: 240ms;
   --duration-rise: 520ms;
 
@@ -108,19 +110,36 @@
   box-shadow: inset 0 0 0 1px var(--color-hairline);
 }
 /* Premium checklist: press feel, poster lift, shimmer skeleton, rows rising in */
+/* Press: a quick springy dip, released with the same spring. Applies to every button and button-like link. */
 @utility press {
-  transition: transform var(--duration-press) ease-out;
+  transition:
+    transform var(--duration-press) var(--ease-spring),
+    background-color var(--duration-hover) ease-out,
+    color var(--duration-hover) ease-out,
+    opacity var(--duration-hover) ease-out;
   &:active {
-    transform: scale(0.95);
+    transform: scale(0.96);
+    transition-duration: var(--duration-press-in);
   }
 }
+/* Lift: posters and cards rise a little, get a deeper shadow and a touch brighter. Reacts to the whole card
+   (`group` on the link), so hovering the title counts too. Hover only where a real pointer exists. */
 @utility lift {
   transition:
     transform var(--duration-lift) var(--ease-spring),
-    box-shadow var(--duration-lift);
-  &:hover {
-    transform: scale(1.05);
-    box-shadow: 0 24px 60px rgb(0 0 0 / 0.7);
+    box-shadow var(--duration-lift) var(--ease-spring),
+    filter var(--duration-lift) ease-out;
+  @media (hover: hover) {
+    &:hover,
+    :where(.group):hover & {
+      transform: translateY(-4px) scale(1.03);
+      box-shadow: 0 24px 48px rgb(0 0 0 / 0.6);
+      filter: brightness(1.06);
+    }
+  }
+  :where(.group):active & {
+    transform: scale(0.98);
+    transition-duration: var(--duration-press-in);
   }
 }
 @utility sk {

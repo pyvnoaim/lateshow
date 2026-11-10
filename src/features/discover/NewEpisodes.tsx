@@ -49,7 +49,10 @@ export async function NewEpisodes() {
       <ul className="grid grid-cols-1 gap-x-10 gap-y-2 md:grid-cols-2">
         {upcoming.map(({ t, ep }) => (
           <li key={t.id}>
-            <Link href={`/title/tv/${t.id}`} className="flex items-center gap-4 py-2">
+            <Link
+              href={`/title/tv/${t.id}`}
+              className="-mx-3 flex items-center gap-4 rounded-thumb px-3 py-2 transition-colors duration-200 hover:bg-fg/5"
+            >
               <div className="relative aspect-poster w-12 shrink-0 overflow-hidden rounded-thumb bg-raised">
                 {t.poster_path && (
                   <Image src={img(t.poster_path, "w185")!} alt="" fill sizes="48px" className="object-cover" />

@@ -40,7 +40,7 @@ export function PosterLink({
     <Link
       href={`/title/${card.media_type}/${card.id}`}
       prefetch
-      className="flex rise flex-col gap-2.5 rounded-poster"
+      className="group flex rise flex-col gap-2.5 rounded-poster"
       style={{ animationDelay: `${Math.min(index, 12) * 80}ms` } as CSSProperties}
     >
       {morph ? (

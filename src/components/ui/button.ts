@@ -1,19 +1,19 @@
 const base =
-  "press inline-flex shrink-0 items-center justify-center gap-2 rounded-full font-semibold transition-colors disabled:pointer-events-none disabled:opacity-50";
+  "press inline-flex shrink-0 items-center justify-center gap-2 rounded-full font-semibold disabled:pointer-events-none disabled:opacity-50";
 
 const tones = {
   /** White pill, the one main action on a screen. */
-  primary: "bg-fg text-bg hover:bg-fg/90",
+  primary: "bg-fg text-bg hover:bg-fg/85",
   /** Frosted glass, secondary actions over images. */
-  glass: "glass",
+  glass: "glass hover:bg-fg/20",
   /** Quiet raised pill, lists of choices (services, filters). */
-  quiet: "bg-raised",
+  quiet: "bg-raised hover:bg-heat-1",
   /** No background until hover, for icons and text actions. */
   ghost: "hover:bg-fg/10",
   /** Raised round background, for icons over content. */
-  raised: "bg-raised",
+  raised: "bg-raised hover:bg-heat-1",
   /** Blue, for something that is on (watched, on the watchlist). */
-  accent: "bg-accent text-bg",
+  accent: "bg-accent text-bg hover:bg-accent/85",
 } as const;
 
 const sizes = {
