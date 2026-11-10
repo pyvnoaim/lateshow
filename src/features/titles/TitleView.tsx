@@ -1,25 +1,31 @@
-import { ArrowUpRight } from "lucide-react";
+import { ArrowUpRight, Play, Star } from "lucide-react";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import { Suspense, ViewTransition } from "react";
+import { LibraryToggle } from "@/components/library/LibraryToggle";
 import { PosterLink } from "@/components/PosterLink";
 import { TmdbImage } from "@/components/TmdbImage";
 import { buttonStyles } from "@/components/ui/button";
 import { Container } from "@/components/ui/Container";
 import { PosterGrid, PosterGridSkeleton } from "@/components/ui/PosterGrid";
 import { Section } from "@/components/ui/Section";
-import { getWatchLinks, type WatchLink } from "@/lib/justwatch";
-import { COUNTRY, getSeasons, getTitle, img, type MediaType, type Title } from "@/lib/tmdb";
-import { LibraryToggle } from "@/components/library/LibraryToggle";
 import { getSession } from "@/lib/auth";
+import { getWatchLinks, type WatchLink } from "@/lib/justwatch";
 import { setOnWatchlist, setWatched, type TitleRef } from "@/lib/library/actions";
-import { nextEpisode } from "@/lib/library/progress";
+import { nextEpisode, type EpisodeRef } from "@/lib/library/progress";
 import { getTitleLibrary } from "@/lib/library/queries";
+import { COUNTRY, getSeasons, getTitle, img, type MediaType, type Title } from "@/lib/tmdb";
 import { Episodes, type SeasonData } from "./components/Episodes";
-import { Heatmap } from "./components/Heatmap";
+import { RatingsGrid } from "./components/RatingsGrid";
 import { Trailer } from "./components/Trailer";
 
 type Library = { signedIn: boolean; onWatchlist: boolean; watched: string[]; ref: TitleRef };
+
+const toRefs = (keys: string[]): EpisodeRef[] =>
+  keys.map((k) => {
+    const [season, episode] = k.split("-").map(Number);
+    return { season, episode };
+  });
 
 export async function TitleView({ type, id }: { type: string; id: string }) {
   if ((type !== "movie" && type !== "tv") || !/^\d+$/.test(id)) notFound();
@@ -35,20 +41,28 @@ export async function TitleView({ type, id }: { type: string; id: string }) {
   const trailer =
     t.videos.results.find((v) => v.site === "YouTube" && v.type === "Trailer" && v.official) ??
     t.videos.results.find((v) => v.site === "YouTube" && v.type === "Trailer");
+  // Season sizes are in the title details already, so "up next" needs no extra request.
+  const next =
+    type === "tv" && lib.watched.length > 0
+      ? nextEpisode(
+          (t.seasons ?? []).map((s) => ({ number: s.season_number, episodeCount: s.episode_count })),
+          toRefs(lib.watched),
+        )
+      : null;
 
   return (
     <>
-      <Hero t={t} type={type} name={name} links={links} trailerKey={trailer?.key} library={library} />
-      <Container as="main" className="flex flex-col gap-section pt-12">
-        <WhereToWatch links={links} fallback={t["watch/providers"].results[COUNTRY]?.link} />
+      <Hero t={t} type={type} name={name} links={links} trailerKey={trailer?.key} library={library} next={next} />
+      <WhereToWatch links={links} fallback={t["watch/providers"].results[COUNTRY]?.link} />
+      <Container as="main" className="flex flex-col gap-section pt-section">
         {type === "tv" && (
-          <Suspense fallback={<div className="h-40 sk rounded-banner" />}>
-            <SeasonSections t={t} library={library} />
+          <Suspense fallback={<div className="h-80 sk rounded-banner" />}>
+            <SeasonSections t={t} library={library} startSeason={next?.season} />
           </Suspense>
         )}
         <Cast t={t} />
         {t.recommendations.results.length > 0 && (
-          <Section title="More like this">
+          <Section title="If you liked this">
             <PosterGrid>
               {t.recommendations.results.slice(0, 12).map((c, i) => (
                 <PosterLink key={`${c.media_type}-${c.id}`} card={c} index={i} />
@@ -73,9 +87,10 @@ function meta(t: Title, type: MediaType) {
       : t.runtime
         ? `${Math.floor(t.runtime / 60)} h ${t.runtime % 60} min`
         : "";
-  return [type === "tv" ? "Series" : "Movie", year, genres, length].filter(Boolean).join(" · ");
+  return [year, genres, length].filter(Boolean).join(" · ");
 }
 
+/** Full-bleed backdrop under the top bar, title and actions at the bottom. */
 function Hero({
   t,
   type,
@@ -83,6 +98,7 @@ function Hero({
   links,
   trailerKey,
   library,
+  next,
 }: {
   t: Title;
   type: MediaType;
@@ -90,107 +106,104 @@ function Hero({
   links: WatchLink[];
   trailerKey?: string;
   library: Library;
+  next: EpisodeRef | null;
 }) {
-  const backdrop = img(t.backdrop_path, "w1280");
+  const backdrop = img(t.backdrop_path, "original");
   const primary = links[0];
+  const watchLabel = primary
+    ? `${next ? `S${next.season} E${next.episode}` : primary.included ? "Watch" : "Rent or buy"} on ${primary.service}`
+    : null;
+
   return (
-    <Container className="pt-bar">
+    <section className="relative flex min-h-hero flex-col justify-end overflow-hidden bg-raised max-sm:min-h-hero-sm">
       <ViewTransition name={`title-${type}-${t.id}`} share="morph" default="none">
-        <div className="relative flex min-h-hero items-end overflow-hidden rounded-banner bg-raised p-14 max-sm:min-h-hero-sm max-sm:p-6">
+        <div className="absolute inset-0">
           {backdrop && (
-            <TmdbImage
-              src={backdrop}
-              lowSrc={img(t.backdrop_path, "w300")!}
-              alt=""
-              sizes="(max-width: 1280px) 100vw, 1280px"
-              priority
-            />
+            <TmdbImage src={backdrop} lowSrc={img(t.backdrop_path, "w300")!} alt="" sizes="100vw" priority />
           )}
-          <div className="absolute inset-x-0 bottom-0 h-3/4 bg-linear-to-b from-bg/0 to-bg/85" />
-          <div className="relative flex max-w-hero-text flex-col gap-4">
-            <span className="text-label text-fg/80">{meta(t, type)}</span>
-            <h1 className="text-hero leading-display font-bold tracking-display max-sm:text-page">{name}</h1>
-            {t.overview && <p className="line-clamp-3 text-lg leading-normal text-fg/80">{t.overview}</p>}
-            <div className="mt-2 flex flex-wrap gap-3">
-              {primary && (
-                <a href={primary.url} target="_blank" rel="noopener noreferrer" className={buttonStyles("primary")}>
-                  {primary.included ? "Watch" : "Rent or buy"} on {primary.service}
-                  <ArrowUpRight size={18} strokeWidth={2} aria-hidden />
-                </a>
-              )}
-              {trailerKey && <Trailer youtubeKey={trailerKey} title={name} />}
-              <LibraryToggle
-                kind="watchlist"
-                signedIn={library.signedIn}
-                initial={library.onWatchlist}
-                toggle={setOnWatchlist.bind(null, library.ref)}
-              />
-              {type === "movie" && (
-                <LibraryToggle
-                  kind="watched"
-                  signedIn={library.signedIn}
-                  initial={library.watched.includes("0-0")}
-                  toggle={setWatched.bind(null, { ...library.ref, minutes: t.runtime ?? 0 })}
-                />
-              )}
-            </div>
-          </div>
         </div>
       </ViewTransition>
-    </Container>
+      <div className="absolute inset-0 bg-linear-to-t from-bg via-bg/35 to-bg/60" />
+      <Container className="relative flex rise flex-col gap-5 pt-bar pb-14">
+        <h1 className="text-hero leading-display font-bold tracking-display max-sm:text-page">{name}</h1>
+        <div className="flex flex-wrap items-center gap-x-2 text-label text-fg/80 nums">
+          <span>{meta(t, type)}</span>
+          {t.vote_average > 0 && (
+            <span className="inline-flex items-center gap-1">
+              · <Star size={13} strokeWidth={2} aria-hidden /> {t.vote_average.toFixed(1)}
+            </span>
+          )}
+        </div>
+        {t.overview && <p className="line-clamp-3 max-w-search text-body leading-normal text-fg/80">{t.overview}</p>}
+        <div className="flex flex-wrap items-center gap-3 pt-2">
+          {primary && watchLabel && (
+            <a href={primary.url} target="_blank" rel="noopener noreferrer" className={buttonStyles("primary")}>
+              <Play size={14} fill="currentColor" strokeWidth={0} aria-hidden />
+              {watchLabel}
+            </a>
+          )}
+          {trailerKey && <Trailer youtubeKey={trailerKey} title={name} />}
+          <LibraryToggle
+            kind="watchlist"
+            signedIn={library.signedIn}
+            initial={library.onWatchlist}
+            toggle={setOnWatchlist.bind(null, library.ref)}
+          />
+          {type === "movie" && (
+            <LibraryToggle
+              kind="watched"
+              signedIn={library.signedIn}
+              initial={library.watched.includes("0-0")}
+              toggle={setWatched.bind(null, { ...library.ref, minutes: t.runtime ?? 0 })}
+            />
+          )}
+        </div>
+      </Container>
+    </section>
   );
 }
 
+/** One quiet line: subscription services first, then a few rent or buy stores. */
 function WhereToWatch({ links, fallback }: { links: WatchLink[]; fallback?: string }) {
-  const included = links.filter((l) => l.included);
-  const paid = links.filter((l) => !l.included);
+  const included = links.filter((l) => l.included).slice(0, 4);
+  const paid = links.filter((l) => !l.included).slice(0, 3);
+  const link = (l: WatchLink) => (
+    <a
+      key={l.service}
+      href={l.url}
+      target="_blank"
+      rel="noopener noreferrer"
+      className="inline-flex items-center gap-1 transition-colors hover:text-fg"
+    >
+      {l.service}
+      <ArrowUpRight size={14} strokeWidth={2} className="text-muted" aria-hidden />
+    </a>
+  );
+
   return (
-    <Section title="Where to watch in Germany">
-      {links.length === 0 ? (
-        <p className="text-body text-muted">
+    <Container className="flex flex-wrap items-center gap-x-6 gap-y-2 pt-6 text-label">
+      <span className="text-muted">Where to watch</span>
+      {links.length === 0 && (
+        <span className="text-muted">
           Not streaming in Germany right now.
           {fallback && (
             <>
               {" "}
               <a href={fallback} target="_blank" rel="noopener noreferrer" className="text-accent">
-                Check rent and buy options
+                Rent or buy options
               </a>
             </>
           )}
-        </p>
-      ) : (
-        <div className="flex flex-col gap-4">
-          {[
-            ["Included with subscription", included],
-            ["Rent or buy", paid],
-          ].map(([label, list]) =>
-            (list as WatchLink[]).length ? (
-              <div key={label as string} className="flex flex-col gap-2.5">
-                <span className="text-small text-muted">{label as string}</span>
-                <div className="flex flex-wrap gap-2.5">
-                  {(list as WatchLink[]).map((l) => (
-                    <a
-                      key={l.service}
-                      href={l.url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className={buttonStyles("quiet", "sm")}
-                    >
-                      {l.service}
-                      <ArrowUpRight size={16} strokeWidth={2} className="text-muted" aria-hidden />
-                    </a>
-                  ))}
-                </div>
-              </div>
-            ) : null,
-          )}
-        </div>
+        </span>
       )}
-    </Section>
+      {included.map(link)}
+      {paid.length > 0 && <span className="text-muted">Rent or buy</span>}
+      {paid.map(link)}
+    </Container>
   );
 }
 
-async function SeasonSections({ t, library }: { t: Title; library: Library }) {
+async function SeasonSections({ t, library, startSeason }: { t: Title; library: Library; startSeason?: number }) {
   const numbers = (t.seasons ?? [])
     .filter((s) => s.season_number > 0 && s.episode_count > 0)
     .map((s) => s.season_number);
@@ -206,40 +219,34 @@ async function SeasonSections({ t, library }: { t: Title; library: Library }) {
       runtime: e.runtime,
     })),
   }));
-  const watchedRefs = library.watched.map((k) => {
-    const [season, episode] = k.split("-").map(Number);
-    return { season, episode };
-  });
-  const next = nextEpisode(
-    seasons.map((s) => ({ number: s.number, episodeCount: s.episodes.length })),
-    watchedRefs,
-  );
   return (
-    <>
-      <Heatmap seasons={seasons} />
+    <div className="grid grid-cols-1 gap-section lg:grid-cols-main-aside">
       <Episodes
         seasons={seasons}
-        library={{ signedIn: library.signedIn, watched: library.watched, ref: library.ref, startSeason: next?.season }}
+        library={{ signedIn: library.signedIn, watched: library.watched, ref: library.ref, startSeason }}
       />
-    </>
+      <RatingsGrid seasons={seasons} watched={library.watched} />
+    </div>
   );
 }
 
 function Cast({ t }: { t: Title }) {
-  const cast = t.credits.cast.slice(0, 12);
+  const cast = t.credits.cast.slice(0, 9);
   if (cast.length === 0) return null;
   return (
     <Section title="Cast">
-      <ul className="grid grid-cols-cast gap-6">
+      <ul className="grid grid-cols-people gap-x-6 gap-y-5">
         {cast.map((c) => (
-          <li key={c.id} className="flex flex-col items-center gap-2.5 text-center">
-            <div className="relative size-28 overflow-hidden rounded-full bg-raised">
+          <li key={c.id} className="flex items-center gap-3.5">
+            <div className="relative size-12 shrink-0 overflow-hidden rounded-full bg-raised">
               {c.profile_path && (
-                <Image src={img(c.profile_path, "w185")!} alt="" fill sizes="112px" className="object-cover" />
+                <Image src={img(c.profile_path, "w185")!} alt="" fill sizes="48px" className="object-cover" />
               )}
             </div>
-            <span className="text-small font-semibold">{c.name}</span>
-            <span className="-mt-1.5 text-caption text-muted">{c.character}</span>
+            <div className="min-w-0">
+              <div className="truncate text-label font-medium">{c.name}</div>
+              <div className="truncate text-caption text-muted">{c.character}</div>
+            </div>
           </li>
         ))}
       </ul>
@@ -250,10 +257,8 @@ function Cast({ t }: { t: Title }) {
 export function TitleSkeleton() {
   return (
     <>
-      <Container className="pt-bar">
-        <div className="min-h-hero sk rounded-banner" />
-      </Container>
-      <Container className="flex flex-col gap-6 pt-12">
+      <div className="min-h-hero sk max-sm:min-h-hero-sm" />
+      <Container className="flex flex-col gap-6 pt-section">
         <div className="h-8 w-72 sk rounded-lg" />
         <PosterGridSkeleton count={6} />
       </Container>

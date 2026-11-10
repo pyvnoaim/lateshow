@@ -61,8 +61,12 @@
 @utility grid-cols-posters {
   grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
 }
-@utility grid-cols-cast {
-  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+@utility grid-cols-people {
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+}
+/* main column + a 440px side column (episodes + ratings) */
+@utility grid-cols-main-aside {
+  grid-template-columns: minmax(0, 1fr) 440px;
 }
 
 /* Element defaults. In the base layer so any utility class can override them. */
