@@ -7,7 +7,18 @@ import { TmdbImage } from "./TmdbImage";
  * Poster that links to its title page. With `morph` the poster grows into the title's backdrop.
  * Turn `morph` off when the same title can show twice on one screen (transition names must be unique).
  */
-export function PosterLink({ card, index = 0, morph = true }: { card: Card; index?: number; morph?: boolean }) {
+export function PosterLink({
+  card,
+  index = 0,
+  morph = true,
+  caption,
+}: {
+  card: Card;
+  index?: number;
+  morph?: boolean;
+  /** Replaces the "Movie · 2024" line, e.g. a release date. */
+  caption?: string;
+}) {
   const name = card.title ?? card.name ?? "";
   const year = (card.release_date ?? card.first_air_date ?? "").slice(0, 4);
   const poster = img(card.poster_path, "w500");
@@ -41,8 +52,7 @@ export function PosterLink({ card, index = 0, morph = true }: { card: Card; inde
       )}
       <span className="text-label font-medium">{name}</span>
       <span className="-mt-2 text-caption text-muted">
-        {card.media_type === "tv" ? "Series" : "Movie"}
-        {year && ` · ${year}`}
+        {caption ?? `${card.media_type === "tv" ? "Series" : "Movie"}${year ? ` · ${year}` : ""}`}
       </span>
     </Link>
   );

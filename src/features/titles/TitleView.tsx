@@ -1,4 +1,4 @@
-import { ArrowUpRight, Play, Star } from "lucide-react";
+import { ArrowUpRight, Play, Star, Ticket } from "lucide-react";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import { Suspense } from "react";
@@ -14,10 +14,10 @@ import { getWatchLinks, type WatchLink } from "@/lib/justwatch";
 import { setOnWatchlist, setWatched, type TitleRef } from "@/lib/library/actions";
 import { nextEpisode, parseEpisodeKeys, type EpisodeRef } from "@/lib/library/progress";
 import { getTitleLibrary } from "@/lib/library/queries";
-import { COUNTRY, getSeasons, getTitle, img, type MediaType, type Title } from "@/lib/tmdb";
+import { cinemaDate, COUNTRY, getSeasons, getTitle, img, pickTrailer, type MediaType, type Title } from "@/lib/tmdb";
 import { Episodes, type SeasonData } from "./components/Episodes";
 import { RatingsGrid } from "./components/RatingsGrid";
-import { Trailer } from "./components/Trailer";
+import { Trailer } from "@/components/Trailer";
 
 type Library = { signedIn: boolean; onWatchlist: boolean; watched: string[]; ref: TitleRef };
 
@@ -32,9 +32,11 @@ export async function TitleView({ type, id }: { type: string; id: string }) {
     ...lib,
     ref: { type, tmdbId: t.id, title: name, posterPath: t.poster_path },
   };
-  const trailer =
-    t.videos.results.find((v) => v.site === "YouTube" && v.type === "Trailer" && v.official) ??
-    t.videos.results.find((v) => v.site === "YouTube" && v.type === "Trailer");
+  const trailer = pickTrailer(t.videos.results);
+  // A movie that isn't out yet gets its cinema date instead of a watch button (today is safe to read here,
+  // the session above already made this render per request).
+  const cinema = type === "movie" ? cinemaDate(t) : null;
+  const inCinemasFrom = cinema && cinema > new Date().toISOString().slice(0, 10) ? cinema : undefined;
   // Season sizes are in the title details already, so "up next" needs no extra request.
   const next =
     type === "tv" && lib.watched.length > 0
@@ -46,7 +48,16 @@ export async function TitleView({ type, id }: { type: string; id: string }) {
 
   return (
     <>
-      <Hero t={t} type={type} name={name} links={links} trailerKey={trailer?.key} library={library} next={next} />
+      <Hero
+        t={t}
+        type={type}
+        name={name}
+        links={links}
+        trailerKey={trailer?.key}
+        library={library}
+        next={next}
+        inCinemasFrom={inCinemasFrom}
+      />
       <WhereToWatch links={links} fallback={t["watch/providers"].results[COUNTRY]?.link} />
       <Container as="main" className="flex flex-col gap-section pt-section">
         {type === "tv" && (
@@ -93,6 +104,7 @@ function Hero({
   trailerKey,
   library,
   next,
+  inCinemasFrom,
 }: {
   t: Title;
   type: MediaType;
@@ -101,6 +113,7 @@ function Hero({
   trailerKey?: string;
   library: Library;
   next: EpisodeRef | null;
+  inCinemasFrom?: string;
 }) {
   const primary = links[0];
   const watchLabel = primary
@@ -120,7 +133,14 @@ function Hero({
       </div>
       {t.overview && <p className="line-clamp-3 max-w-search text-body leading-normal text-fg/80">{t.overview}</p>}
       <div className="flex flex-wrap items-center gap-3 pt-2">
-        {primary && watchLabel && (
+        {inCinemasFrom && (
+          <span className={buttonStyles("primary", "md", "pointer-events-none")}>
+            <Ticket size={16} strokeWidth={2} aria-hidden />
+            In cinemas{" "}
+            {new Date(inCinemasFrom).toLocaleDateString("en", { month: "short", day: "numeric", timeZone: "UTC" })}
+          </span>
+        )}
+        {!inCinemasFrom && primary && watchLabel && (
           <a href={primary.url} target="_blank" rel="noopener noreferrer" className={buttonStyles("primary")}>
             <Play size={14} fill="currentColor" strokeWidth={0} aria-hidden />
             {watchLabel}
@@ -133,7 +153,7 @@ function Hero({
           initial={library.onWatchlist}
           toggle={setOnWatchlist.bind(null, library.ref)}
         />
-        {type === "movie" && (
+        {type === "movie" && !inCinemasFrom && (
           <LibraryToggle
             kind="watched"
             signedIn={library.signedIn}

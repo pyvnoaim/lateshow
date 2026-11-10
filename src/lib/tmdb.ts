@@ -55,7 +55,29 @@ export type Title = {
   videos: { results: { key: string; site: string; type: string; official: boolean }[] };
   recommendations: { results: Card[] };
   "watch/providers": { results: Record<string, { link: string } | undefined> };
+  release_dates?: { results: { iso_3166_1: string; release_dates: { type: number; release_date: string }[] }[] };
 };
+
+export type Video = Title["videos"]["results"][number];
+
+/** Official YouTube trailer first, any YouTube trailer second. */
+export function pickTrailer(videos: Video[]) {
+  const trailers = videos.filter((v) => v.site === "YouTube" && v.type === "Trailer");
+  return trailers.find((v) => v.official) ?? trailers[0];
+}
+
+/**
+ * Cinema release in COUNTRY as YYYY-MM-DD: theatrical (3) before limited (2), earliest first.
+ * Falls back to TMDB's main release date when the country has none.
+ */
+export function cinemaDate(t: Pick<Title, "release_date" | "release_dates">, country = COUNTRY) {
+  const dates =
+    t.release_dates?.results
+      .find((r) => r.iso_3166_1 === country)
+      ?.release_dates.filter((d) => d.type === 3 || d.type === 2)
+      .toSorted((a, b) => a.type - b.type || a.release_date.localeCompare(b.release_date)) ?? [];
+  return (dates.find((d) => d.type === 3) ?? dates[0])?.release_date.slice(0, 10) ?? t.release_date ?? null;
+}
 
 export type Kind = MediaType | "all";
 
@@ -87,7 +109,9 @@ export async function discoverOnSubscription(type: MediaType, page: number): Pro
 export async function getTitle(type: MediaType, id: string) {
   "use cache";
   cacheLife("days");
-  return tmdb<Title>(`/${type}/${id}`, { append_to_response: "credits,videos,recommendations,watch/providers" });
+  return tmdb<Title>(`/${type}/${id}`, {
+    append_to_response: "credits,videos,recommendations,watch/providers,release_dates",
+  });
 }
 
 export async function getSeasons(id: string, numbers: number[]) {
@@ -124,4 +148,30 @@ export function toCards(hits: SearchHit[]): Card[] {
     }
   }
   return cards;
+}
+
+/**
+ * Movies coming to cinemas in COUNTRY from today on, soonest first, with their trailer.
+ * One cached call per movie for the German date and trailer, refreshed every few hours.
+ */
+export async function getUpcomingInCinemas() {
+  "use cache";
+  cacheLife("hours");
+  const today = new Date().toISOString().slice(0, 10);
+  const data = await tmdb<{ results: Omit<Card, "media_type">[] }>("/movie/upcoming", { region: COUNTRY });
+  const movies = await Promise.all(
+    data.results.map(async (m) => {
+      const t = await getTitle("movie", String(m.id)).catch(() => null);
+      return t
+        ? {
+            card: { ...m, media_type: "movie" as const },
+            date: cinemaDate(t),
+            trailer: pickTrailer(t.videos.results)?.key,
+          }
+        : null;
+    }),
+  );
+  return movies
+    .filter((m): m is NonNullable<typeof m> => m !== null && m.date !== null && m.date >= today)
+    .toSorted((a, b) => a.date!.localeCompare(b.date!));
 }

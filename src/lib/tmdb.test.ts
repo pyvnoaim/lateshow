@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { toCards, type Card } from "./tmdb";
+import { cinemaDate, pickTrailer, toCards, type Card, type Video } from "./tmdb";
 
 const movie = (id: number): Card => ({ id, media_type: "movie", title: `M${id}`, poster_path: null });
 
@@ -16,5 +16,46 @@ describe("toCards", () => {
 
   it("copes with a person without known titles", () => {
     expect(toCards([{ media_type: "person" }])).toEqual([]);
+  });
+});
+
+describe("cinemaDate", () => {
+  const rd = (country: string, dates: [number, string][]) => ({
+    iso_3166_1: country,
+    release_dates: dates.map(([type, release_date]) => ({ type, release_date })),
+  });
+
+  it("prefers the German theatrical date over limited and other countries", () => {
+    const t = {
+      release_date: "2026-11-01",
+      release_dates: {
+        results: [
+          rd("US", [[3, "2026-11-01T00:00:00Z"]]),
+          rd("DE", [
+            [2, "2026-11-20T00:00:00Z"],
+            [3, "2026-12-18T00:00:00Z"],
+          ]),
+        ],
+      },
+    };
+    expect(cinemaDate(t)).toBe("2026-12-18");
+  });
+
+  it("falls back to the main release date", () => {
+    expect(cinemaDate({ release_date: "2026-11-01", release_dates: { results: [] } })).toBe("2026-11-01");
+    expect(cinemaDate({})).toBeNull();
+  });
+});
+
+describe("pickTrailer", () => {
+  const v = (key: string, type: string, official: boolean, site = "YouTube"): Video => ({ key, type, official, site });
+
+  it("takes the official YouTube trailer first", () => {
+    expect(pickTrailer([v("a", "Teaser", true), v("b", "Trailer", false), v("c", "Trailer", true)])?.key).toBe("c");
+  });
+
+  it("falls back to any YouTube trailer, never other sites", () => {
+    expect(pickTrailer([v("x", "Trailer", true, "Vimeo"), v("b", "Trailer", false)])?.key).toBe("b");
+    expect(pickTrailer([v("x", "Trailer", true, "Vimeo")])).toBeUndefined();
   });
 });
