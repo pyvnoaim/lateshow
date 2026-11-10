@@ -155,6 +155,8 @@ Rules:
 - Sign in page (canvas "Sign in", approved 2026-11-10): only the name at the top, no search or dock. Headline "Everything you watch. One place.",
   email + white "Email me a link" button inside ONE glass pill (same shape as the search bar). Then "Check your inbox." state with resend after 30 s.
   Rule: inputs are glass pills like search, never boxes with their own radius.
+  Layout: split. Form left-aligned on the left half, right half = wall of real posters (4 columns, tilted -6deg, each drifting up
+  slowly at its own speed, looping), faded into black toward the form and at top/bottom. Hidden on phones, static with reduced motion.
 - Posters in the draft are colored placeholder blocks until TMDB images are in.
 - Design system (own, no UI kit), drawn on the canvas as "Design system":
   - Colors (only these 6): bg #000, surface #111112, raised #1d1d1f, text #f5f5f7, muted #86868b, accent #2997ff.
