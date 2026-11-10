@@ -55,7 +55,7 @@ Minimal design, few features, mostly quality of life (decided 2026-11-10).
 
 ### Later (not planned now)
 
-- Calendar feed (.ics) of new episodes. Alerts when watchlist titles leave your services. Rating titles.
+- Calendar feed (.ics) of new episodes. Alerts when watchlist titles leave your services. Rating titles. Import from a TMDB account (v4 auth: their watchlist, ratings, lists).
 
 ### Cut (2026-11-10)
 
