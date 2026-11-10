@@ -7,7 +7,7 @@ export async function AccountButton() {
   const session = await getSession();
   if (!session) {
     return (
-      <Link href="/login" className={buttonStyles("quiet", "sm")}>
+      <Link href="/login" className={buttonStyles("glass", "sm")}>
         Sign in
       </Link>
     );

@@ -18,7 +18,7 @@ export default function NotFound() {
           <Link href="/" className={buttonStyles("primary")}>
             Go home
           </Link>
-          <Link href="/search" className={buttonStyles("quiet", "md")}>
+          <Link href="/search" className={buttonStyles("glass", "md")}>
             Search
           </Link>
         </StatusMessage>

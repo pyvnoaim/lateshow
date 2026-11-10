@@ -173,7 +173,8 @@ Rules:
 
 - **Dev gotcha:** Turbopack sometimes keeps serving old CSS after editing `@utility` or `@theme` in globals.css.
   If a style change doesn't show, stop the dev server, `rm -rf .next`, start again, and check the served CSS before debugging.
-- **Glass family:** `glass` (clear, secondary) and `glass-tint` (milky white, the primary action) share the material:
+- **Glass family:** every button is glass: `glass` (clear), `glass-tint` (milky white, primary), `glass-accent` (blue, "on").
+  Small tiles on black (rating squares, heatmap days) use `glass-cell` (sheen + edge, no blur). They share the material:
   blur + saturation, bright top edge, hairline, soft shadow, pointer sheen (`GlassSheen` sets --mx/--my). Write only the
   standard `backdrop-filter` (the build adds -webkit-; writing both dropped the standard one and nothing blurred).
 - **Interaction feel:** buttons use `press` (springy dip on click), cards and posters use `lift` inside a `group` link

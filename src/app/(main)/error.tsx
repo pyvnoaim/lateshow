@@ -18,7 +18,7 @@ export default function ErrorPage({ error, retry }: { error: unknown; retry: () 
         <button type="button" onClick={retry} className={buttonStyles("primary")}>
           Try again
         </button>
-        <Link href="/" className={buttonStyles("quiet", "md")}>
+        <Link href="/" className={buttonStyles("glass", "md")}>
           Go home
         </Link>
       </StatusMessage>

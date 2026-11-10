@@ -36,7 +36,7 @@ export function RatingsGrid({ seasons, watched }: { seasons: SeasonData[]; watch
                       <div
                         key={e.n}
                         title={`S${s.number} E${e.n} · ${e.name}${e.rating > 0 ? ` · ${e.rating.toFixed(1)}` : ""}${isSeen ? " · seen" : ""}`}
-                        className={`aspect-square rounded-sm ${e.rating > 0 ? (isSeen ? SEEN : UNSEEN)[tone] : "bg-raised"}`}
+                        className={`aspect-square rounded-sm glass-cell ${e.rating > 0 ? (isSeen ? SEEN : UNSEEN)[tone] : "bg-raised"}`}
                       />
                     );
                   })}

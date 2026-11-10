@@ -10,7 +10,7 @@ export function GlassSheen() {
   useEffect(() => {
     if (!matchMedia("(hover: hover)").matches) return;
     const move = (e: PointerEvent) => {
-      const glass = (e.target as Element | null)?.closest?.(".glass, .glass-tint");
+      const glass = (e.target as Element | null)?.closest?.(".glass, .glass-tint, .glass-accent");
       if (!(glass instanceof HTMLElement)) return;
       const r = glass.getBoundingClientRect();
       glass.style.setProperty("--mx", `${e.clientX - r.left}px`);

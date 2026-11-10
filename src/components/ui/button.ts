@@ -6,14 +6,10 @@ const tones = {
   primary: "glass-tint",
   /** Frosted glass, secondary actions over images. */
   glass: "glass",
-  /** Quiet raised pill, lists of choices (services, filters). */
-  quiet: "bg-raised hover:bg-heat-1",
   /** No background until hover, for icons and text actions. */
   ghost: "hover:bg-fg/10",
-  /** Raised round background, for icons over content. */
-  raised: "bg-raised hover:bg-heat-1",
-  /** Blue, for something that is on (watched, on the watchlist). */
-  accent: "bg-accent text-bg hover:bg-accent/85",
+  /** Blue tinted glass, for something that is on (watched, on the watchlist). */
+  accent: "glass-accent",
 } as const;
 
 const sizes = {

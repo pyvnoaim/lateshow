@@ -23,6 +23,8 @@
   --color-tint-lo: rgb(245 245 247 / 0.74);
   --color-tint-hi-hover: rgb(255 255 255 / 0.97);
   --color-tint-lo-hover: rgb(245 245 247 / 0.84);
+  --color-accent-hi: rgb(41 151 255 / 0.95);
+  --color-accent-lo: rgb(25 120 230 / 0.82);
   --color-hairline: rgb(255 255 255 / 0.08);
 
   --font-sans: var(--font-inter-tight), -apple-system, system-ui, sans-serif;
@@ -148,6 +150,38 @@
         linear-gradient(180deg, var(--color-tint-hi-hover), var(--color-tint-lo-hover));
     }
   }
+}
+/* Blue tinted glass: "this is on" (watched, on the watchlist). Same material as the other glass. */
+@utility glass-accent {
+  background:
+    radial-gradient(
+      circle 60px at var(--mx, 50%) var(--my, 0%),
+      rgb(255 255 255 / calc(var(--sheen) * 0.35)),
+      transparent 70%
+    ),
+    linear-gradient(180deg, var(--color-accent-hi), var(--color-accent-lo));
+  color: var(--color-bg);
+  backdrop-filter: blur(28px) saturate(1.9);
+  box-shadow:
+    inset 0 1px 0 0 rgb(255 255 255 / 0.55),
+    inset 0 0 0 1px rgb(255 255 255 / 0.18),
+    0 10px 30px -10px rgb(41 151 255 / 0.45);
+  transition:
+    --sheen var(--duration-hover) ease-out,
+    transform var(--duration-press) var(--ease-spring);
+  @media (hover: hover) {
+    &:hover {
+      --sheen: 1;
+    }
+  }
+}
+/* Glass look for small tiles that sit on plain black (rating squares, heatmap days): a sheen from the top,
+   a bright top edge and a fine outline, over the tile's own color. No blur: there are dozens and nothing behind them. */
+@utility glass-cell {
+  background-image: linear-gradient(180deg, rgb(255 255 255 / 0.16), rgb(255 255 255 / 0) 65%);
+  box-shadow:
+    inset 0 1px 0 0 rgb(255 255 255 / 0.22),
+    inset 0 0 0 1px var(--color-hairline);
 }
 /* --sheen is registered so it can animate: the pointer highlight fades in and out instead of popping */
 @property --sheen {
