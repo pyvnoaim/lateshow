@@ -2,30 +2,78 @@
 
 import { Search } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import { fieldInputStyles, fieldStyles } from "./ui/field";
 
 /**
  * Search icon in the top bar that grows into a field. "/" anywhere opens it, Esc or leaving it empty closes it.
- * On /search it stays open with the current query.
+ * Results update while you type (250 ms after the last key, 2+ letters). On /search it stays open with the query.
  */
+const DEBOUNCE_MS = 250;
+const MIN_LETTERS = 2;
+
 export function NavSearch() {
   const onSearchPage = usePathname() === "/search";
   const query = useSearchParams().get("q") ?? "";
   const router = useRouter();
   const input = useRef<HTMLInputElement>(null);
+  // The page you were on before live search opened the results, so emptying the field can take you back.
+  const origin = useRef<string | null>(null);
   const [value, setValue] = useState(onSearchPage ? query : "");
   const [open, setOpen] = useState(onSearchPage);
+  const [typing, setTyping] = useState(false);
   const expanded = open || onSearchPage;
 
-  // Follow the URL when you search again or leave the results page (reset during render, no effect needed).
+  // Follow the URL (back button, leaving the results page), reset during render instead of in an effect.
+  // While you're typing the URL trails your input, so it must not overwrite what you just typed.
   const urlKey = onSearchPage ? `search:${query}` : "elsewhere";
   const [seenUrl, setSeenUrl] = useState(urlKey);
   if (seenUrl !== urlKey) {
     setSeenUrl(urlKey);
-    setValue(onSearchPage ? query : "");
-    setOpen(onSearchPage);
+    if (!onSearchPage) {
+      // left the results page (Back, a link): start fresh, or the live search would reopen it
+      setTyping(false);
+      setValue("");
+      setOpen(false);
+    } else if (!typing) {
+      setValue(query);
+      setOpen(true);
+    }
   }
+
+  /** Back to the page before the search (or Home if you opened /search directly). */
+  const leaveSearch = useCallback(() => {
+    setTyping(false);
+    input.current?.blur(); // a closed field must not keep the cursor
+    if (origin.current) {
+      origin.current = null;
+      router.back();
+    } else {
+      router.replace("/");
+    }
+  }, [router]);
+
+  // Live results: replace the URL on the results page, open it once from anywhere else.
+  useEffect(() => {
+    if (!typing) return;
+    const q = value.trim();
+    if (onSearchPage && q === query) return;
+    if (q.length > 0 && q.length < MIN_LETTERS) return;
+    if (!q && !onSearchPage) return;
+    const timer = setTimeout(() => {
+      if (!q) return leaveSearch();
+      const url = `/search?q=${encodeURIComponent(q)}`;
+      // Check the real URL now: a push from a moment ago may not have reached `onSearchPage` yet.
+      // One history entry per search session, so Back returns to where you came from.
+      if (window.location.pathname === "/search") {
+        router.replace(url, { scroll: false });
+      } else {
+        origin.current = window.location.pathname;
+        router.push(url);
+      }
+    }, DEBOUNCE_MS);
+    return () => clearTimeout(timer);
+  }, [value, typing, onSearchPage, query, router, leaveSearch]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -39,8 +87,13 @@ export function NavSearch() {
     return () => window.removeEventListener("keydown", onKey);
   }, []);
 
+  // Clicking outside: an empty search closes (and leaves the results page). With a query the results stay,
+  // because clicking a result also blurs the field first.
   function close() {
-    if (!onSearchPage && value.trim() === "") setOpen(false);
+    setTyping(false);
+    if (value.trim() !== "") return;
+    if (onSearchPage) leaveSearch();
+    else setOpen(false);
   }
 
   function submit(e: FormEvent) {
@@ -81,13 +134,17 @@ export function NavSearch() {
         value={value}
         tabIndex={expanded ? 0 : -1}
         autoFocus={onSearchPage && query === ""}
-        onChange={(e) => setValue(e.target.value)}
+        onChange={(e) => {
+          setTyping(true);
+          setValue(e.target.value);
+        }}
         onBlur={close}
         onKeyDown={(e) => {
           if (e.key !== "Escape") return;
-          setValue(onSearchPage ? value : "");
+          setValue("");
+          if (onSearchPage) leaveSearch();
+          else setOpen(false);
           e.currentTarget.blur();
-          if (!onSearchPage) setOpen(false);
         }}
         className={`${fieldInputStyles} transition-opacity duration-200 ${expanded ? "opacity-100" : "pointer-events-none opacity-0"}`}
       />
