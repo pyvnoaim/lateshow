@@ -21,8 +21,10 @@ export async function Decide({ searchParams }: { searchParams: Promise<HomeSearc
   return (
     <Section
       title="Can't decide?"
+      description="Three picks that are on a subscription in Germany."
+      asideAt="end"
       aside={
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="flex flex-wrap items-center gap-6">
           <SegmentedTabs
             label="Pick a movie or a series"
             items={[
@@ -51,14 +53,12 @@ export async function Decide({ searchParams }: { searchParams: Promise<HomeSearc
         </div>
       }
     >
-      {picks.length > 0 ? (
+      {picks.length > 0 && (
         <PosterGrid>
           {picks.map((c, i) => (
             <PosterLink key={`${c.media_type}-${c.id}`} card={c} index={i} morph={false} />
           ))}
         </PosterGrid>
-      ) : (
-        <p className="text-body text-muted">Three picks that are on a subscription in Germany.</p>
       )}
     </Section>
   );
