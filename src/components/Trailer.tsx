@@ -59,6 +59,8 @@ export function Trailer({
           <Dialog.Close
             ref={close}
             aria-label="Close trailer"
+            data-tip="Close"
+            data-tip-meta="Esc"
             className={buttonStyles("glass", "icon", "absolute -top-14 right-0")}
           >
             <X size={20} strokeWidth={1.75} aria-hidden />

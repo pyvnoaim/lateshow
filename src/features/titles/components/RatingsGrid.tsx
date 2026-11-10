@@ -35,7 +35,13 @@ export function RatingsGrid({ seasons, watched }: { seasons: SeasonData[]; watch
                     return (
                       <div
                         key={e.n}
-                        title={`S${s.number} E${e.n} · ${e.name}${e.rating > 0 ? ` · ${e.rating.toFixed(1)}` : ""}${isSeen ? " · seen" : ""}`}
+                        data-tip={`S${s.number} E${e.n} · ${e.name}`}
+                        data-tip-meta={[
+                          e.rating > 0 ? `★ ${e.rating.toFixed(1)}` : "Not rated yet",
+                          isSeen ? "Seen" : null,
+                        ]
+                          .filter(Boolean)
+                          .join(" · ")}
                         className={`aspect-square rounded-sm glass-cell ${e.rating > 0 ? (isSeen ? SEEN : UNSEEN)[tone] : "bg-raised"}`}
                       />
                     );

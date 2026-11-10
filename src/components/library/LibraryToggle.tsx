@@ -6,8 +6,14 @@ import { useOptimistic, useState, useTransition } from "react";
 import { buttonStyles, type ButtonSize } from "@/components/ui/button";
 
 const kinds = {
-  watchlist: { icon: Plus, onIcon: Check, off: "Add to watchlist", on: "On your watchlist, remove" },
-  watched: { icon: Check, onIcon: Check, off: "Mark as watched", on: "Watched, undo" },
+  watchlist: {
+    icon: Plus,
+    onIcon: Check,
+    off: "Add to watchlist",
+    on: "On your watchlist, remove",
+    onTip: "On your watchlist",
+  },
+  watched: { icon: Check, onIcon: Check, off: "Mark as watched", on: "Watched, undo", onTip: "Watched" },
 } as const;
 
 /**
@@ -35,7 +41,13 @@ export function LibraryToggle({
 
   if (!signedIn) {
     return (
-      <Link href="/login" aria-label={`${k.off} (sign in first)`} className={buttonStyles("glass", size)}>
+      <Link
+        href="/login"
+        aria-label={`${k.off} (sign in first)`}
+        data-tip={k.off}
+        data-tip-meta="Sign in first"
+        className={buttonStyles("glass", size)}
+      >
         <Icon size={size === "iconSm" ? 16 : 20} strokeWidth={1.75} aria-hidden />
       </Link>
     );
@@ -59,6 +71,7 @@ export function LibraryToggle({
       type="button"
       aria-pressed={on}
       aria-label={on ? k.on : k.off}
+      data-tip={on ? k.onTip : k.off}
       onClick={flip}
       className={buttonStyles(on ? "accent" : "glass", size)}
     >

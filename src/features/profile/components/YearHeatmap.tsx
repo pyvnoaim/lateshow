@@ -8,10 +8,14 @@ const LEVELS: Record<Level, string> = {
   4: "bg-accent",
 };
 
-const label = (d: Day) =>
-  `${new Date(d.date).toLocaleDateString("en", { month: "short", day: "numeric", timeZone: "UTC" })}: ${
-    d.minutes ? `${d.minutes} min` : "nothing watched"
-  }`;
+const day = (d: Day) =>
+  new Date(d.date).toLocaleDateString("en", { weekday: "short", month: "short", day: "numeric", timeZone: "UTC" });
+const watchedFor = (d: Day) =>
+  d.minutes
+    ? d.minutes >= 60
+      ? `${Math.round((d.minutes / 60) * 10) / 10} h watched`
+      : `${d.minutes} min watched`
+    : "Nothing watched";
 
 /** One square per day, a column per week, like a contribution graph. */
 export function YearHeatmap({ days }: { days: Day[] }) {
@@ -20,7 +24,12 @@ export function YearHeatmap({ days }: { days: Day[] }) {
       <div className="overflow-x-auto pb-1">
         <div className="grid min-w-3xl auto-cols-fr grid-flow-col grid-rows-7 gap-1">
           {days.map((d) => (
-            <div key={d.date} title={label(d)} className={`aspect-square rounded-sm glass-cell ${LEVELS[d.level]}`} />
+            <div
+              key={d.date}
+              data-tip={day(d)}
+              data-tip-meta={watchedFor(d)}
+              className={`aspect-square rounded-sm glass-cell ${LEVELS[d.level]}`}
+            />
           ))}
         </div>
       </div>

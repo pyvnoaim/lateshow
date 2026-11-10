@@ -56,6 +56,7 @@ export function HeroCarousel({ slides }: { slides: HeroSlide[] }) {
                   key={s.key}
                   type="button"
                   aria-label={`Show ${s.name}`}
+                  data-tip={s.name}
                   aria-current={i === index}
                   onClick={() => setIndex(i)}
                   className="group flex h-6 items-center"

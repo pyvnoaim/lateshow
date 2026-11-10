@@ -163,6 +163,31 @@
   /* content starts and ends inside the faded strips, so nothing looks dimmed until it actually scrolls under them */
   padding-block: 16px 24px;
 }
+/* Clear until hovered, then the glass fades in behind it (for quiet links like where-to-watch). The glass is a
+   layer under the content, so only its opacity animates. */
+@utility glass-hover {
+  position: relative;
+  isolation: isolate;
+  &::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: -1;
+    border-radius: inherit;
+    background: linear-gradient(180deg, var(--color-glass-hi), var(--color-glass-lo));
+    backdrop-filter: blur(28px) saturate(1.9);
+    box-shadow:
+      inset 0 1px 0 0 var(--color-glass-edge),
+      inset 0 0 0 1px var(--color-hairline);
+    opacity: 0;
+    transition: opacity var(--duration-hover) ease-out;
+  }
+  @media (hover: hover) {
+    &:hover::before {
+      opacity: 1;
+    }
+  }
+}
 /* Blue tinted glass: "this is on" (watched, on the watchlist). Same material as the other glass. */
 @utility glass-accent {
   background:
@@ -327,6 +352,25 @@
   }
   to {
     transform: scaleX(1);
+  }
+}
+/* Tooltip entrance: a short fade with a small rise toward the element */
+@utility tip-in {
+  animation: tip-in var(--duration-hover) var(--ease-spring) both;
+}
+@utility tip-in-below {
+  animation: tip-in-below var(--duration-hover) var(--ease-spring) both;
+}
+@keyframes tip-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px) scale(0.97);
+  }
+}
+@keyframes tip-in-below {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.97);
   }
 }
 @keyframes drift {
