@@ -18,14 +18,18 @@ export async function Upcoming() {
     <Section title="Coming to cinemas" description="New in German cinemas soon.">
       <PosterGrid>
         {shown.map(({ card, date, trailer }, i) => (
-          <div key={card.id} className="relative">
-            <PosterLink card={card} index={i} morph={false} caption={`In cinemas ${day(date!)}`} />
-            {trailer && (
-              // sits over the poster, outside the link (a button inside a link is invalid)
-              <div className="absolute top-3 right-3">
-                <Trailer youtubeKey={trailer} title={card.title ?? ""} variant="icon" />
-              </div>
-            )}
+          <div key={card.id} className="flex flex-col gap-0.5">
+            <PosterLink card={card} index={i} morph={false} caption={null} />
+            {/* date and trailer live outside the link: a button inside a link is invalid */}
+            <div className="flex items-center gap-1.5 text-caption text-muted nums">
+              <span>{day(date!)}</span>
+              {trailer && (
+                <>
+                  <span aria-hidden>·</span>
+                  <Trailer youtubeKey={trailer} title={card.title ?? ""} variant="text" />
+                </>
+              )}
+            </div>
           </div>
         ))}
       </PosterGrid>

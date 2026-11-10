@@ -4,7 +4,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { Play, X } from "lucide-react";
 import { buttonStyles } from "./ui/button";
 
-/** Trailer in a dialog. `pill` is the labelled glass button, `icon` a round play button (over posters). */
+/** Trailer in a dialog. `pill` is the labelled glass button, `text` a small grey link (under posters). */
 export function Trailer({
   youtubeKey,
   title,
@@ -12,16 +12,20 @@ export function Trailer({
 }: {
   youtubeKey: string;
   title: string;
-  variant?: "pill" | "icon";
+  variant?: "pill" | "text";
 }) {
   return (
     <Dialog.Root>
       <Dialog.Trigger
-        aria-label={variant === "icon" ? `Play the ${title} trailer` : undefined}
-        className={buttonStyles("glass", variant === "icon" ? "icon" : "md")}
+        aria-label={variant === "text" ? `Play the ${title} trailer` : undefined}
+        className={
+          variant === "text"
+            ? "inline-flex items-center gap-1 text-caption text-muted transition-colors hover:text-fg"
+            : buttonStyles("glass")
+        }
       >
-        <Play size={18} strokeWidth={1.75} aria-hidden />
-        {variant === "pill" && "Trailer"}
+        <Play size={variant === "text" ? 11 : 18} strokeWidth={variant === "text" ? 2.25 : 1.75} aria-hidden />
+        Trailer
       </Dialog.Trigger>
       <Dialog.Portal>
         <Dialog.Overlay className="fixed inset-0 z-40 bg-bg/80 backdrop-blur-md" />

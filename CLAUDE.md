@@ -202,6 +202,7 @@ Run `pnpm check` before every commit. It must pass.
   Rule: inputs are glass pills like search, never boxes with their own radius.
 - Switchers (tabs, filters, Movie/Series, seasons) are plain text like the top bar links: active white, rest grey, no pill or box.
   The white pill switcher was disliked (2026-11-10). One component: `SegmentedTabs`.
+- Posters stay clean: no buttons on the artwork. Extra actions go in the caption line under the title (e.g. "Nov 12 · ▶ Trailer").
   Layout: split. Form left-aligned on the left half, right half = wall of real posters (4 columns, tilted -6deg, each drifting up
   slowly at its own speed, looping), faded into black toward the form and at top/bottom. Hidden on phones, static with reduced motion.
 - Posters in the draft are colored placeholder blocks until TMDB images are in.

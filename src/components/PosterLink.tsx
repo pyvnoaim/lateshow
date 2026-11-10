@@ -16,8 +16,8 @@ export function PosterLink({
   card: Card;
   index?: number;
   morph?: boolean;
-  /** Replaces the "Movie · 2024" line, e.g. a release date. */
-  caption?: string;
+  /** Replaces the "Movie · 2024" line. `null` hides it (the caller renders its own line under the link). */
+  caption?: string | null;
 }) {
   const name = card.title ?? card.name ?? "";
   const year = (card.release_date ?? card.first_air_date ?? "").slice(0, 4);
@@ -51,9 +51,11 @@ export function PosterLink({
         artwork
       )}
       <span className="text-label font-medium">{name}</span>
-      <span className="-mt-2 text-caption text-muted">
-        {caption ?? `${card.media_type === "tv" ? "Series" : "Movie"}${year ? ` · ${year}` : ""}`}
-      </span>
+      {caption !== null && (
+        <span className="-mt-2 text-caption text-muted">
+          {caption ?? `${card.media_type === "tv" ? "Series" : "Movie"}${year ? ` · ${year}` : ""}`}
+        </span>
+      )}
     </Link>
   );
 }
