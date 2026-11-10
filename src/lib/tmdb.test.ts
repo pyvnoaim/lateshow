@@ -38,12 +38,12 @@ describe("cinemaDate", () => {
         ],
       },
     };
-    expect(cinemaDate(t)).toBe("2026-12-18");
+    expect(cinemaDate(t, "DE")).toBe("2026-12-18");
   });
 
   it("falls back to the main release date", () => {
-    expect(cinemaDate({ release_date: "2026-11-01", release_dates: { results: [] } })).toBe("2026-11-01");
-    expect(cinemaDate({})).toBeNull();
+    expect(cinemaDate({ release_date: "2026-11-01", release_dates: { results: [] } }, "DE")).toBe("2026-11-01");
+    expect(cinemaDate({}, "DE")).toBeNull();
   });
 });
 

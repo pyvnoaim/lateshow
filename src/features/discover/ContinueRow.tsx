@@ -2,12 +2,13 @@ import { ShowProgressCard } from "@/components/library/ShowProgressCard";
 import { Section } from "@/components/ui/Section";
 import { getSession } from "@/lib/auth";
 import { getShowsInProgress } from "./inProgress";
+import { getRegion } from "@/lib/region";
 
 /** Your other shows in progress. The first one is already the hero, so it starts at the second. */
 export async function ContinueRow() {
   const session = await getSession();
   if (!session) return null;
-  const shows = (await getShowsInProgress(session.user.id, 7)).slice(1);
+  const shows = (await getShowsInProgress(session.user.id, 7, (await getRegion()).code)).slice(1);
   if (shows.length === 0) return null;
   return (
     <Section title="Continue watching">

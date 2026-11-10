@@ -1,6 +1,6 @@
 import "server-only";
 import { cacheLife } from "next/cache";
-import { COUNTRY, type MediaType } from "./tmdb";
+import type { MediaType } from "./tmdb";
 
 // Unofficial, undocumented JustWatch endpoint. No key. Can break any time: every caller must cope with [].
 const QUERY = `query Search($country: Country!, $language: Language!, $filter: TitleFilter) {
@@ -25,7 +25,12 @@ type Node = { objectType: string; content: { externalIds: { tmdbId: string | nul
 
 const INCLUDED = new Set(["FLATRATE", "FREE", "ADS"]);
 
-export async function getWatchLinks(type: MediaType, tmdbId: number, title: string): Promise<WatchLink[]> {
+export async function getWatchLinks(
+  type: MediaType,
+  tmdbId: number,
+  title: string,
+  country: string,
+): Promise<WatchLink[]> {
   "use cache";
   cacheLife("days");
   try {
@@ -34,7 +39,7 @@ export async function getWatchLinks(type: MediaType, tmdbId: number, title: stri
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
         query: QUERY,
-        variables: { country: COUNTRY, language: "en", filter: { searchQuery: title } },
+        variables: { country, language: "en", filter: { searchQuery: title } },
       }),
     });
     if (!res.ok) return [];
@@ -66,15 +71,15 @@ const TOP_QUERY = `query Top($country: Country!, $language: Language!) {
   }
 }`;
 
-/** The 10 most popular titles in COUNTRY right now (JustWatch's ranking, TMDB has none per country). [] on any failure. */
-export async function getTopInCountry(): Promise<{ type: MediaType; tmdbId: number }[]> {
+/** The 10 most popular titles in the country right now (JustWatch's ranking, TMDB has none per country). [] on any failure. */
+export async function getTopInCountry(country: string): Promise<{ type: MediaType; tmdbId: number }[]> {
   "use cache";
   cacheLife("hours");
   try {
     const res = await fetch("https://apis.justwatch.com/graphql", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ query: TOP_QUERY, variables: { country: COUNTRY, language: "en" } }),
+      body: JSON.stringify({ query: TOP_QUERY, variables: { country, language: "en" } }),
     });
     if (!res.ok) return [];
     const data = await res.json();

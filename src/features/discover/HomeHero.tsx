@@ -10,11 +10,12 @@ import { setOnWatchlist } from "@/lib/library/actions";
 import { getTitleLibrary } from "@/lib/library/queries";
 import { getTitle, getTrending, img, pickLogo, pickTrailer, titleMeta } from "@/lib/tmdb";
 import { getShowsInProgress, type ShowInProgress } from "./inProgress";
+import { getRegion } from "@/lib/region";
 
 /** Your show in progress when there is one, otherwise this week's top trending title. */
 export async function HomeHero() {
   const session = await getSession();
-  const [show] = session ? await getShowsInProgress(session.user.id, 1) : [];
+  const [show] = session ? await getShowsInProgress(session.user.id, 1, (await getRegion()).code) : [];
   return show ? <ContinueWatching {...show} /> : <Featured userId={session?.user.id} />;
 }
 

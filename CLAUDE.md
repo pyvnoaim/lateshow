@@ -91,7 +91,11 @@ Minimal design, few features, mostly quality of life (decided 2026-11-10).
   - Fallback if the site grows: Streaming Availability API (Movie of the Night, RapidAPI free plan ~100 requests/day, no card) with a ~1 day cache, or JustWatch's paid official API.
 - Watchmode (~1,000 req/month free) considered; unclear if deep links are on the free plan.
 - Apple TV+ links (`tv.apple.com`) open the TV app on macOS; Netflix/Prime/Disney+ open in the browser.
-- Streaming info country: Germany by default, switchable.
+- Country (2026-11-11): auto-detected for everyone (signed in or not) from the CDN geo header (`cf-ipcountry`, Vercel's as fallback),
+  Germany when there's none (local dev) or it's unknown/Tor. `src/lib/region.ts` (`getRegion()` -> code + name for sentences).
+  Every country-dependent data function takes the country as a parameter, so caches are per country. Nothing is stored.
+- Privacy: no cookie banner needed as long as there's no analytics/tracking (auto-detect stores nothing, the login cookie and a
+  possible country/language choice cookie are strictly necessary). Still needed before launch: privacy page (Datenschutz) and Impressum.
 - No piracy: only links to legal services.
 - TMDB key is registered as personal, non-commercial use (2026-11-09). The site must make no money: no ads, subscriptions or paid features.
   Monetizing needs TMDB's commercial license first. TMDB attribution lives on /about only (their logo + "This product uses the TMDB API but is not endorsed or certified by TMDB."),

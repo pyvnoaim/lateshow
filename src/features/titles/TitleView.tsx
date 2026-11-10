@@ -14,20 +14,11 @@ import { getWatchLinks, type WatchLink } from "@/lib/justwatch";
 import { setOnWatchlist, setWatched, type TitleRef } from "@/lib/library/actions";
 import { nextEpisode, parseEpisodeKeys, type EpisodeRef } from "@/lib/library/progress";
 import { getTitleLibrary } from "@/lib/library/queries";
-import {
-  cinemaDate,
-  COUNTRY,
-  getSeasons,
-  getTitle,
-  img,
-  pickTrailer,
-  type MediaType,
-  type Title,
-  titleMeta,
-} from "@/lib/tmdb";
+import { cinemaDate, getSeasons, getTitle, img, pickTrailer, type MediaType, type Title, titleMeta } from "@/lib/tmdb";
 import { Episodes, type SeasonData } from "./components/Episodes";
 import { RatingsGrid } from "./components/RatingsGrid";
 import { Trailer } from "@/components/Trailer";
+import { getRegion } from "@/lib/region";
 
 type Library = { signedIn: boolean; onWatchlist: boolean; watched: string[]; ref: TitleRef };
 
@@ -35,7 +26,8 @@ export async function TitleView({ type, id }: { type: string; id: string }) {
   if ((type !== "movie" && type !== "tv") || !/^\d+$/.test(id)) notFound();
   const t = await getTitle(type, id).catch(() => notFound());
   const name = t.title ?? t.name ?? "";
-  const [links, session] = await Promise.all([getWatchLinks(type, t.id, name), getSession()]);
+  const region = await getRegion();
+  const [links, session] = await Promise.all([getWatchLinks(type, t.id, name, region.code), getSession()]);
   const lib = session ? await getTitleLibrary(session.user.id, type, t.id) : { onWatchlist: false, watched: [] };
   const library: Library = {
     signedIn: session !== null,
@@ -45,7 +37,7 @@ export async function TitleView({ type, id }: { type: string; id: string }) {
   const trailer = pickTrailer(t.videos.results);
   // A movie that isn't out yet gets its cinema date instead of a watch button (today is safe to read here,
   // the session above already made this render per request).
-  const cinema = type === "movie" ? cinemaDate(t) : null;
+  const cinema = type === "movie" ? cinemaDate(t, region.code) : null;
   const inCinemasFrom = cinema && cinema > new Date().toISOString().slice(0, 10) ? cinema : undefined;
   // Season sizes are in the title details already, so "up next" needs no extra request.
   const next =
@@ -68,7 +60,7 @@ export async function TitleView({ type, id }: { type: string; id: string }) {
         next={next}
         inCinemasFrom={inCinemasFrom}
       />
-      <WhereToWatch links={links} fallback={t["watch/providers"].results[COUNTRY]?.link} />
+      <WhereToWatch links={links} fallback={t["watch/providers"].results[region.code]?.link} country={region.name} />
       <Container as="main" className="flex flex-col gap-section pt-section">
         {type === "tv" && (
           <Suspense fallback={<div className="h-80 sk rounded-banner" />}>
@@ -162,7 +154,7 @@ function Hero({
 }
 
 /** One quiet line: subscription services first, then a few rent or buy stores. */
-function WhereToWatch({ links, fallback }: { links: WatchLink[]; fallback?: string }) {
+function WhereToWatch({ links, fallback, country }: { links: WatchLink[]; fallback?: string; country: string }) {
   const included = links.filter((l) => l.included).slice(0, 4);
   const paid = links.filter((l) => !l.included).slice(0, 3);
   const link = (l: WatchLink) => (
@@ -183,7 +175,7 @@ function WhereToWatch({ links, fallback }: { links: WatchLink[]; fallback?: stri
       <span className="text-muted">Where to watch</span>
       {links.length === 0 && (
         <span className="text-muted">
-          Not streaming in Germany right now.
+          Not streaming in {country} right now.
           {fallback && (
             <>
               {" "}

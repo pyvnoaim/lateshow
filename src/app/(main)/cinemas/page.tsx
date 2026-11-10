@@ -10,7 +10,7 @@ export default function CinemasPage() {
     <Container as="main" className="flex flex-col gap-section pt-page-top">
       <div className="flex rise flex-col gap-3">
         <h1 className="text-page leading-none font-bold">Coming to cinemas</h1>
-        <p className="text-body text-muted">The next six months in German cinemas, by release day.</p>
+        <p className="text-body text-muted">The next six months, by release day.</p>
       </div>
       <Suspense fallback={<PosterGridSkeleton />}>
         <CinemaCalendar />

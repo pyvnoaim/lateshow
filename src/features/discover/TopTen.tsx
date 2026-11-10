@@ -4,10 +4,12 @@ import { Section } from "@/components/ui/Section";
 import { getTopInCountry } from "@/lib/justwatch";
 import { ServiceBadge } from "@/components/ServiceBadge";
 import { getTitle, img, subscriptionServices } from "@/lib/tmdb";
+import { getRegion } from "@/lib/region";
 
-/** The 10 most watched titles in Germany right now, big rank numbers, scrolls sideways. */
+/** The 10 most watched titles in your country right now, big rank numbers, scrolls sideways. */
 export async function TopTen() {
-  const top = await getTopInCountry();
+  const { code, name } = await getRegion();
+  const top = await getTopInCountry(code);
   const loaded = await Promise.all(
     top.map(({ type, tmdbId }) =>
       getTitle(type, String(tmdbId))
@@ -19,7 +21,7 @@ export async function TopTen() {
   if (titles.length < 5) return null;
 
   return (
-    <Section title="Top 10 in Germany" description="Most watched this week across streaming services.">
+    <Section title={`Top 10 in ${name}`} description="Most watched this week across streaming services.">
       <ol className="-mx-4 -my-5 flex snap-x gap-2 overflow-x-auto overflow-y-hidden px-4 py-5 sm:-mx-12 sm:px-12">
         {titles.slice(0, 10).map(({ t, type }, i) => (
           <li key={`${type}-${t.id}`} className="shrink-0 snap-start">
@@ -40,7 +42,7 @@ export async function TopTen() {
                 </div>
                 {/* fixed height so every column lines up, logo or not */}
                 <span className="flex h-4 text-caption text-muted">
-                  {subscriptionServices(t)[0] && <ServiceBadge service={subscriptionServices(t)[0]} />}
+                  {subscriptionServices(t, code)[0] && <ServiceBadge service={subscriptionServices(t, code)[0]} />}
                 </span>
               </div>
             </Link>

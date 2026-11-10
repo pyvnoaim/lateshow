@@ -3,7 +3,6 @@ import { cacheLife } from "next/cache";
 import { env } from "./env";
 
 export type MediaType = "movie" | "tv";
-export const COUNTRY = "DE"; // ponytail: fixed for now, make it a user setting with layer 2
 
 const API = "https://api.themoviedb.org/3";
 
@@ -75,10 +74,10 @@ export function pickTrailer(videos: Video[]) {
 }
 
 /**
- * Cinema release in COUNTRY as YYYY-MM-DD: theatrical (3) before limited (2), earliest first.
+ * Cinema release in the country as YYYY-MM-DD: theatrical (3) before limited (2), earliest first.
  * Falls back to TMDB's main release date when the country has none.
  */
-export function cinemaDate(t: Pick<Title, "release_date" | "release_dates">, country = COUNTRY) {
+export function cinemaDate(t: Pick<Title, "release_date" | "release_dates">, country: string) {
   const dates =
     t.release_dates?.results
       .find((r) => r.iso_3166_1 === country)
@@ -97,14 +96,14 @@ export async function getTrending(kind: Kind = "all") {
 }
 
 /**
- * Well rated titles that are on a subscription service in COUNTRY, one page of results.
+ * Well rated titles that are on a subscription service in the country, one page of results.
  * Feeds "Can't decide?". Discover results have no media_type, so it's added here.
  */
-export async function discoverOnSubscription(type: MediaType, page: number): Promise<Card[]> {
+export async function discoverOnSubscription(type: MediaType, page: number, country: string): Promise<Card[]> {
   "use cache";
   cacheLife("days");
   const data = await tmdb<{ results: Omit<Card, "media_type">[] }>(`/discover/${type}`, {
-    watch_region: COUNTRY,
+    watch_region: country,
     with_watch_monetization_types: "flatrate",
     "vote_average.gte": "7",
     "vote_count.gte": "300",
@@ -160,16 +159,16 @@ export function toCards(hits: SearchHit[]): Card[] {
 }
 
 /**
- * Movies coming to cinemas in COUNTRY from today on, soonest first, with their trailer.
+ * Movies coming to cinemas in the country from today on, soonest first, with their trailer.
  * One cached call per movie for the German date and trailer, refreshed every few hours.
  */
-export async function getUpcomingInCinemas() {
+export async function getUpcomingInCinemas(country: string) {
   "use cache";
   cacheLife("hours");
   const today = new Date().toISOString().slice(0, 10);
   const pages = await Promise.all(
     [1, 2].map((page) =>
-      tmdb<{ results: Omit<Card, "media_type">[] }>("/movie/upcoming", { region: COUNTRY, page: String(page) }),
+      tmdb<{ results: Omit<Card, "media_type">[] }>("/movie/upcoming", { region: country, page: String(page) }),
     ),
   );
   const unique = [...new Map(pages.flatMap((p) => p.results).map((m) => [m.id, m])).values()];
@@ -179,7 +178,7 @@ export async function getUpcomingInCinemas() {
       return t
         ? {
             card: { ...m, media_type: "movie" as const },
-            date: cinemaDate(t),
+            date: cinemaDate(t, country),
             trailer: pickTrailer(t.videos.results)?.key,
           }
         : null;
@@ -192,49 +191,57 @@ export async function getUpcomingInCinemas() {
 
 export type Service = { name: string; logoPath: string };
 
-/** Services in COUNTRY that include this title in a subscription (Netflix, Prime Video...), TMDB's order. */
-export function subscriptionServices(t: Pick<Title, "watch/providers">): Service[] {
+/** Services in the country that include this title in a subscription (Netflix, Prime Video...), TMDB's order. */
+export function subscriptionServices(t: Pick<Title, "watch/providers">, country: string): Service[] {
   return (
-    t["watch/providers"].results[COUNTRY]?.flatrate?.map((p) => ({ name: p.provider_name, logoPath: p.logo_path })) ??
+    t["watch/providers"].results[country]?.flatrate?.map((p) => ({ name: p.provider_name, logoPath: p.logo_path })) ??
     []
   );
 }
 
 const daysAgo = (n: number) => new Date(Date.now() - n * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
 
-async function discover(type: MediaType, params: Record<string, string>): Promise<Card[]> {
+async function discover(type: MediaType, params: Record<string, string>, country: string): Promise<Card[]> {
   const data = await tmdb<{ results: Omit<Card, "media_type">[] }>(`/discover/${type}`, {
-    watch_region: COUNTRY,
+    watch_region: country,
     with_watch_monetization_types: "flatrate",
     ...params,
   });
   return data.results.map((r) => ({ ...r, media_type: type }));
 }
 
-/** Movies from the last 4 months and series that premiered in the last 6, on a subscription in COUNTRY, most popular first. */
-export async function getNewOnStreaming() {
+/** Movies from the last 4 months and series that premiered in the last 6, on a subscription in the country, most popular first. */
+export async function getNewOnStreaming(country: string) {
   "use cache";
   cacheLife("hours");
   const [movies, shows] = await Promise.all([
-    discover("movie", {
-      "primary_release_date.gte": daysAgo(120),
-      "primary_release_date.lte": daysAgo(0),
-      sort_by: "popularity.desc",
-      "vote_count.gte": "20",
-    }),
-    discover("tv", {
-      "first_air_date.gte": daysAgo(180),
-      "first_air_date.lte": daysAgo(0),
-      sort_by: "popularity.desc",
-      "vote_count.gte": "10",
-    }),
+    discover(
+      "movie",
+      {
+        "primary_release_date.gte": daysAgo(120),
+        "primary_release_date.lte": daysAgo(0),
+        sort_by: "popularity.desc",
+        "vote_count.gte": "20",
+      },
+      country,
+    ),
+    discover(
+      "tv",
+      {
+        "first_air_date.gte": daysAgo(180),
+        "first_air_date.lte": daysAgo(0),
+        sort_by: "popularity.desc",
+        "vote_count.gte": "10",
+      },
+      country,
+    ),
   ]);
   // alternate movie, show, movie... so neither type takes over the row
   return movies.flatMap((m, i) => (shows[i] ? [m, shows[i]] : [m])).filter((c) => c.poster_path);
 }
 
-/** Very well rated titles with few votes, on a subscription in COUNTRY. A different page each day. */
-export async function getHiddenGems() {
+/** Very well rated titles with few votes, on a subscription in the country. A different page each day. */
+export async function getHiddenGems(country: string) {
   "use cache";
   cacheLife("days");
   const page = (Math.floor(Date.now() / (24 * 60 * 60 * 1000)) % 5) + 1;
@@ -245,7 +252,7 @@ export async function getHiddenGems() {
     sort_by: "vote_average.desc",
     page: String(page),
   };
-  const [movies, shows] = await Promise.all([discover("movie", params), discover("tv", params)]);
+  const [movies, shows] = await Promise.all([discover("movie", params, country), discover("tv", params, country)]);
   return movies.flatMap((m, i) => (shows[i] ? [m, shows[i]] : [m])).filter((c) => c.poster_path);
 }
 
@@ -298,7 +305,7 @@ export async function getGenreNames(): Promise<Record<number, string>> {
  * German cinema releases for the next 6 months (theatrical or limited), with the German date and a trailer.
  * Discover filters by German release dates when `region` is set. Feeds the /cinemas calendar.
  */
-export async function getCinemaCalendar() {
+export async function getCinemaCalendar(country: string) {
   "use cache";
   cacheLife("hours");
   const day = 24 * 60 * 60 * 1000;
@@ -307,7 +314,7 @@ export async function getCinemaCalendar() {
   const pages = await Promise.all(
     [1, 2, 3].map((page) =>
       tmdb<{ results: Omit<Card, "media_type">[] }>("/discover/movie", {
-        region: COUNTRY,
+        region: country,
         with_release_type: "2|3",
         "release_date.gte": today,
         "release_date.lte": until,
@@ -323,7 +330,7 @@ export async function getCinemaCalendar() {
       return t
         ? {
             card: { ...m, media_type: "movie" as const },
-            date: cinemaDate(t),
+            date: cinemaDate(t, country),
             trailer: pickTrailer(t.videos.results)?.key,
           }
         : null;

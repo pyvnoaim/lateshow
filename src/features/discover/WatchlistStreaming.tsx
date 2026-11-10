@@ -2,16 +2,18 @@ import { getSession } from "@/lib/auth";
 import { getWatchlist } from "@/lib/library/queries";
 import { getTitle, subscriptionServices, type Card } from "@/lib/tmdb";
 import { PosterSection } from "./PosterSection";
+import { getRegion } from "@/lib/region";
 
-/** Watchlist titles you can stream on a subscription in Germany today, with the service as caption. */
+/** Watchlist titles you can stream on a subscription in your country today, with the service as caption. */
 export async function WatchlistStreaming() {
   const session = await getSession();
   if (!session) return null;
+  const { code } = await getRegion();
   const listed = (await getWatchlist(session.user.id)).slice(0, 24);
   const titles = await Promise.all(
     listed.map(async (w) => {
       const t = await getTitle(w.mediaType, String(w.tmdbId)).catch(() => null);
-      const services = t ? subscriptionServices(t) : [];
+      const services = t ? subscriptionServices(t, code) : [];
       if (!t || services.length === 0) return null;
       const card: Card = {
         id: t.id,

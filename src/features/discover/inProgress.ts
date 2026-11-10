@@ -7,13 +7,13 @@ import { getSeasons, getTitle, pickLogo } from "@/lib/tmdb";
 export type ShowInProgress = NonNullable<Awaited<ReturnType<typeof loadShow>>>;
 
 /** Your shows that still have an episode to watch, most recently watched first. */
-export async function getShowsInProgress(userId: string, limit: number) {
+export async function getShowsInProgress(userId: string, limit: number, country: string) {
   const recent = await getRecentShows(userId, limit + 4); // some may be caught up
-  const shows = await Promise.all(recent.map((r) => loadShow(userId, r.tmdbId, r.title)));
+  const shows = await Promise.all(recent.map((r) => loadShow(userId, r.tmdbId, r.title, country)));
   return shows.filter((s): s is ShowInProgress => s !== null).slice(0, limit);
 }
 
-async function loadShow(userId: string, tmdbId: number, fallbackName: string) {
+async function loadShow(userId: string, tmdbId: number, fallbackName: string, country: string) {
   const t = await getTitle("tv", String(tmdbId)).catch(() => null);
   if (!t) return null;
   const seasons = (t.seasons ?? []).map((s) => ({ number: s.season_number, episodeCount: s.episode_count }));
@@ -23,7 +23,7 @@ async function loadShow(userId: string, tmdbId: number, fallbackName: string) {
   const name = t.name ?? fallbackName;
   const [[season], links] = await Promise.all([
     getSeasons(String(t.id), [next.season]),
-    getWatchLinks("tv", t.id, name),
+    getWatchLinks("tv", t.id, name, country),
   ]);
   return {
     id: t.id,
