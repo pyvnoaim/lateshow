@@ -14,7 +14,11 @@
   --color-heat-2: #48484a;
   --color-heat-3: #a1a1a6;
   --color-heat-4: #f5f5f7;
-  --color-glass: rgb(30 30 32 / 0.55);
+  --color-glass-hi: rgb(255 255 255 / 0.16);
+  --color-glass-lo: rgb(255 255 255 / 0.05);
+  --color-glass-hi-hover: rgb(255 255 255 / 0.24);
+  --color-glass-lo-hover: rgb(255 255 255 / 0.09);
+  --color-glass-edge: rgb(255 255 255 / 0.3);
   --color-hairline: rgb(255 255 255 / 0.08);
 
   --font-sans: var(--font-inter-tight), -apple-system, system-ui, sans-serif;
@@ -105,11 +109,25 @@
 @utility nums {
   font-variant-numeric: tabular-nums;
 }
+/* Glass: light tint brighter at the top, strong blur that lets colors glow through, a bright top edge like light
+   catching glass, a faint outline and a soft shadow so it floats. Brightens on hover. */
 @utility glass {
-  background: var(--color-glass);
-  backdrop-filter: blur(24px) saturate(1.8);
-  -webkit-backdrop-filter: blur(24px) saturate(1.8);
-  box-shadow: inset 0 0 0 1px var(--color-hairline);
+  background: linear-gradient(180deg, var(--color-glass-hi), var(--color-glass-lo));
+  backdrop-filter: blur(28px) saturate(1.9) brightness(1.08);
+  -webkit-backdrop-filter: blur(28px) saturate(1.9) brightness(1.08);
+  box-shadow:
+    inset 0 1px 0 0 var(--color-glass-edge),
+    inset 0 0 0 1px var(--color-hairline),
+    0 10px 30px -10px rgb(0 0 0 / 0.55);
+  transition:
+    background var(--duration-hover) ease-out,
+    box-shadow var(--duration-hover) ease-out,
+    transform var(--duration-press) var(--ease-spring);
+  @media (hover: hover) {
+    &:hover {
+      background: linear-gradient(180deg, var(--color-glass-hi-hover), var(--color-glass-lo-hover));
+    }
+  }
 }
 /* Premium checklist: press feel, poster lift, shimmer skeleton, rows rising in */
 /* Press: a quick springy dip, released with the same spring. Applies to every button and button-like link. */

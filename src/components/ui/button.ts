@@ -5,7 +5,7 @@ const tones = {
   /** White pill, the one main action on a screen. */
   primary: "bg-fg text-bg hover:bg-fg/85",
   /** Frosted glass, secondary actions over images. */
-  glass: "glass hover:bg-fg/20",
+  glass: "glass",
   /** Quiet raised pill, lists of choices (services, filters). */
   quiet: "bg-raised hover:bg-heat-1",
   /** No background until hover, for icons and text actions. */
