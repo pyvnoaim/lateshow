@@ -66,6 +66,15 @@ Minimal design, few features, mostly quality of life (decided 2026-11-10).
 - **TMDB** (free key, one signup, key stays on the server): search, posters, backdrops, episodes, ratings, cast, trailers (YouTube keys), recommendations, which services carry a title per country.
 - **Which services carry a title** (per country): TMDB watch providers (official, data comes from JustWatch, 140+ countries). Decided 2026-11-10.
   JustWatch coverage and deep links are best in big markets (DE, EU, US, UK), thinner in small countries.
+- **TMDB endpoints by feature** (v3, Read Access Token as bearer; the short API key is not used). Ref: https://developer.themoviedb.org/reference
+  - Used: `trending/all/week`, `search/multi`, `movie|tv/{id}?append_to_response=credits,videos,recommendations,watch/providers`, `tv/{id}/season/{n}`.
+  - "My services" filter, "Can't decide?" picks: `discover/movie|tv` with `with_watch_providers` + `watch_region=DE` (+ `with_genres`, `sort_by`).
+  - Service picker in settings: `watch/providers/movie|tv?watch_region=DE`. Regions: `watch/providers/regions`.
+  - Genre filters, "mostly drama" on the profile: `genre/movie|tv/list`.
+  - New episodes / calendar (later): `tv/{id}` (`next_episode_to_air`), `tv/on_the_air`, `tv/airing_today`. Movies: `movie/now_playing|upcoming`.
+  - Import from Letterboxd / Trakt / IMDb ids: `find/{external_id}?external_source=imdb_id`.
+  - Person pages (later): `person/{id}?append_to_response=combined_credits`. Collections: `collection/{id}`.
+  - TMDB's own account watchlist/ratings endpoints are NOT used. Our library lives in our database.
 - **Direct "Watch on" links**: JustWatch's unofficial GraphQL endpoint (`apis.justwatch.com/graphql`, no key, `offers.standardWebURL`).
   Unofficial and undocumented, can break or block anytime, gray area in their terms. Fine for a small site.
   - Fallback 1: link to the service's search page with the title prefilled.
