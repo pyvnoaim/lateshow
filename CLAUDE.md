@@ -41,6 +41,8 @@ Design draft (canvas, 3 pages): https://claude.ai/artifact/CXbsoho5g1QCQkmL31d93
    - Follow by link or username, friends' activity this week, taste match %, friends' ratings on title pages, invite friends to rooms.
 4. **Spoiler-free recaps**: "catch me up to S2 E4", written by Claude from TMDB episode summaries (small cost per recap).
 5. **Watch together rooms**
+   - Every pick game (swipe, bracket, wheel, solo wheel) starts with one choice: Movie or Series. The game then only uses that type.
+     In a room, the host picks it.
    - Default: everyone swipes on titles available on the group's shared services, first match wins.
    - Game mode, main game: tournament bracket, 8 titles, vote head to head 8 → 4 → 2 → 1.
    - Category wheel: everyone adds a category, wheel spins, 3 picks from it. Also solo on home as "I can't decide".
