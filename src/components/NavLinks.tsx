@@ -28,11 +28,16 @@ export function NavLinks() {
   }, [path, router]);
 
   return (
-    <nav aria-label="Main" className="hidden gap-6 text-[15px] sm:flex">
+    <nav aria-label="Main" className="hidden gap-6 text-label sm:flex">
       {links.map(({ href, label }) => {
         const on = href === "/" ? path === "/" : path.startsWith(href);
         return (
-          <Link key={href} href={href} aria-current={on ? "page" : undefined} className={on ? "text-fg" : "text-muted transition-colors hover:text-fg"}>
+          <Link
+            key={href}
+            href={href}
+            aria-current={on ? "page" : undefined}
+            className={on ? "text-fg" : "text-muted transition-colors hover:text-fg"}
+          >
             {label}
           </Link>
         );

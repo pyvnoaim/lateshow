@@ -1,3 +1,4 @@
+import "server-only";
 import { cacheLife } from "next/cache";
 import { COUNTRY, type MediaType } from "./tmdb";
 
@@ -15,7 +16,11 @@ const QUERY = `query Search($country: Country!, $language: Language!, $filter: T
 
 export type WatchLink = { service: string; url: string; included: boolean };
 
-type Offer = { monetizationType: string; standardWebURL: string; package: { packageId: number; clearName: string } };
+export type Offer = {
+  monetizationType: string;
+  standardWebURL: string;
+  package: { packageId: number; clearName: string };
+};
 type Node = { objectType: string; content: { externalIds: { tmdbId: string | null } }; offers: Offer[] };
 
 const INCLUDED = new Set(["FLATRATE", "FREE", "ADS"]);
@@ -27,7 +32,10 @@ export async function getWatchLinks(type: MediaType, tmdbId: number, title: stri
     const res = await fetch("https://apis.justwatch.com/graphql", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ query: QUERY, variables: { country: COUNTRY, language: "en", filter: { searchQuery: title } } }),
+      body: JSON.stringify({
+        query: QUERY,
+        variables: { country: COUNTRY, language: "en", filter: { searchQuery: title } },
+      }),
     });
     if (!res.ok) return [];
     const data = await res.json();
@@ -35,16 +43,19 @@ export async function getWatchLinks(type: MediaType, tmdbId: number, title: stri
     const node = nodes.find(
       (n) => n.objectType === (type === "tv" ? "SHOW" : "MOVIE") && n.content.externalIds.tmdbId === String(tmdbId),
     );
-    if (!node) return [];
-    // One link per service, included-with-subscription offers win over rent/buy.
-    const byService = new Map<number, WatchLink>();
-    for (const o of node.offers) {
-      const link = { service: o.package.clearName, url: o.standardWebURL, included: INCLUDED.has(o.monetizationType) };
-      const prev = byService.get(o.package.packageId);
-      if (!prev || (link.included && !prev.included)) byService.set(o.package.packageId, link);
-    }
-    return [...byService.values()].sort((a, b) => Number(b.included) - Number(a.included));
+    return node ? pickLinks(node.offers) : [];
   } catch {
     return [];
   }
+}
+
+/** One link per service. A subscription offer beats rent or buy. Subscription services come first. */
+export function pickLinks(offers: Offer[]): WatchLink[] {
+  const byService = new Map<number, WatchLink>();
+  for (const o of offers) {
+    const link = { service: o.package.clearName, url: o.standardWebURL, included: INCLUDED.has(o.monetizationType) };
+    const prev = byService.get(o.package.packageId);
+    if (!prev || (link.included && !prev.included)) byService.set(o.package.packageId, link);
+  }
+  return [...byService.values()].sort((a, b) => Number(b.included) - Number(a.included));
 }

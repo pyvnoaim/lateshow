@@ -1,11 +1,12 @@
 import Image from "next/image";
+import { Container } from "@/components/ui/Container";
 
 export const metadata = { title: "About · Lateshow" };
 
 // TMDB attribution lives here (their terms: logo + notice in an About or Credits section, logo less prominent than ours).
 export default function AboutPage() {
   return (
-    <main className="mx-auto flex max-w-[720px] flex-col gap-12 px-4 pt-[160px] sm:px-12">
+    <Container as="main" size="narrow" className="flex flex-col gap-12 pt-page-top">
       <div className="flex flex-col gap-4">
         <h1 className="text-page leading-none font-bold">About Lateshow</h1>
         <p className="text-body leading-relaxed text-muted">
@@ -24,6 +25,6 @@ export default function AboutPage() {
           <span className="text-muted">Streaming availability comes from JustWatch.</span>
         </p>
       </section>
-    </main>
+    </Container>
   );
 }

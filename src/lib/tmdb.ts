@@ -1,4 +1,6 @@
+import "server-only";
 import { cacheLife } from "next/cache";
+import { env } from "./env";
 
 export type MediaType = "movie" | "tv";
 export const COUNTRY = "DE"; // ponytail: fixed for now, make it a user setting with layer 2
@@ -6,10 +8,8 @@ export const COUNTRY = "DE"; // ponytail: fixed for now, make it a user setting 
 const API = "https://api.themoviedb.org/3";
 
 async function tmdb<T>(path: string, params: Record<string, string> = {}): Promise<T> {
-  const token = process.env.TMDB_TOKEN;
-  if (!token) throw new Error("TMDB_TOKEN is missing. Put your TMDB read access token in .env.local");
   const url = `${API}${path}?${new URLSearchParams({ language: "en-US", ...params })}`;
-  const res = await fetch(url, { headers: { Authorization: `Bearer ${token}` } });
+  const res = await fetch(url, { headers: { Authorization: `Bearer ${env().TMDB_TOKEN}` } });
   if (!res.ok) throw new Error(`TMDB ${res.status} for ${path}`);
   return res.json();
 }
@@ -80,15 +80,26 @@ export async function getSeasons(id: string, numbers: number[]) {
   );
 }
 
-type SearchHit = Card | { media_type: "person"; known_for?: Card[] };
+export type SearchHit = Card | { media_type: "person"; known_for?: Card[] };
 
 /** Movies and series matching the query. A person match adds the titles they're known for. */
 export async function searchTitles(query: string) {
   "use cache";
   cacheLife("hours");
   const data = await tmdb<{ results: SearchHit[] }>("/search/multi", { query, include_adult: "false" });
+  return toCards(data.results);
+}
+
+/** Flattens people into their known titles, keeps only movies and series, drops duplicates (first one wins). */
+export function toCards(hits: SearchHit[]): Card[] {
   const seen = new Set<string>();
-  return data.results
-    .flatMap((r) => (r.media_type === "person" ? (r.known_for ?? []) : [r]))
-    .filter((r) => (r.media_type === "movie" || r.media_type === "tv") && !seen.has(`${r.media_type}-${r.id}`) && seen.add(`${r.media_type}-${r.id}`));
+  const cards: Card[] = [];
+  for (const hit of hits.flatMap((h) => (h.media_type === "person" ? (h.known_for ?? []) : [h]))) {
+    const key = `${hit.media_type}-${hit.id}`;
+    if ((hit.media_type === "movie" || hit.media_type === "tv") && !seen.has(key)) {
+      seen.add(key);
+      cards.push(hit);
+    }
+  }
+  return cards;
 }

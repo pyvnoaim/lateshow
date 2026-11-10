@@ -29,7 +29,7 @@ export function TmdbImage({
         sizes={sizes}
         priority={priority}
         onLoad={() => setLoaded(true)}
-        className={`object-cover transition-opacity duration-[600ms] ease-out ${loaded ? "opacity-100" : "opacity-0"}`}
+        className={`object-cover transition-opacity duration-600 ease-out ${loaded ? "opacity-100" : "opacity-0"}`}
       />
     </>
   );

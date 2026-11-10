@@ -127,15 +127,36 @@ e2e/                        Playwright screenshot / flow checks
 ```
 
 Rules:
+
 - `app/` holds no business logic and no direct db or API calls. It imports from `features/`.
 - A feature never imports another feature's internals. Shared things move to `components/` or `lib/`.
   Move a component to `components/` only when a second feature needs it.
 - All TMDB / JustWatch / db access is server-only (`import "server-only"`). Keys never reach the browser.
 - Writes are server actions in the feature's `actions.ts`, validated with zod. `api/` routes only where a URL is required (auth, SSE).
 - Env vars are read once in `lib/env.ts` and validated at startup, nowhere else.
-- Names: components PascalCase.tsx, everything else camelCase.ts, folders kebab-case. Named exports, no default exports except Next's page/layout files.
-- TypeScript strict, no `any`. ESLint must pass. Tests: Vitest for logic (actions, import parsers, stats), Playwright for page checks.
+- Names: components PascalCase.tsx, everything else camelCase.ts, folders kebab-case.
+- TypeScript strict, no `any`. Tests: Vitest for logic, Playwright for page checks.
 - No barrel `index.ts` files. Import the file directly.
+
+## Code conventions (2026-11-10, enforced by `pnpm check` = prettier + typecheck + eslint + vitest)
+
+Run `pnpm check` before every commit. It must pass.
+
+- **Design tokens only.** Every color, type size, width, spacing, radius, easing and duration is a token in `src/app/globals.css`
+  (`@theme`). Components use token classes (`text-label`, `pt-bar`, `max-w-page`, `aspect-poster`, `gap-section`).
+  Arbitrary values like `text-[15px]` fail lint. Need a new value? Add a token, name it by role, not by number.
+  Token names must not collide across namespaces (`--spacing-page` broke `max-w-page`, hence `--spacing-page-top`).
+- **Global CSS lives in layers.** Element defaults in `@layer base`, project helpers as `@utility` (glass, press, lift, sk, rise, nums,
+  grid-cols-posters). Never plain unlayered selectors, they beat every utility.
+- **UI kit in `src/components/ui/`.** `Container` (page column, `wide` or `narrow`), `Section` (titled block, optional `aside`),
+  `PosterGrid` + `PosterGridSkeleton`, `buttonStyles(variant)` (primary, glass, quiet, icon, iconRaised) for any element that looks
+  like a button. Use these before writing new markup. Add a kit component only when a second place needs it.
+- **Structure rules are lint errors:** no default exports outside Next route files, no `../` imports, `app/` can't import
+  `lib/tmdb|justwatch|db` (types are fine), features can't import each other, `components/` and `lib/` can't import features.
+- **Server-only data.** `lib/tmdb.ts`, `lib/justwatch.ts`, `lib/env.ts` start with `import "server-only"`. Only `lib/env.ts` reads `process.env`.
+- **Pure logic is extracted and tested.** Parsing, picking, de-duplicating live in exported pure functions with a `*.test.ts` next to them
+  (`toCards`, `pickLinks`). Fetch wrappers stay thin.
+- Formatting is Prettier (120 cols, Tailwind classes sorted). Don't hand-format.
 
 ## Design decisions
 
@@ -179,6 +200,7 @@ Rules:
 8. Focus: visible 2 px #2997ff ring with 3 px offset on `:focus-visible`.
 9. Empty states: a short headline plus one action (e.g. "Nothing watched yet." + Import from Netflix). Errors say what happened.
 10. Opening a title: the poster grows into the title page (View Transitions API).
+
 - Plus: prefetch title pages on poster hover, `/` focuses search, Esc closes overlays.
 - Process: polish the title page fully first as the bar. Screenshot desktop and phone width after every UI change before calling it done.
   Show ideas on real pages, not concept boards, before committing.

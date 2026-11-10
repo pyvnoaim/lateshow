@@ -1,3 +1,4 @@
+import { Section } from "@/components/ui/Section";
 import type { SeasonData } from "./Episodes";
 
 const STEPS = ["bg-heat-1 text-fg", "bg-heat-2 text-fg", "bg-heat-3 text-bg", "bg-heat-4 text-bg"];
@@ -12,22 +13,20 @@ export function Heatmap({ seasons }: { seasons: SeasonData[] }) {
   const step = (r: number) => STEPS[Math.min(3, Math.floor(((r - min) / span) * 4))];
 
   return (
-    <section className="flex flex-col gap-5">
-      <div className="flex flex-wrap items-baseline gap-4">
-        <h2 className="text-section font-bold">Episode ratings</h2>
-        <p className="text-[15px] text-muted">Brighter is better.</p>
-      </div>
+    <Section title="Episode ratings" aside={<p className="text-label text-muted">Brighter is better.</p>}>
       <div className="overflow-x-auto pb-2">
-        <table className="nums border-separate border-spacing-1.5">
+        <table className="border-separate border-spacing-1.5 nums">
           <tbody>
             {seasons.map((s) => (
               <tr key={s.number}>
-                <th scope="row" className="pr-2 text-left text-small font-semibold text-muted">S{s.number}</th>
+                <th scope="row" className="pr-2 text-left text-small font-semibold text-muted">
+                  S{s.number}
+                </th>
                 {s.episodes.map((e) => (
                   <td
                     key={e.n}
                     title={`S${s.number} E${e.n} · ${e.name}`}
-                    className={`h-12 w-14 min-w-14 rounded-thumb text-center text-[15px] font-semibold ${
+                    className={`h-12 w-14 min-w-14 rounded-thumb text-center text-label font-semibold ${
                       e.rating > 0 ? step(e.rating) : "bg-surface text-muted"
                     }`}
                   >
@@ -39,6 +38,6 @@ export function Heatmap({ seasons }: { seasons: SeasonData[] }) {
           </tbody>
         </table>
       </div>
-    </section>
+    </Section>
   );
 }
