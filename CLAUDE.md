@@ -67,7 +67,8 @@ Minimal design, few features, mostly quality of life (decided 2026-11-10).
 - Streaming info country: Germany by default, switchable.
 - No piracy: only links to legal services.
 - TMDB key is registered as personal, non-commercial use (2026-11-09). The site must make no money: no ads, subscriptions or paid features.
-  Monetizing needs TMDB's commercial license first. TMDB attribution (logo + "Data and images from TMDB") required on every page.
+  Monetizing needs TMDB's commercial license first. TMDB attribution lives on /about only (their logo + "This product uses the TMDB API but is not endorsed or certified by TMDB."),
+  not on every page. Link to /about from one quiet spot: bottom of the profile (add when the profile page is built).
 
 ## Accounts
 

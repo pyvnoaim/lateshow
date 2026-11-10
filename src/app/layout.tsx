@@ -17,7 +17,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="relative min-h-dvh bg-bg text-fg">
         <TopBar />
         {children}
-        <footer className="mx-auto max-w-[1280px] px-4 pt-24 pb-32 text-xs text-muted sm:px-12">Data and images from TMDB</footer>
+        {/* room so the floating dock never covers the end of a page. TMDB credit lives on /about */}
+        <div aria-hidden className="h-40" />
         <Dock />
       </body>
     </html>
