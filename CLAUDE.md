@@ -259,6 +259,8 @@ Rules:
 - [ ] Phone navigation: Home / Watchlist / Rooms are hidden below `sm` with nothing replacing them. Needs a small menu.
 - [ ] Settings page: language (TMDB titles and descriptions) and your streaming services (powers "My services" on
       Trending, picks only from your services, sorts them first). Country stays auto-detected.
+- [ ] Better search: filter by genre (and movie / series), browse a genre without typing a title. TMDB `discover`
+      with `with_genres`; genre names already come from `getGenreNames()`.
 - [ ] Before going public: privacy page (Datenschutz) + Impressum, real login emails (Resend), nightly SQLite backup
       off the VPS, Docker deploy behind Nginx Proxy Manager + Cloudflare, buy lateshow.app.
 - [ ] Later: browse by genre or mood row on Home, TMDB account import (v4).
