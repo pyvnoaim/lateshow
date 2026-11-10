@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cinemaDate, pickTrailer, toCards, type Card, type Video } from "./tmdb";
+import { cinemaDate, pickLogo, pickTrailer, toCards, type Card, type Video } from "./tmdb";
 
 const movie = (id: number): Card => ({ id, media_type: "movie", title: `M${id}`, poster_path: null });
 
@@ -57,5 +57,17 @@ describe("pickTrailer", () => {
   it("falls back to any YouTube trailer, never other sites", () => {
     expect(pickTrailer([v("x", "Trailer", true, "Vimeo"), v("b", "Trailer", false)])?.key).toBe("b");
     expect(pickTrailer([v("x", "Trailer", true, "Vimeo")])).toBeUndefined();
+  });
+});
+
+describe("pickLogo", () => {
+  const logo = (iso_639_1: string | null, file_path: string) => ({ iso_639_1, file_path, aspect_ratio: 3 });
+  it("prefers English, then a language-free logo", () => {
+    expect(
+      pickLogo({ images: { logos: [logo("de", "/de.png"), logo(null, "/x.png"), logo("en", "/en.png")] } })?.path,
+    ).toBe("/en.png");
+    expect(pickLogo({ images: { logos: [logo("de", "/de.png"), logo(null, "/x.png")] } })?.path).toBe("/x.png");
+    expect(pickLogo({ images: { logos: [logo("de", "/de.png")] } })).toBeNull();
+    expect(pickLogo({})).toBeNull();
   });
 });

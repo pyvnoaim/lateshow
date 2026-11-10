@@ -2,7 +2,7 @@ import "server-only";
 import { getWatchLinks } from "@/lib/justwatch";
 import { nextEpisode, parseEpisodeKeys, showProgress } from "@/lib/library/progress";
 import { getRecentShows, getTitleLibrary } from "@/lib/library/queries";
-import { getSeasons, getTitle } from "@/lib/tmdb";
+import { getSeasons, getTitle, pickLogo } from "@/lib/tmdb";
 
 export type ShowInProgress = NonNullable<Awaited<ReturnType<typeof loadShow>>>;
 
@@ -29,6 +29,7 @@ async function loadShow(userId: string, tmdbId: number, fallbackName: string) {
     id: t.id,
     name,
     backdropPath: t.backdrop_path,
+    logo: pickLogo(t),
     next,
     episodeName: season?.episodes.find((e) => e.episode_number === next.episode)?.name,
     percent: showProgress(seasons, watched).percent,

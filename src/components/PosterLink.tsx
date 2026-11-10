@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ViewTransition, type CSSProperties } from "react";
-import { img, type Card, type Service } from "@/lib/tmdb";
+import { getGenreNames, img, type Card, type Service } from "@/lib/tmdb";
 import { ServiceBadge } from "./ServiceBadge";
 import { TmdbImage } from "./TmdbImage";
 
@@ -8,7 +8,7 @@ import { TmdbImage } from "./TmdbImage";
  * Poster that links to its title page. With `morph` the poster grows into the title's backdrop.
  * Turn `morph` off when the same title can show twice on one screen (transition names must be unique).
  */
-export function PosterLink({
+export async function PosterLink({
   card,
   index = 0,
   morph = true,
@@ -25,6 +25,8 @@ export function PosterLink({
 }) {
   const name = card.title ?? card.name ?? "";
   const year = (card.release_date ?? card.first_air_date ?? "").slice(0, 4);
+  const genres = await getGenreNames().catch(() => ({}) as Record<number, string>);
+  const genre = card.genre_ids?.map((id) => genres[id]).find(Boolean);
   const poster = img(card.poster_path, "w500");
   const artwork = (
     <div className="relative aspect-poster lift overflow-hidden rounded-poster bg-raised outline-1 -outline-offset-1 outline-hairline">
@@ -62,7 +64,7 @@ export function PosterLink({
       ) : (
         caption !== null && (
           <span className="-mt-2 text-caption text-muted">
-            {caption ?? `${card.media_type === "tv" ? "Series" : "Movie"}${year ? ` · ${year}` : ""}`}
+            {caption ?? [card.media_type === "tv" ? "Series" : "Movie", year, genre].filter(Boolean).join(" · ")}
           </span>
         )
       )}

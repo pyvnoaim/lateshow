@@ -5,7 +5,7 @@ import { Play, X } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { buttonStyles } from "./ui/button";
 
-/** Trailer in a dialog. `pill` is the labelled glass button, `text` a small grey link (under posters). */
+/** Trailer in a dialog. `pill` is the glass button, `primary` the white one, `text` a small grey link (under posters). */
 export function Trailer({
   youtubeKey,
   title,
@@ -13,7 +13,7 @@ export function Trailer({
 }: {
   youtubeKey: string;
   title: string;
-  variant?: "pill" | "text";
+  variant?: "pill" | "primary" | "text";
 }) {
   const [open, setOpen] = useState(false);
   const close = useRef<HTMLButtonElement>(null);
@@ -37,7 +37,7 @@ export function Trailer({
         className={
           variant === "text"
             ? "inline-flex items-center gap-1 text-caption text-muted transition-colors hover:text-fg"
-            : buttonStyles("glass")
+            : buttonStyles(variant === "primary" ? "primary" : "glass")
         }
       >
         <Play size={variant === "text" ? 11 : 18} strokeWidth={variant === "text" ? 2.25 : 1.75} aria-hidden />

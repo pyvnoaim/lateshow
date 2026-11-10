@@ -25,6 +25,7 @@ export type Card = {
   poster_path: string | null;
   backdrop_path?: string | null;
   overview?: string;
+  genre_ids?: number[];
   release_date?: string;
   first_air_date?: string;
 };
@@ -60,6 +61,7 @@ export type Title = {
       { link: string; flatrate?: { provider_id: number; provider_name: string; logo_path: string }[] } | undefined
     >;
   };
+  images?: { logos: { file_path: string; iso_639_1: string | null; aspect_ratio: number }[] };
   next_episode_to_air?: { air_date: string; season_number: number; episode_number: number; name: string } | null;
   release_dates?: { results: { iso_3166_1: string; release_dates: { type: number; release_date: string }[] }[] };
 };
@@ -116,7 +118,8 @@ export async function getTitle(type: MediaType, id: string) {
   "use cache";
   cacheLife("days");
   return tmdb<Title>(`/${type}/${id}`, {
-    append_to_response: "credits,videos,recommendations,watch/providers,release_dates",
+    append_to_response: "credits,videos,recommendations,watch/providers,release_dates,images",
+    include_image_language: "en,null",
   });
 }
 
@@ -244,4 +247,49 @@ export async function getHiddenGems() {
   };
   const [movies, shows] = await Promise.all([discover("movie", params), discover("tv", params)]);
   return movies.flatMap((m, i) => (shows[i] ? [m, shows[i]] : [m])).filter((c) => c.poster_path);
+}
+
+/** "2026 · Action, Thriller · 1 h 52 min" or "2008 · Drama, Crime · 5 seasons". */
+export function titleMeta(t: Title, type: MediaType) {
+  const year = (t.release_date ?? t.first_air_date ?? "").slice(0, 4);
+  const genres = t.genres
+    .slice(0, 2)
+    .map((g) => shortGenre(g.name))
+    .join(", ");
+  const length =
+    type === "tv"
+      ? t.number_of_seasons
+        ? `${t.number_of_seasons} season${t.number_of_seasons === 1 ? "" : "s"}`
+        : ""
+      : t.runtime
+        ? `${Math.floor(t.runtime / 60)} h ${t.runtime % 60} min`
+        : "";
+  return [year, genres, length].filter(Boolean).join(" · ");
+}
+
+/** The official title logo (English first, then language-free), or null. */
+export function pickLogo(t: Pick<Title, "images">) {
+  const logos = t.images?.logos ?? [];
+  const logo = logos.find((l) => l.iso_639_1 === "en") ?? logos.find((l) => l.iso_639_1 === null);
+  return logo ? { path: logo.file_path, aspectRatio: logo.aspect_ratio } : null;
+}
+
+// TMDB genre names are long in places. Captions under posters are narrow.
+const SHORT: Record<string, string> = {
+  "Science Fiction": "Sci-Fi",
+  "Sci-Fi & Fantasy": "Sci-Fi",
+  "Action & Adventure": "Action",
+  "War & Politics": "War",
+  "TV Movie": "Movie",
+};
+export const shortGenre = (name: string) => SHORT[name] ?? name;
+
+/** Genre id to name for movies and series together (TMDB uses different ids for some of each). */
+export async function getGenreNames(): Promise<Record<number, string>> {
+  "use cache";
+  cacheLife("days");
+  const lists = await Promise.all(
+    (["movie", "tv"] as const).map((t) => tmdb<{ genres: { id: number; name: string }[] }>(`/genre/${t}/list`)),
+  );
+  return Object.fromEntries(lists.flatMap((l) => l.genres.map((g) => [g.id, shortGenre(g.name)])));
 }

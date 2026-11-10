@@ -52,6 +52,7 @@
   --duration-hover: 200ms;
   --duration-lift: 240ms;
   --duration-rise: 520ms;
+  --duration-slide: 7000ms; /* hero carousel: the dash fill is the timer */
 
   /* shape */
   --aspect-poster: 2 / 3;
@@ -157,6 +158,22 @@
 }
 @utility pop {
   animation: pop 420ms var(--ease-spring) both;
+}
+/* Hero carousel: the active dash fills over one slide's time */
+@utility fill-bar {
+  transform-origin: left;
+  animation: fill-bar var(--duration-slide) linear both;
+}
+@utility paused {
+  animation-play-state: paused;
+}
+@keyframes fill-bar {
+  from {
+    transform: scaleX(0);
+  }
+  to {
+    transform: scaleX(1);
+  }
 }
 @keyframes drift {
   to {

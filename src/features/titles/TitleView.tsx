@@ -14,7 +14,17 @@ import { getWatchLinks, type WatchLink } from "@/lib/justwatch";
 import { setOnWatchlist, setWatched, type TitleRef } from "@/lib/library/actions";
 import { nextEpisode, parseEpisodeKeys, type EpisodeRef } from "@/lib/library/progress";
 import { getTitleLibrary } from "@/lib/library/queries";
-import { cinemaDate, COUNTRY, getSeasons, getTitle, img, pickTrailer, type MediaType, type Title } from "@/lib/tmdb";
+import {
+  cinemaDate,
+  COUNTRY,
+  getSeasons,
+  getTitle,
+  img,
+  pickTrailer,
+  type MediaType,
+  type Title,
+  titleMeta,
+} from "@/lib/tmdb";
 import { Episodes, type SeasonData } from "./components/Episodes";
 import { RatingsGrid } from "./components/RatingsGrid";
 import { Trailer } from "@/components/Trailer";
@@ -80,21 +90,6 @@ export async function TitleView({ type, id }: { type: string; id: string }) {
   );
 }
 
-function meta(t: Title, type: MediaType) {
-  const year = (t.release_date ?? t.first_air_date ?? "").slice(0, 4);
-  const genres = t.genres
-    .slice(0, 2)
-    .map((g) => g.name)
-    .join(", ");
-  const length =
-    type === "tv"
-      ? `${t.number_of_seasons} season${t.number_of_seasons === 1 ? "" : "s"}`
-      : t.runtime
-        ? `${Math.floor(t.runtime / 60)} h ${t.runtime % 60} min`
-        : "";
-  return [year, genres, length].filter(Boolean).join(" · ");
-}
-
 /** Full-bleed backdrop under the top bar, title and actions at the bottom. */
 function Hero({
   t,
@@ -124,7 +119,7 @@ function Hero({
     <BackdropHero backdropPath={t.backdrop_path} transitionName={`title-${type}-${t.id}`}>
       <h1 className={heroTitle}>{name}</h1>
       <div className="flex flex-wrap items-center gap-x-2 text-label text-fg/80 nums">
-        <span>{meta(t, type)}</span>
+        <span>{titleMeta(t, type)}</span>
         {t.vote_average > 0 && (
           <span className="inline-flex items-center gap-1">
             · <Star size={13} strokeWidth={2} aria-hidden /> {t.vote_average.toFixed(1)}
