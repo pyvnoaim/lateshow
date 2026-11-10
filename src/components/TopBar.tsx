@@ -2,7 +2,7 @@ import { Search } from "lucide-react";
 import Link from "next/link";
 import { Suspense } from "react";
 import { AccountButton } from "./AccountButton";
-import { NavLinks } from "./NavLinks";
+import { NavLinks, NavLinksView } from "./NavLinks";
 import { buttonStyles } from "./ui/button";
 import { Container } from "./ui/Container";
 
@@ -18,7 +18,9 @@ export function TopBar() {
         <Link href="/" className="text-logo font-bold tracking-tight">
           Lateshow
         </Link>
-        <NavLinks />
+        <Suspense fallback={<NavLinksView path={null} />}>
+          <NavLinks />
+        </Suspense>
         <div className="ml-auto flex items-center gap-2">
           <Link href="/search" aria-label="Search" className={buttonStyles("ghost", "icon")}>
             <Search size={20} strokeWidth={1.75} aria-hidden />

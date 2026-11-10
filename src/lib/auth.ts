@@ -4,6 +4,7 @@ import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { nextCookies } from "better-auth/next-js";
 import { magicLink } from "better-auth/plugins/magic-link";
 import { headers } from "next/headers";
+import { connection } from "next/server";
 import * as schema from "@/lib/db/auth-schema";
 import { db } from "@/lib/db/client";
 import { env, isProduction } from "@/lib/env";
@@ -24,6 +25,7 @@ export const auth = betterAuth({
 
 /** The signed in user for the current request, or null. */
 export async function getSession() {
+  await connection(); // per request: Better Auth reads the clock, which Next must not prerender
   return auth.api.getSession({ headers: await headers() });
 }
 
