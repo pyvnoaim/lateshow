@@ -5,6 +5,7 @@ import { nextCookies } from "better-auth/next-js";
 import { magicLink } from "better-auth/plugins/magic-link";
 import { headers } from "next/headers";
 import { connection } from "next/server";
+import { cache } from "react";
 import * as schema from "@/lib/db/auth-schema";
 import { db } from "@/lib/db/client";
 import { env, isProduction } from "@/lib/env";
@@ -24,10 +25,11 @@ export const auth = betterAuth({
 });
 
 /** The signed in user for the current request, or null. */
-export async function getSession() {
+// `cache` dedupes per request: Home has several sections that each ask for the session.
+export const getSession = cache(async () => {
   await connection(); // per request: Better Auth reads the clock, which Next must not prerender
   return auth.api.getSession({ headers: await headers() });
-}
+});
 
 // ponytail: dev prints the link in the terminal. Real email (Resend) comes with deploying, before the first real account.
 async function sendLoginLink({ email, url }: { email: string; url: string }) {

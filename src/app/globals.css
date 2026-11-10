@@ -89,6 +89,12 @@
     outline: 2px solid var(--color-accent);
     outline-offset: 3px;
   }
+  /* Tailwind v4 dropped the pointer cursor on buttons. Everything clickable gets it back here, once. */
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  summary {
+    cursor: pointer;
+  }
 }
 
 /* Project utilities. Real utilities, so variants (hover:, sm:) and ordering work like any Tailwind class. */

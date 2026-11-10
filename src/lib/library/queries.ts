@@ -60,3 +60,23 @@ export async function getRecentShows(userId: string, limit = 5) {
     .orderBy(desc(last))
     .limit(limit);
 }
+
+/** Every title you've watched anything of, as "movie-123" / "tv-456" keys (to leave them out of suggestions). */
+export async function getWatchedTitleKeys(userId: string) {
+  const rows = await db
+    .selectDistinct({ mediaType: watched.mediaType, tmdbId: watched.tmdbId })
+    .from(watched)
+    .where(eq(watched.userId, userId));
+  return new Set(rows.map((r) => `${r.mediaType}-${r.tmdbId}`));
+}
+
+/** The most recent thing you watched. */
+export async function getLastWatched(userId: string) {
+  const [row] = await db
+    .select()
+    .from(watched)
+    .where(eq(watched.userId, userId))
+    .orderBy(desc(watched.watchedAt))
+    .limit(1);
+  return row ?? null;
+}

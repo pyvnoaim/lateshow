@@ -5,45 +5,17 @@ import { buttonStyles } from "@/components/ui/button";
 import { ProgressBar } from "@/components/ui/ProgressBar";
 import { getSession } from "@/lib/auth";
 import { getWatchLinks } from "@/lib/justwatch";
-import { nextEpisode, parseEpisodeKeys, showProgress } from "@/lib/library/progress";
-import { getRecentShows, getTitleLibrary } from "@/lib/library/queries";
-import { getSeasons, getTitle, getTrending } from "@/lib/tmdb";
+import { getTrending } from "@/lib/tmdb";
+import { getShowsInProgress, type ShowInProgress } from "./inProgress";
 
 /** Your show in progress when there is one, otherwise this week's top trending title. */
 export async function HomeHero() {
   const session = await getSession();
-  const show = session ? await findShowInProgress(session.user.id) : null;
+  const [show] = session ? await getShowsInProgress(session.user.id, 1) : [];
   return show ? <ContinueWatching {...show} /> : <Featured />;
 }
 
-async function findShowInProgress(userId: string) {
-  for (const recent of await getRecentShows(userId, 5)) {
-    const t = await getTitle("tv", String(recent.tmdbId)).catch(() => null);
-    if (!t) continue;
-    const seasons = (t.seasons ?? []).map((s) => ({ number: s.season_number, episodeCount: s.episode_count }));
-    const watched = parseEpisodeKeys((await getTitleLibrary(userId, "tv", t.id)).watched);
-    const next = nextEpisode(seasons, watched);
-    if (!next) continue; // caught up, try the next show
-    const name = t.name ?? recent.title;
-    const [[season], links] = await Promise.all([
-      getSeasons(String(t.id), [next.season]),
-      getWatchLinks("tv", t.id, name),
-    ]);
-    const episode = season?.episodes.find((e) => e.episode_number === next.episode);
-    return {
-      id: t.id,
-      name,
-      backdropPath: t.backdrop_path,
-      next,
-      episodeName: episode?.name,
-      percent: showProgress(seasons, watched).percent,
-      link: links[0],
-    };
-  }
-  return null;
-}
-
-function ContinueWatching(show: NonNullable<Awaited<ReturnType<typeof findShowInProgress>>>) {
+function ContinueWatching(show: ShowInProgress) {
   const label = `S${show.next.season} E${show.next.episode}`;
   return (
     <BackdropHero backdropPath={show.backdropPath}>

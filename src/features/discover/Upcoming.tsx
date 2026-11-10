@@ -1,36 +1,17 @@
-import { PosterLink } from "@/components/PosterLink";
-import { Trailer } from "@/components/Trailer";
 import { PosterGrid } from "@/components/ui/PosterGrid";
 import { Section } from "@/components/ui/Section";
 import { getUpcomingInCinemas } from "@/lib/tmdb";
+import { CinemaPoster } from "./CinemaPoster";
 
-const day = (iso: string) =>
-  new Date(iso).toLocaleDateString("en", { month: "short", day: "numeric", timeZone: "UTC" });
-
-/** "Coming to cinemas": the next German releases, each with its release date and a trailer button on the poster. */
+/** "Coming to cinemas" on Home: the next 6 German releases, the rest on /cinemas. */
 export async function Upcoming() {
-  const movies = await getUpcomingInCinemas();
-  // full rows only: the grid has 6 columns on desktop
-  const shown = movies.slice(0, movies.length >= 12 ? 12 : movies.length >= 6 ? 6 : movies.length);
-  if (shown.length === 0) return null;
-
+  const movies = (await getUpcomingInCinemas().catch(() => [])).slice(0, 6);
+  if (movies.length === 0) return null;
   return (
-    <Section title="Coming to cinemas" description="New in German cinemas soon.">
+    <Section title="Coming to cinemas" description="New in German cinemas soon." moreHref="/cinemas">
       <PosterGrid>
-        {shown.map(({ card, date, trailer }, i) => (
-          <div key={card.id} className="flex flex-col gap-0.5">
-            <PosterLink card={card} index={i} morph={false} caption={null} />
-            {/* date and trailer live outside the link: a button inside a link is invalid */}
-            <div className="flex items-center gap-1.5 text-caption text-muted nums">
-              <span>{day(date!)}</span>
-              {trailer && (
-                <>
-                  <span aria-hidden>·</span>
-                  <Trailer youtubeKey={trailer} title={card.title ?? ""} variant="text" />
-                </>
-              )}
-            </div>
-          </div>
+        {movies.map((m, i) => (
+          <CinemaPoster key={m.card.id} card={m.card} date={m.date!} trailer={m.trailer} index={i} />
         ))}
       </PosterGrid>
     </Section>

@@ -54,7 +54,10 @@ export type Title = {
   credits: { cast: { id: number; name: string; character: string; profile_path: string | null }[] };
   videos: { results: { key: string; site: string; type: string; official: boolean }[] };
   recommendations: { results: Card[] };
-  "watch/providers": { results: Record<string, { link: string } | undefined> };
+  "watch/providers": {
+    results: Record<string, { link: string; flatrate?: { provider_id: number; provider_name: string }[] } | undefined>;
+  };
+  next_episode_to_air?: { air_date: string; season_number: number; episode_number: number; name: string } | null;
   release_dates?: { results: { iso_3166_1: string; release_dates: { type: number; release_date: string }[] }[] };
 };
 
@@ -158,9 +161,14 @@ export async function getUpcomingInCinemas() {
   "use cache";
   cacheLife("hours");
   const today = new Date().toISOString().slice(0, 10);
-  const data = await tmdb<{ results: Omit<Card, "media_type">[] }>("/movie/upcoming", { region: COUNTRY });
+  const pages = await Promise.all(
+    [1, 2].map((page) =>
+      tmdb<{ results: Omit<Card, "media_type">[] }>("/movie/upcoming", { region: COUNTRY, page: String(page) }),
+    ),
+  );
+  const unique = [...new Map(pages.flatMap((p) => p.results).map((m) => [m.id, m])).values()];
   const movies = await Promise.all(
-    data.results.map(async (m) => {
+    unique.map(async (m) => {
       const t = await getTitle("movie", String(m.id)).catch(() => null);
       return t
         ? {
@@ -174,4 +182,58 @@ export async function getUpcomingInCinemas() {
   return movies
     .filter((m): m is NonNullable<typeof m> => m !== null && m.date !== null && m.date >= today)
     .toSorted((a, b) => a.date!.localeCompare(b.date!));
+}
+
+/** Services in COUNTRY that include this title in a subscription (Netflix, Prime Video...). */
+export function subscriptionServices(t: Pick<Title, "watch/providers">) {
+  return t["watch/providers"].results[COUNTRY]?.flatrate?.map((p) => p.provider_name) ?? [];
+}
+
+const daysAgo = (n: number) => new Date(Date.now() - n * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+
+async function discover(type: MediaType, params: Record<string, string>): Promise<Card[]> {
+  const data = await tmdb<{ results: Omit<Card, "media_type">[] }>(`/discover/${type}`, {
+    watch_region: COUNTRY,
+    with_watch_monetization_types: "flatrate",
+    ...params,
+  });
+  return data.results.map((r) => ({ ...r, media_type: type }));
+}
+
+/** Movies from the last 4 months and series that premiered in the last 6, on a subscription in COUNTRY, most popular first. */
+export async function getNewOnStreaming() {
+  "use cache";
+  cacheLife("hours");
+  const [movies, shows] = await Promise.all([
+    discover("movie", {
+      "primary_release_date.gte": daysAgo(120),
+      "primary_release_date.lte": daysAgo(0),
+      sort_by: "popularity.desc",
+      "vote_count.gte": "20",
+    }),
+    discover("tv", {
+      "first_air_date.gte": daysAgo(180),
+      "first_air_date.lte": daysAgo(0),
+      sort_by: "popularity.desc",
+      "vote_count.gte": "10",
+    }),
+  ]);
+  // alternate movie, show, movie... so neither type takes over the row
+  return movies.flatMap((m, i) => (shows[i] ? [m, shows[i]] : [m])).filter((c) => c.poster_path);
+}
+
+/** Very well rated titles with few votes, on a subscription in COUNTRY. A different page each day. */
+export async function getHiddenGems() {
+  "use cache";
+  cacheLife("days");
+  const page = (Math.floor(Date.now() / (24 * 60 * 60 * 1000)) % 5) + 1;
+  const params = {
+    "vote_average.gte": "7.6",
+    "vote_count.gte": "150",
+    "vote_count.lte": "1500",
+    sort_by: "vote_average.desc",
+    page: String(page),
+  };
+  const [movies, shows] = await Promise.all([discover("movie", params), discover("tv", params)]);
+  return movies.flatMap((m, i) => (shows[i] ? [m, shows[i]] : [m])).filter((c) => c.poster_path);
 }

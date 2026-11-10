@@ -67,7 +67,7 @@ export async function TitleView({ type, id }: { type: string; id: string }) {
         )}
         <Cast t={t} />
         {t.recommendations.results.length > 0 && (
-          <Section title="If you liked this">
+          <Section title={`More like ${name}`}>
             <PosterGrid>
               {t.recommendations.results.slice(0, 12).map((c, i) => (
                 <PosterLink key={`${c.media_type}-${c.id}`} card={c} index={i} />
