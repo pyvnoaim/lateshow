@@ -56,6 +56,8 @@ Minimal design, few features, mostly quality of life (decided 2026-11-10).
 ## Data (must be free)
 
 - **TMDB** (free key, one signup, key stays on the server): search, posters, backdrops, episodes, ratings, cast, trailers (YouTube keys), recommendations, which services carry a title per country.
+- **Which services carry a title** (per country): TMDB watch providers (official, data comes from JustWatch, 140+ countries). Decided 2026-11-10.
+  JustWatch coverage and deep links are best in big markets (DE, EU, US, UK), thinner in small countries.
 - **Direct "Watch on" links**: JustWatch's unofficial GraphQL endpoint (`apis.justwatch.com/graphql`, no key, `offers.standardWebURL`).
   Unofficial and undocumented, can break or block anytime, gray area in their terms. Fine for a small site.
   - Fallback 1: link to the service's search page with the title prefilled.
@@ -87,10 +89,10 @@ One Next.js app on the VPS. No separate backend, no paid services.
 - Email: Resend free plan (~3,000/month) for login links.
 - Data: TMDB + JustWatch GraphQL (see Data), responses cached (Next fetch cache, JustWatch links in SQLite ~1 day).
 - Calendar: a route handler that writes the `.ics` text by hand, no library.
-- Hosting: Docker on the VPS behind Nginx Proxy Manager, Cloudflare DNS, subdomain on pyvno.xyz once there's a real name.
+- Hosting: Docker on the VPS behind Nginx Proxy Manager, Cloudflare DNS, domain lateshow.app (also lateshow.film), not bought yet.
 - Screenshot checks: Playwright (playwright-core + system Chrome).
 - Backups: nightly copy of the SQLite file off the VPS, set up in layer 2 BEFORE the first real account. There are no backups anywhere today.
-- Later: watch rooms (layer 4) need realtime, decide then (SSE vs a tiny WebSocket service).
+- Realtime for watch rooms (layer 4): server-sent events from the same Next.js app, no extra service (decided 2026-11-10).
 - Considered and skipped: SvelteKit (lighter, but Radix and Motion are React), Astro (better for content sites).
 
 ## Design decisions
