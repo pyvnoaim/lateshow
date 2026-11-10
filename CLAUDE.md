@@ -152,6 +152,9 @@ Rules:
 - Page drafts on that canvas: full-bleed backdrop hero on Home and Title, compact episode list with ratings grid beside it,
   profile led by one big sentence ("312 hours watched.") + Watching cards + year heatmap (white) + recent posters, History/Watchlist as tabs.
   Posters 2:3, 10 px corners, 1 px 8% white inner outline.
+- Sign in page (canvas "Sign in", approved 2026-11-10): only the name at the top, no search or dock. Headline "Everything you watch. One place.",
+  email + white "Email me a link" button inside ONE glass pill (same shape as the search bar). Then "Check your inbox." state with resend after 30 s.
+  Rule: inputs are glass pills like search, never boxes with their own radius.
 - Posters in the draft are colored placeholder blocks until TMDB images are in.
 - Design system (own, no UI kit), drawn on the canvas as "Design system":
   - Colors (only these 6): bg #000, surface #111112, raised #1d1d1f, text #f5f5f7, muted #86868b, accent #2997ff.
