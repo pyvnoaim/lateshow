@@ -152,12 +152,6 @@
     }
   }
 }
-/* The top bar once you scroll: darker glass across the full width with a hairline at the bottom */
-@utility bar-glass {
-  background: linear-gradient(180deg, rgb(0 0 0 / 0.6), rgb(0 0 0 / 0.4));
-  backdrop-filter: blur(28px) saturate(1.8);
-  box-shadow: inset 0 -1px 0 0 var(--color-hairline);
-}
 /* Premium checklist: press feel, poster lift, shimmer skeleton, rows rising in */
 /* Press: a quick springy dip, released with the same spring. Applies to every button and button-like link. */
 @utility press {

@@ -207,6 +207,7 @@ Rules:
   Left: name + Home / Watchlist / Rooms. Right: "up next" chip (play + show + S2 E4 + progress, opens the service), search icon, avatar.
   Search is its own page (/search), "/" anywhere opens it. Earlier picks (B+C+D with dock, wide center search) were dropped.
   Phone: links hidden for now, needs a phone menu later.
+  Tried and disliked (2026-11-11): fixed top bar that turns into frosted glass on scroll. The bar stays absolute and scrolls away.
 - Page drafts on that canvas: full-bleed backdrop hero on Home and Title, compact episode list with ratings grid beside it,
   profile led by one big sentence ("312 hours watched.") + Watching cards + year heatmap (white) + recent posters, History/Watchlist as tabs.
   Posters 2:3, 10 px corners, 1 px 8% white inner outline.
