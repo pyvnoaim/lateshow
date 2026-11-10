@@ -1,7 +1,7 @@
-# Still
+# Lateshow
 
 Website for movies and series: find what to watch, where to watch it, and track what you've watched.
-"Still" is a placeholder name.
+Name decided 2026-11-10. lateshow.app and lateshow.film were unregistered that day (registry RDAP check), not bought yet.
 
 ## Status
 
@@ -122,7 +122,6 @@ One Next.js app on the VPS. No separate backend, no paid services.
 
 ## Open
 
-- Real name.
 - Verify current free limits of JustWatch GraphQL / Streaming Availability before building links.
 - Next design pass: Watch on button, trailer, "Because you liked" on title page; import, calendar, year in review, friends on profile;
   new import page; room screen with bracket; wheel on home.
