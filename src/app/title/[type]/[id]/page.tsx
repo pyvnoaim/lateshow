@@ -2,11 +2,11 @@ import { ArrowUpRight } from "lucide-react";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import { Suspense, ViewTransition } from "react";
-import { Episodes, type SeasonData } from "@/components/Episodes";
-import { Heatmap } from "@/components/Heatmap";
+import { Episodes, type SeasonData } from "@/features/titles/components/Episodes";
+import { Heatmap } from "@/features/titles/components/Heatmap";
 import { PosterGridSkeleton, PosterLink } from "@/components/PosterLink";
 import { TmdbImage } from "@/components/TmdbImage";
-import { Trailer } from "@/components/Trailer";
+import { Trailer } from "@/features/titles/components/Trailer";
 import { getWatchLinks, type WatchLink } from "@/lib/justwatch";
 import { COUNTRY, getSeasons, getTitle, img, type MediaType, type Title } from "@/lib/tmdb";
 

@@ -95,6 +95,47 @@ One Next.js app on the VPS. No separate backend, no paid services.
 - Realtime for watch rooms (layer 4): server-sent events from the same Next.js app, no extra service (decided 2026-11-10).
 - Considered and skipped: SvelteKit (lighter, but Radix and Motion are React), Astro (better for content sites).
 
+## Project structure (decided 2026-11-10)
+
+Routes stay thin, code is grouped by feature. Changing a feature means touching one folder.
+
+```
+src/
+  app/                      routes only: page.tsx / layout.tsx / route.ts, read params, call a feature, render
+    page.tsx                /
+    title/[type]/[id]/      /title/tv/1396
+    search/                 /search?q=
+    u/[username]/           profile (Overview / History / Watchlist tabs)
+    import/  login/
+    rooms/[code]/           watch together room
+    api/auth/[...all]/      Better Auth
+    api/rooms/[code]/events/  SSE stream
+  features/                 one folder per feature, owns its UI + logic + data access
+    titles/                 title page, episodes, heatmap, trailer, watch links
+    library/                watched, watchlist, progress, import (server actions + queries)
+    profile/                stats, year heatmap, history
+    discover/               home rows, trending, "Can't decide?"
+    friends/  rooms/  auth/
+      components/           UI used only by this feature
+      actions.ts            server actions ("use server"), validate input with zod
+      queries.ts            reads (db / tmdb), server-only
+      *.test.ts             Vitest next to the logic it tests
+  components/               shared UI used by 2+ features (TopBar, Dock, UpNextChip, PosterLink, TmdbImage, Button, Tabs)
+  lib/                      infrastructure, no UI: tmdb.ts, justwatch.ts, db/ (client + schema), auth.ts, env.ts
+e2e/                        Playwright screenshot / flow checks
+```
+
+Rules:
+- `app/` holds no business logic and no direct db or API calls. It imports from `features/`.
+- A feature never imports another feature's internals. Shared things move to `components/` or `lib/`.
+  Move a component to `components/` only when a second feature needs it.
+- All TMDB / JustWatch / db access is server-only (`import "server-only"`). Keys never reach the browser.
+- Writes are server actions in the feature's `actions.ts`, validated with zod. `api/` routes only where a URL is required (auth, SSE).
+- Env vars are read once in `lib/env.ts` and validated at startup, nowhere else.
+- Names: components PascalCase.tsx, everything else camelCase.ts, folders kebab-case. Named exports, no default exports except Next's page/layout files.
+- TypeScript strict, no `any`. ESLint must pass. Tests: Vitest for logic (actions, import parsers, stats), Playwright for page checks.
+- No barrel `index.ts` files. Import the file directly.
+
 ## Design decisions
 
 - Look: "Apple TV style", chosen over editorial light, cinematic backdrop and mono.

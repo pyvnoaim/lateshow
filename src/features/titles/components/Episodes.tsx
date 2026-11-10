@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { TmdbImage } from "./TmdbImage";
+import { TmdbImage } from "@/components/TmdbImage";
 
 export type SeasonData = {
   number: number;
