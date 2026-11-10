@@ -100,11 +100,7 @@ export function SignInForm({ linkError, minutes, devHint }: { linkError: boolean
           <br />
           <span className="text-muted">One place.</span>
         </h1>
-        <p className="text-body leading-normal text-muted">
-          Sign in with your email.
-          <br />
-          No password needed, we send you a link.
-        </p>
+        <p className="text-body leading-normal text-muted">No password. We email you a link.</p>
       </div>
       <div className="flex flex-col gap-4">
         <form onSubmit={onSubmit} className={fieldStyles("lg")}>
@@ -126,15 +122,9 @@ export function SignInForm({ linkError, minutes, devHint }: { linkError: boolean
             {pending ? "Sending" : "Email me a link"}
           </button>
         </form>
-        {error ? (
+        {error && (
           <p role="alert" className="text-caption">
             {error}
-          </p>
-        ) : (
-          <p className="text-caption leading-normal text-muted">
-            New here? The same link creates your account.
-            <br />
-            Browsing and watch links work without one.
           </p>
         )}
       </div>

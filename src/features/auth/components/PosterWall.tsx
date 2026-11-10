@@ -1,12 +1,12 @@
 import Image from "next/image";
 import { getTrending, img } from "@/lib/tmdb";
 
-const SPEEDS = ["70s", "95s", "80s", "105s", "88s", "100s", "76s", "92s"];
+const SPEEDS = ["70s", "95s", "80s", "105s"];
 const PER_COLUMN = 8;
 
 /**
- * Full-page backdrop for sign in: slowly drifting columns of trending posters, tilted, darkened toward the form so the
- * text stays readable and the glass picks up their colors. Plain blocks if TMDB isn't reachable.
+ * Sign in backdrop: slowly drifting, tilted columns of trending posters. The right half on desktop, a blurred wash
+ * behind everything on narrower screens. Plain blocks if TMDB isn't reachable.
  */
 export async function PosterWall() {
   const posters = await getTrending()
@@ -22,14 +22,10 @@ export async function PosterWall() {
   });
 
   return (
-    <div aria-hidden className="absolute inset-0 overflow-hidden">
-      <div className="absolute inset-0 grid scale-125 -rotate-6 grid-cols-4 gap-4 px-4 lg:grid-cols-8">
+    <div aria-hidden className="absolute inset-0 overflow-hidden lg:left-1/2">
+      <div className="absolute inset-0 grid scale-125 -rotate-6 grid-cols-4 gap-4 px-4">
         {columns.map((col, ci) => (
-          <div
-            key={ci}
-            className={`flex drift flex-col gap-4 ${ci >= 4 ? "max-lg:hidden" : ""}`}
-            style={{ animationDuration: col.speed }}
-          >
+          <div key={ci} className="flex drift flex-col gap-4" style={{ animationDuration: col.speed }}>
             {col.posters.map((src, i) => (
               <div
                 key={i}
@@ -41,8 +37,8 @@ export async function PosterWall() {
           </div>
         ))}
       </div>
-      {/* dark on the form side, posters come through on the right; narrower screens get them blurred and dimmed behind the text */}
-      <div className="absolute inset-0 bg-bg/75 backdrop-blur-md lg:bg-transparent lg:bg-linear-to-r lg:from-bg lg:via-bg/80 lg:to-bg/15 lg:backdrop-blur-none" />
+      {/* desktop: the wall is the right half, fading in from black so there is no edge. Narrower: blurred and dimmed behind the text */}
+      <div className="absolute inset-0 bg-bg/75 backdrop-blur-md lg:bg-transparent lg:bg-linear-to-r lg:from-bg lg:via-bg/50 lg:to-bg/10 lg:backdrop-blur-none" />
       <div className="absolute inset-0 bg-linear-to-b from-bg/70 via-bg/0 to-bg/90" />
     </div>
   );
