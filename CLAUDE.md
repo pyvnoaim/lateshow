@@ -11,7 +11,7 @@ Read `node_modules/next/dist/docs/` before using Next APIs (see AGENTS.md).
 - DB: `data/lateshow.db` (gitignored). `pnpm db:generate` / `pnpm db:migrate`. Auth schema via `npx @better-auth/cli generate`.
 - Dev prints the sign-in link in the terminal.
 - Gotcha: Turbopack serves stale CSS after editing `@utility`/`@theme`. Stop server, `rm -rf .next`, restart, check served CSS.
-- Private repo github.com/pyvnoaim/lateshow (main). No other backups, push after committing.
+- Private repo github.com/pyvnoaim/lateshow (main). Commit often, push only when the user says so, via push-gate.
 
 ## Copy rules (visible text)
 
