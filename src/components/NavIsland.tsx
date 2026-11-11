@@ -11,7 +11,7 @@ const TOP = 48; // the top bar is on its way out here: the island takes over, so
  * The bar, once you've scrolled past it: a compact glass island in the middle of the top edge, there in both
  * directions. Hidden (back at the top, where the full bar is) it can't be tabbed into.
  */
-export function NavIsland({ upNext, account }: { upNext: ReactNode; account: ReactNode }) {
+export function NavIsland({ account }: { account: ReactNode }) {
   const [shown, setShown] = useState(false);
   useEffect(() => {
     const onScroll = () => setShown(scrollY >= TOP);
@@ -37,7 +37,6 @@ export function NavIsland({ upNext, account }: { upNext: ReactNode; account: Rea
         <NavLinks />
       </span>
       <span className="flex items-center gap-1">
-        {upNext}
         <Link
           href="/search"
           aria-label="Search"

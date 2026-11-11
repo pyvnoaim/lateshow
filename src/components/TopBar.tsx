@@ -44,11 +44,6 @@ export function TopBar() {
       </Container>
       {/* scrolled away: the same places as a small glass island that comes back when you scroll up */}
       <NavIsland
-        upNext={
-          <Suspense>
-            <UpNext compact />
-          </Suspense>
-        }
         account={
           <Suspense fallback={<div aria-hidden className="size-8" />}>
             <AccountButton />
