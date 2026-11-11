@@ -35,6 +35,12 @@ export async function GET(req: Request, { params }: { params: Promise<{ code: st
     },
   });
   return new Response(stream, {
-    headers: { "Content-Type": "text/event-stream", "Cache-Control": "no-store", Connection: "keep-alive" },
+    // X-Accel-Buffering: nginx (Nginx Proxy Manager on the VPS) would otherwise hold events back in its buffer
+    headers: {
+      "Content-Type": "text/event-stream",
+      "Cache-Control": "no-store",
+      Connection: "keep-alive",
+      "X-Accel-Buffering": "no",
+    },
   });
 }
