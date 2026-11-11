@@ -83,6 +83,25 @@ export async function getLastWatched(userId: string) {
   return row ?? null;
 }
 
+/**
+ * What you've watched, "movie-27205" -> how many different episodes (a movie counts 1), for the badge at the start of
+ * every poster caption. Null when signed out. One grouped query per request, shared by every poster on the page.
+ */
+export const getMyWatchedKeys = cache(async () => {
+  const session = await getSession();
+  if (!session) return null;
+  const rows = await db
+    .select({
+      mediaType: watched.mediaType,
+      tmdbId: watched.tmdbId,
+      seen: count(), // one row per episode (unique index), so this is episodes seen
+    })
+    .from(watched)
+    .where(eq(watched.userId, session.user.id))
+    .groupBy(watched.mediaType, watched.tmdbId);
+  return new Map(rows.map((r) => [`${r.mediaType}-${r.tmdbId}`, r.seen]));
+});
+
 /** Your watchlist as "movie-27205" keys, for the + on every poster. Null when signed out. Once per request. */
 export const getMyWatchlistKeys = cache(async () => {
   const session = await getSession();
