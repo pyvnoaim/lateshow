@@ -7,6 +7,8 @@ const CELL = 14; // px per character row (matches leading-cell)
 // Cells the thumb just left thin out back into the rail, like Kova's cursor trail (# down to the rail's :).
 const TRAIL = "#*+=-:";
 const LIFE = 900;
+// The edge it moves onto flashes as @ (the head of Kova's trail), then settles to #.
+const HEAD = 220;
 
 /**
  * The page scrollbar, lettered like Resona's ASCII skin: a `:` rail with a `#` thumb down the right edge.
@@ -19,6 +21,8 @@ export function AsciiScrollbar() {
   // when each cell was last under the thumb, and a clock that only ticks while some cell is still fading
   const left = useRef<number[]>([]);
   const [leftAt, setLeftAt] = useState<number[]>([]); // the same, for rendering
+  const entered = useRef<number[]>([]);
+  const [enteredAt, setEnteredAt] = useState<number[]>([]);
   const [now, setNow] = useState(0);
   const prev = useRef<{ top: number; len: number } | null>(null);
 
@@ -32,7 +36,8 @@ export function AsciiScrollbar() {
       if (clock) return;
       const loop = (t: number) => {
         setNow(t);
-        clock = left.current.some((at) => t - at < LIFE) ? requestAnimationFrame(loop) : 0;
+        const busy = left.current.some((at) => t - at < LIFE) || entered.current.some((at) => t - at < HEAD);
+        clock = busy ? requestAnimationFrame(loop) : 0;
       };
       clock = requestAnimationFrame(loop);
     };
@@ -48,7 +53,9 @@ export function AsciiScrollbar() {
         if (p && trail && (p.top !== top || p.len !== len)) {
           const t = performance.now();
           for (let i = p.top; i < p.top + p.len; i++) if (i < top || i >= top + len) left.current[i] = t;
+          for (let i = top; i < top + len; i++) if (i < p.top || i >= p.top + p.len) entered.current[i] = t;
           setLeftAt([...left.current]);
+          setEnteredAt([...entered.current]);
           tick();
         }
         prev.current = { top, len };
@@ -93,9 +100,7 @@ export function AsciiScrollbar() {
     >
       {Array.from({ length: bar.n }, (_, i) =>
         i >= bar.top && i < bar.top + bar.len ? (
-          <span key={i} className="text-fg/40 transition-colors group-hover:text-fg/70">
-            #
-          </span>
+          <Thumb key={i} age={now - (enteredAt[i] ?? -Infinity)} />
         ) : (
           <Rail key={i} age={now - (leftAt[i] ?? -Infinity)} />
         ),
@@ -111,6 +116,16 @@ function Rail({ age }: { age: number }) {
   return (
     <span className="text-fg" style={{ opacity: 0.12 + life * 0.3 }}>
       {TRAIL[Math.min(TRAIL.length - 1, Math.floor((1 - life) * TRAIL.length))]}
+    </span>
+  );
+}
+
+/** A thumb cell: `#`, or for a moment after the thumb moved onto it, a brighter `@`. */
+function Thumb({ age }: { age: number }) {
+  const head = age >= 0 && age < HEAD;
+  return (
+    <span className={head ? "text-fg/75" : "text-fg/40 transition-colors group-hover:text-fg/70"}>
+      {head ? "@" : "#"}
     </span>
   );
 }
