@@ -4,7 +4,8 @@ import { getLanguage } from "@/lib/region";
 import { getWatchLinks } from "@/lib/justwatch";
 import { nextEpisode, parseEpisodeKeys, showProgress } from "@/lib/library/progress";
 import { getRecentShows, getTitleLibrary } from "@/lib/library/queries";
-import { getEnglishName, getSeasons, getTitle, pickLogo } from "@/lib/tmdb";
+import { getEnglishName, getSeasons, getTitle, pickLogo, yourServicesFirst } from "@/lib/tmdb";
+import { getMyServiceIds } from "@/lib/settings/queries";
 
 export type ShowInProgress = NonNullable<Awaited<ReturnType<typeof loadShow>>>;
 
@@ -24,13 +25,15 @@ async function loadShow(userId: string, tmdbId: number, fallbackName: string, co
   const next = nextEpisode(seasons, watched);
   if (!next) return null;
   const name = t.name ?? fallbackName;
-  const [[season], links, guard] = await Promise.all([
+  const [[season], allLinks, guard, myIds] = await Promise.all([
     getSeasons(String(t.id), [next.season], lang),
     getEnglishName("tv", t.id)
       .catch(() => name)
       .then((en) => getWatchLinks("tv", t.id, en, country)),
     getSpoilerGuard(),
+    getMyServiceIds(),
   ]);
+  const links = yourServicesFirst(allLinks, t, country, myIds);
   return {
     id: t.id,
     name,

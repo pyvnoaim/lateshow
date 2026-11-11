@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { LibraryToggle } from "@/components/library/LibraryToggle";
 import { PosterLink } from "@/components/PosterLink";
 import { BackdropHero, BackdropHeroSkeleton, heroTitle } from "@/components/BackdropHero";
+import { HeroLogo } from "@/components/HeroShell";
 import { buttonStyles } from "@/components/ui/button";
 import { Container } from "@/components/ui/Container";
 import { PosterGrid, PosterGridSkeleton } from "@/components/ui/PosterGrid";
@@ -18,12 +19,12 @@ import {
   getSeasons,
   getTitle,
   img,
+  pickLogo,
+  yourServicesFirst,
   pickTrailer,
   type MediaType,
   type Title,
   titleMeta,
-  serviceName,
-  subscriptionServices,
   getEnglishName,
 } from "@/lib/tmdb";
 import { Episodes, type SeasonData } from "./components/Episodes";
@@ -49,15 +50,7 @@ export async function TitleView({ type, id }: { type: string; id: string }) {
     getSession(),
     getMyServiceIds(),
   ]);
-  // Your services first, so "Watch on" opens one you pay for.
-  const mine = new Set(
-    subscriptionServices(t, region.code)
-      .filter((s) => myIds.includes(s.id))
-      .map((s) => s.name),
-  );
-  const links = allLinks.toSorted(
-    (a, b) => Number(mine.has(serviceName(b.service))) - Number(mine.has(serviceName(a.service))),
-  );
+  const links = yourServicesFirst(allLinks, t, region.code, myIds);
   const lib = session ? await getTitleLibrary(session.user.id, type, t.id) : { onWatchlist: false, watched: [] };
   const library: Library = {
     signedIn: session !== null,
@@ -89,6 +82,7 @@ export async function TitleView({ type, id }: { type: string; id: string }) {
         library={library}
         next={next}
         inCinemasFrom={inCinemasFrom}
+        logo={pickLogo(t, region.lang)}
       />
       <WhereToWatch links={links} fallback={t["watch/providers"].results[region.code]?.link} country={region.name} />
       {session && (
@@ -127,6 +121,7 @@ function Hero({
   library,
   next,
   inCinemasFrom,
+  logo,
 }: {
   t: Title;
   type: MediaType;
@@ -136,6 +131,8 @@ function Hero({
   library: Library;
   next: EpisodeRef | null;
   inCinemasFrom?: string;
+  /** the official title logo, like on Home (the plain name when TMDB has none) */
+  logo: { path: string; aspectRatio: number } | null;
 }) {
   const primary = links[0];
   const watchLabel = primary
@@ -144,7 +141,11 @@ function Hero({
 
   return (
     <BackdropHero backdropPath={t.backdrop_path} transitionName={`title-${type}-${t.id}`}>
-      <h1 className={heroTitle}>{name}</h1>
+      {logo ? (
+        <HeroLogo src={img(logo.path, "w500")!} aspectRatio={logo.aspectRatio} name={name} />
+      ) : (
+        <h1 className={heroTitle}>{name}</h1>
+      )}
       <div className="flex flex-wrap items-center gap-x-2 text-label text-fg/80 nums">
         <span>{titleMeta(t, type)}</span>
         {t.vote_average > 0 && (

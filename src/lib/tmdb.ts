@@ -464,6 +464,21 @@ export function titleMeta(t: Title, type: MediaType) {
 }
 
 /** The official title logo (your language first, then English, then language-free), or null. */
+/** Watch links with the ones on your services first, so "Watch on" opens one you pay for (Home and the title page agree). */
+export function yourServicesFirst<L extends { service: string }>(
+  links: L[],
+  t: Title,
+  country: string,
+  myIds: number[],
+) {
+  const mine = new Set(
+    subscriptionServices(t, country)
+      .filter((s) => myIds.includes(s.id))
+      .map((s) => s.name),
+  );
+  return links.toSorted((a, b) => Number(mine.has(serviceName(b.service))) - Number(mine.has(serviceName(a.service))));
+}
+
 export function pickLogo(t: Pick<Title, "images">, lang: string = DEFAULT_LANGUAGE) {
   const logos = t.images?.logos ?? [];
   const logo =
