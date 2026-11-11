@@ -9,20 +9,14 @@ import { NavLinks } from "./NavLinks";
 const TOP = 160; // below this the full top bar is in view, no island needed
 
 /**
- * The bar, once you've scrolled: a compact glass island in the middle of the top edge. It comes when you scroll up
- * (looking for somewhere to go) and slides away when you read on down. Hidden ones can't be tabbed into.
+ * The bar, once you've scrolled past it: a compact glass island in the middle of the top edge, there in both
+ * directions. Hidden (back at the top, where the full bar is) it can't be tabbed into.
  */
 export function NavIsland({ upNext, account }: { upNext: ReactNode; account: ReactNode }) {
   const [shown, setShown] = useState(false);
   useEffect(() => {
-    let last = scrollY;
-    const onScroll = () => {
-      const y = scrollY;
-      if (y < TOP) setShown(false);
-      else if (y < last - 4) setShown(true);
-      else if (y > last + 4) setShown(false);
-      last = y;
-    };
+    const onScroll = () => setShown(scrollY >= TOP);
+    onScroll();
     addEventListener("scroll", onScroll, { passive: true });
     return () => removeEventListener("scroll", onScroll);
   }, []);
