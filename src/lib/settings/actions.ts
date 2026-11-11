@@ -7,7 +7,7 @@ import { cookies } from "next/headers";
 import { z } from "zod";
 import { getSession } from "@/lib/auth";
 import { db } from "@/lib/db/client";
-import { user } from "@/lib/db/auth-schema";
+import { passkey, user } from "@/lib/db/auth-schema";
 import { roomMember, roomMood, roomPick, roomVote, userServices } from "@/lib/db/schema";
 import { LANGUAGE_COOKIE, LANGUAGES } from "@/lib/languages";
 import { SPOILER_COOKIE } from "@/lib/settings/queries";
@@ -102,5 +102,13 @@ export async function setShareActivity(value: "share" | "private") {
   if (!session) throw new Error("Sign in first.");
   const share = z.enum(["share", "private"]).parse(value) === "share";
   await db.update(user).set({ shareActivity: share, updatedAt: new Date() }).where(eq(user.id, session.user.id));
+  refresh();
+}
+
+/** Removes one of your passkeys (that device then signs in with a code again). */
+export async function removePasskey(id: string) {
+  const session = await getSession();
+  if (!session) throw new Error("Sign in first.");
+  await db.delete(passkey).where(and(eq(passkey.id, z.string().min(1).parse(id)), eq(passkey.userId, session.user.id)));
   refresh();
 }

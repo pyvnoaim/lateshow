@@ -3,7 +3,7 @@ import { Suspense } from "react";
 import { Container } from "@/components/ui/Container";
 import { SignInForm } from "@/features/auth/components/SignInForm";
 import { InviteView } from "@/features/friends/InviteView";
-import { LOGIN_LINK_MINUTES } from "@/lib/auth";
+import { LOGIN_CODE_MINUTES } from "@/lib/auth";
 
 export const metadata = { title: "Invite · Lateshow", robots: { index: false } };
 
@@ -30,8 +30,7 @@ async function Invite({ params }: { params: Promise<{ code: string }> }) {
       code={code}
       signIn={(heading, intro) => (
         <SignInForm
-          linkError={false}
-          minutes={LOGIN_LINK_MINUTES}
+          minutes={LOGIN_CODE_MINUTES}
           next={`/invite/${encodeURIComponent(code)}`}
           heading={heading}
           intro={intro}

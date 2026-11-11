@@ -9,7 +9,9 @@ Read `node_modules/next/dist/docs/` before using Next APIs (see AGENTS.md).
 - `pnpm dev --port 3000`, `pnpm check` (prettier + typecheck + eslint + vitest) must pass before every commit.
 - `.env.local`: `TMDB_TOKEN` (Read Access Token), `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`. See `.env.example`.
 - DB: `data/lateshow.db` (gitignored). `pnpm db:generate` / `pnpm db:migrate`. Auth schema via `npx @better-auth/cli generate`.
-- Dev prints the sign-in link in the terminal.
+- Sign in = 6 digit email code (Better Auth emailOTP, 10 min, 5 tries, hashed) + passkeys (@better-auth/passkey).
+  Dev prints the code in the terminal (`Sign in code for <email>: 123456`). Prod sends through Resend
+  (`RESEND_API_KEY`, `MAIL_FROM`, `MAIL_REPLY_TO`, see .env.example). Passkey table is hand-written in auth-schema.ts.
 - Gotcha: Turbopack serves stale CSS after editing `@utility`/`@theme`. Stop server, `rm -rf .next`, restart, check served CSS.
 - Private repo github.com/pyvnoaim/lateshow (main). Commit often, push only when the user says so, via push-gate.
 
@@ -21,8 +23,8 @@ Read `node_modules/next/dist/docs/` before using Next APIs (see AGENTS.md).
 ## Stack
 
 Next.js 16 App Router (Cache Components, Turbopack), React 19, TS strict, Tailwind v4 (tokens only), Radix, lucide-react,
-SQLite + Drizzle, Better Auth magic link (15 min, hashed tokens), zod, Vitest, Prettier, Playwright screenshots.
-Later: Resend emails, Docker on the VPS behind Nginx Proxy Manager + Cloudflare, SSE for rooms.
+SQLite + Drizzle, Better Auth (email code + passkeys), zod, Vitest, Prettier, Playwright screenshots.
+Later: Docker on the VPS behind Nginx Proxy Manager + Cloudflare, SSE for rooms.
 
 ## Data
 
@@ -85,7 +87,7 @@ delete account), /watchlist + /u/me redirects in `next.config.ts`, 404, errors, 
 
 ## Todo (in order)
 
-- [ ] Before public: Resend (or passkeys), nightly SQLite backup off the VPS, Docker deploy, buy lateshow.app.
+- [ ] Before public: Resend account + DNS records for the sending domain, nightly SQLite backup off the VPS, Docker deploy, buy lateshow.app.
       /privacy and /impressum exist (2026-11-11): fill the placeholders in `src/lib/legal.ts` and the email provider
       line on /privacy. Keep /privacy true to the code: no browser request may go to TMDB/JustWatch (images go
       through next/image), cookies listed there are the only ones.

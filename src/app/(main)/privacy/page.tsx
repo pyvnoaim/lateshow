@@ -58,7 +58,11 @@ export default function PrivacyPage() {
         <p>We keep what the features need, and nothing else:</p>
         <ul className="flex list-disc flex-col gap-2 pl-5">
           <li>
-            <strong>Your email address</strong>, to send you sign-in links. Nobody else sees it.
+            <strong>Your email address</strong>, to send you sign-in codes. Nobody else sees it.
+          </li>
+          <li>
+            <strong>Passkeys</strong>, if you save one: its public half and what kind of device holds it. The private
+            half never leaves your device.
           </li>
           <li>
             <strong>Your username</strong>, which friends and people in your rooms see.
@@ -107,6 +111,10 @@ export default function PrivacyPage() {
           <li>
             <strong>room_guest</strong> remembers you when you join a room as a guest. 30 days.
           </li>
+          <li>
+            <strong>lateshow:passkey</strong> and <strong>lateshow:passkey-no</strong> (kept in your browser, never
+            sent) remember whether this device has a passkey or you said Not now. Until you clear your browser data.
+          </li>
         </ul>
       </Part>
 
@@ -128,8 +136,8 @@ export default function PrivacyPage() {
           youtube-nocookie.com (Google Ireland Ltd.), which sees your IP address.
         </p>
         <p>
-          <strong>Sign-in emails</strong> are sent through [EMAIL PROVIDER, NAME AND COUNTRY], which sees your email
-          address and the link.
+          <strong>Sign-in emails</strong> are sent through Resend (Resend, Inc., USA), which sees your email address and
+          the code.
         </p>
         <p>Watch on links open the streaming service. What happens there is up to that service.</p>
       </Part>

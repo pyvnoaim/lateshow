@@ -184,6 +184,30 @@
 @utility reel-fade {
   mask-image: linear-gradient(to bottom, transparent, black 30%, black 70%, transparent);
 }
+/* A wrong sign-in code: a short, settling shake (reduced motion: none) */
+@keyframes shake {
+  0%,
+  100% {
+    transform: none;
+  }
+  20% {
+    transform: translateX(-8px);
+  }
+  40% {
+    transform: translateX(7px);
+  }
+  60% {
+    transform: translateX(-5px);
+  }
+  80% {
+    transform: translateX(3px);
+  }
+}
+@utility shake {
+  @media (prefers-reduced-motion: no-preference) {
+    animation: shake 360ms ease-out;
+  }
+}
 @utility no-scrollbar {
   scrollbar-width: none;
 }

@@ -51,7 +51,7 @@ function Message({
 
 /**
  * /invite/<code>: who invited you, and one next step. Signed out you sign in right here (`signIn` renders the
- * email step with the invite headline) and the link brings you back to accept.
+ * email step with the invite headline), then accept.
  */
 export async function InviteView({
   code,
@@ -106,7 +106,7 @@ export async function InviteView({
           on Lateshow.
         </span>
       </>,
-      "No password. The link brings you back here.",
+      "No password. We email you a code.",
     );
   } else {
     const me = shownName(session.user);

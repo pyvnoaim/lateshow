@@ -11,22 +11,25 @@ import {
   setShareActivity,
   setSpoilerGuard,
   setUsername,
+  removePasskey,
 } from "@/lib/settings/actions";
-import { getMyServiceIds, getSpoilerGuard } from "@/lib/settings/queries";
+import { getMyPasskeys, getMyServiceIds, getSpoilerGuard } from "@/lib/settings/queries";
 import { getServiceChoices, img } from "@/lib/tmdb";
 import { ChoicePicker } from "./components/ChoicePicker";
 import { DeleteAccount } from "./components/DeleteAccount";
 import { TextSetting } from "./components/TextSetting";
+import { Passkeys } from "./components/Passkeys";
 import { ServicePicker } from "./components/ServicePicker";
 
 export async function Settings() {
   const session = await getSession();
   if (!session) redirect(`/login?next=${encodeURIComponent("/settings")}`);
   const region = await getRegion();
-  const [choices, mine, guard] = await Promise.all([
+  const [choices, mine, guard, passkeys] = await Promise.all([
     getServiceChoices(region.code).catch(() => []),
     getMyServiceIds(),
     getSpoilerGuard(),
+    getMyPasskeys(),
   ]);
 
   return (
@@ -91,6 +94,19 @@ export async function Settings() {
           ]}
           current={guard ? "hide" : "show"}
           save={setSpoilerGuard}
+        />
+      </Section>
+      <Section title="Sign-in">
+        <Passkeys
+          email={session.user.email}
+          keys={passkeys.map((k) => ({
+            id: k.id,
+            name: k.name,
+            added: k.createdAt
+              ? k.createdAt.toLocaleDateString("en", { month: "short", day: "numeric" })
+              : "a while ago",
+          }))}
+          remove={removePasskey}
         />
       </Section>
       <Section title="Your data" description="Everything you track, as a spreadsheet. Or remove it all.">

@@ -13,6 +13,12 @@ const schemas = {
     BETTER_AUTH_URL: z.url().default("http://localhost:3000"),
   }),
   db: z.object({ DATABASE_PATH: z.string().min(1).default("data/lateshow.db") }),
+  // Sign-in emails through Resend. Only needed in production (dev prints codes in the terminal).
+  mail: z.object({
+    RESEND_API_KEY: z.string().min(1, "RESEND_API_KEY missing: sign-in emails need it in production"),
+    MAIL_FROM: z.string().min(3).default("Lateshow <login@pyvno.xyz>"),
+    MAIL_REPLY_TO: z.email().optional(),
+  }),
 };
 
 type Area = keyof typeof schemas;
