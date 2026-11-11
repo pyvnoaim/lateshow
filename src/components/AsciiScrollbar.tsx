@@ -4,6 +4,9 @@ import { useEffect, useRef, useState } from "react";
 import { thumb } from "@/lib/scrollThumb";
 
 const CELL = 14; // px per character row (matches leading-cell)
+// Cells the thumb just left thin out back into the rail, like Kova's cursor trail (# down to the rail's :).
+const TRAIL = "#*+=-:";
+const LIFE = 900;
 
 /**
  * The page scrollbar, lettered like Resona's ASCII skin: a `:` rail with a `#` thumb down the right edge.
@@ -13,10 +16,26 @@ const CELL = 14; // px per character row (matches leading-cell)
 export function AsciiScrollbar() {
   const [bar, setBar] = useState<{ n: number; top: number; len: number } | null>(null);
   const drag = useRef<{ y: number; scroll: number } | null>(null);
+  // when each cell was last under the thumb, and a clock that only ticks while some cell is still fading
+  const left = useRef<number[]>([]);
+  const [leftAt, setLeftAt] = useState<number[]>([]); // the same, for rendering
+  const [now, setNow] = useState(0);
+  const prev = useRef<{ top: number; len: number } | null>(null);
 
   useEffect(() => {
     if (!matchMedia("(pointer: fine)").matches) return;
+    const trail = !matchMedia("(prefers-reduced-motion: reduce)").matches;
     let frame = 0;
+    let clock = 0;
+    // re-render while a trail cell is younger than LIFE, then stop (an idle page costs nothing)
+    const tick = () => {
+      if (clock) return;
+      const loop = (t: number) => {
+        setNow(t);
+        clock = left.current.some((at) => t - at < LIFE) ? requestAnimationFrame(loop) : 0;
+      };
+      clock = requestAnimationFrame(loop);
+    };
     const measure = () => {
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(() => {
@@ -25,6 +44,14 @@ export function AsciiScrollbar() {
         if (all <= seen + 1) return setBar(null);
         const n = Math.floor(seen / CELL);
         const [top, len] = thumb(n, seen, all, scrollY);
+        const p = prev.current;
+        if (p && trail && (p.top !== top || p.len !== len)) {
+          const t = performance.now();
+          for (let i = p.top; i < p.top + p.len; i++) if (i < top || i >= top + len) left.current[i] = t;
+          setLeftAt([...left.current]);
+          tick();
+        }
+        prev.current = { top, len };
         setBar((b) => (b && b.n === n && b.top === top && b.len === len ? b : { n, top, len }));
       });
     };
@@ -35,6 +62,7 @@ export function AsciiScrollbar() {
     ro.observe(document.body);
     return () => {
       cancelAnimationFrame(frame);
+      cancelAnimationFrame(clock);
       removeEventListener("scroll", measure);
       removeEventListener("resize", measure);
       ro.disconnect();
@@ -69,11 +97,20 @@ export function AsciiScrollbar() {
             #
           </span>
         ) : (
-          <span key={i} className="text-fg/12">
-            :
-          </span>
+          <Rail key={i} age={now - (leftAt[i] ?? -Infinity)} />
         ),
       )}
     </div>
+  );
+}
+
+/** A rail cell: a plain `:`, or while the thumb just left it, a character thinning from # to : as it fades. */
+function Rail({ age }: { age: number }) {
+  if (!(age >= 0 && age < LIFE)) return <span className="text-fg/12">:</span>;
+  const life = 1 - age / LIFE;
+  return (
+    <span className="text-fg" style={{ opacity: 0.12 + life * 0.3 }}>
+      {TRAIL[Math.min(TRAIL.length - 1, Math.floor((1 - life) * TRAIL.length))]}
+    </span>
   );
 }
