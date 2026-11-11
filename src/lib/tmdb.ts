@@ -565,34 +565,30 @@ export async function getCinemaCalendar(country: string, lang: string = DEFAULT_
 export async function searchForImport(query: string) {
   "use cache";
   cacheLife("days");
-  // Letterboxd lists miniseries and some series too, so films and series both
-  const data = await tmdb<{
-    results: {
-      id: number;
-      media_type: string;
-      title?: string;
-      name?: string;
-      original_title?: string;
-      original_name?: string;
-      release_date?: string;
-      first_air_date?: string;
-      poster_path?: string | null;
-    }[];
-  }>("/search/multi", { query, include_adult: "false" }, "en-US");
-  return data.results.flatMap((r) =>
-    r.media_type === "movie" || r.media_type === "tv"
-      ? [
-          {
-            id: r.id,
-            type: r.media_type as "movie" | "tv",
-            title: r.title ?? r.name ?? "",
-            originalTitle: r.original_title ?? r.original_name,
-            date: r.release_date ?? r.first_air_date,
-            posterPath: r.poster_path ?? null,
-          },
-        ]
-      : [],
-  );
+  // Letterboxd lists miniseries and some series too. Two searches, not /search/multi: there people and series
+  // can push a lesser known film out of the first page. Films first, so they lead when you're asked to pick.
+  type Row = {
+    id: number;
+    title?: string;
+    name?: string;
+    original_title?: string;
+    original_name?: string;
+    release_date?: string;
+    first_air_date?: string;
+    poster_path: string | null;
+  };
+  const search = (type: "movie" | "tv") =>
+    tmdb<{ results: Row[] }>(`/search/${type}`, { query, include_adult: "false" }, "en-US").then((d) =>
+      d.results.map((r) => ({
+        id: r.id,
+        type,
+        title: r.title ?? r.name ?? "",
+        originalTitle: r.original_title ?? r.original_name,
+        date: r.release_date ?? r.first_air_date,
+        posterPath: r.poster_path,
+      })),
+    );
+  return (await Promise.all([search("movie"), search("tv")])).flat();
 }
 
 /** Every episode of a series that has aired (specials left out), for importing a watched series. */
