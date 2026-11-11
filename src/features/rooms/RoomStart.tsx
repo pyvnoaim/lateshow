@@ -41,6 +41,7 @@ export async function RoomStart() {
         <StartForm
           friends={friends.filter((f) => f.username).map((f) => ({ id: f.id, username: f.username!, image: f.image }))}
           posters={{ movie: posterUrls(movies), tv: posterUrls(shows) }}
+          needsUsername={!session.user.username}
           create={createRoom}
         />
       ) : (

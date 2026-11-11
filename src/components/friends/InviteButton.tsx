@@ -1,8 +1,8 @@
 "use client";
 
 import { UserPlus, X } from "lucide-react";
-import Link from "next/link";
 import { useState, useTransition } from "react";
+import { UsernameForm } from "@/components/UsernameForm";
 import { buttonStyles } from "@/components/ui/button";
 import { useCopy } from "@/components/useCopy";
 import type { InviteLink } from "@/lib/friends/actions";
@@ -60,12 +60,14 @@ export function InviteButton({ getLink }: { getLink: (fresh: boolean) => Promise
               </button>
             </div>
             {link && "error" in link ? (
-              <p className="text-small text-muted">
-                Pick a username first. Your friend sees it, never your email.{" "}
-                <Link href="/settings" className="text-fg hover:underline">
-                  Settings
-                </Link>
-              </p>
+              link.error === "username" ? (
+                <div className="flex flex-col gap-3">
+                  <p className="text-small text-muted">First, the name your friend will see. Never your email.</p>
+                  <UsernameForm button="Save, get link" onSaved={() => load(false)} />
+                </div>
+              ) : (
+                <p className="text-small text-muted">Sign in again to make a link.</p>
+              )
             ) : (
               <>
                 <div className="flex h-14 items-center gap-3 rounded-full glass-cell pr-1.5 pl-5">

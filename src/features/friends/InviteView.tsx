@@ -8,6 +8,7 @@ import { Avatar } from "@/components/Avatar";
 import { getImagesByUsername } from "@/lib/friends/queries";
 import { inviteState } from "@/lib/friends/rules";
 import { shownName } from "@/lib/username";
+import { UsernameForm } from "@/components/UsernameForm";
 import { AcceptInvite } from "./components/AcceptInvite";
 
 async function Avatars({ names }: { names: string[] }) {
@@ -137,14 +138,8 @@ export async function InviteView({
     );
     if (!session.user.username) {
       body = (
-        <Message
-          title="Pick a username"
-          muted="first."
-          detail={`${host} sees it, never your email. Then open this link again.`}
-        >
-          <Link href="/settings" className={buttonStyles("primary", "sm")}>
-            Settings
-          </Link>
+        <Message title="Pick a username" muted="first." detail={`${host} sees it, never your email.`}>
+          <UsernameForm button="Continue" />
         </Message>
       );
     } else if (await areFriends(session.user.id, inv.userId)) {

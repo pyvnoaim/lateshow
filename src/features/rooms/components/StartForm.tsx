@@ -4,6 +4,7 @@ import { Check } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Avatar } from "@/components/Avatar";
+import { UsernameForm } from "@/components/UsernameForm";
 import { buttonStyles } from "@/components/ui/button";
 import { GAMES, type Game } from "@/lib/rooms/games";
 import { GameArt } from "./GameArt";
@@ -14,11 +15,14 @@ type Friend = { id: string; username: string; image: string | null };
 export function StartForm({
   friends,
   posters,
+  needsUsername,
   create,
 }: {
   friends: Friend[];
   /** trending poster URLs for the tiles' pictures, per kind */
   posters: { movie: string[]; tv: string[] };
+  /** signed in without a username yet: everyone in a room sees it, so pick one here first */
+  needsUsername: boolean;
   create: (input: {
     kind: "movie" | "tv";
     game: Game;
@@ -121,20 +125,32 @@ export function StartForm({
             </ul>
           )}
         </div>
-        <button
-          type="button"
-          disabled={pending}
-          onClick={() =>
-            startTransition(async () => {
-              const result = await create({ kind, game, friends: invited });
-              if ("error" in result) setError(result.error);
-              else router.push(`/rooms/${result.code}`);
-            })
-          }
-          className={buttonStyles("primary", "md")}
-        >
-          {pending ? "Opening" : "Open the room"}
-        </button>
+        {needsUsername ? (
+          // saving refreshes the page, then the prop is false and the button is here
+          <div className="flex w-full flex-col gap-3">
+            <p className="text-body leading-normal text-muted">
+              First, a name for the room.
+              <br />
+              Everyone in it sees it, never your email.
+            </p>
+            <UsernameForm />
+          </div>
+        ) : (
+          <button
+            type="button"
+            disabled={pending}
+            onClick={() =>
+              startTransition(async () => {
+                const result = await create({ kind, game, friends: invited });
+                if ("error" in result) setError(result.error);
+                else router.push(`/rooms/${result.code}`);
+              })
+            }
+            className={buttonStyles("primary", "md")}
+          >
+            {pending ? "Opening" : "Open the room"}
+          </button>
+        )}
       </div>
       {error && (
         <p role="alert" className="-mt-6 text-small text-muted">

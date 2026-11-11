@@ -49,8 +49,11 @@ export async function setSpoilerGuard(value: "show" | "hide") {
 /** What a text setting's save returns: the value as stored, or what went wrong. */
 export type Saved = { value: string } | { error: string };
 
-/** Your username: the name everyone sees and your profile address (/u/name). Unique, stored lowercase. */
-export async function setUsername(raw: string): Promise<Saved> {
+/**
+ * Your username: the name everyone sees and your profile address (/u/name). Unique, stored lowercase.
+ * `refreshPage` false: the sign in screen, where a refresh would redirect past its passkey step.
+ */
+export async function setUsername(raw: string, refreshPage = true): Promise<Saved> {
   const session = await getSession();
   if (!session) return { error: "Sign in again to save this." };
   const check = checkUsername(raw);
@@ -71,7 +74,7 @@ export async function setUsername(raw: string): Promise<Saved> {
   } catch {
     return { error: "That one is taken." }; // the unique index caught a race with someone else
   }
-  refresh();
+  if (refreshPage !== false) refresh();
   return { value: check.value };
 }
 

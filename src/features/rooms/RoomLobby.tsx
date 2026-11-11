@@ -3,6 +3,7 @@ import { Avatar } from "@/components/Avatar";
 import { Spinner } from "@/features/rooms/components/Spinner";
 import { connection } from "next/server";
 import type { ReactNode } from "react";
+import { UsernameForm } from "@/components/UsernameForm";
 import { buttonStyles } from "@/components/ui/button";
 import { joinAsGuest, joinRoom, leaveRoom, phoneQr, startRoom } from "@/lib/rooms/actions";
 import { GAMES } from "@/lib/rooms/games";
@@ -57,13 +58,11 @@ export async function RoomLobby({ code: raw }: { code: string }) {
         {me && !me.guest && !me.username ? (
           <div className="flex flex-col items-start gap-4">
             <p className="text-body text-muted">
-              Pick a username first.
+              First, a name for the room.
               <br />
-              Everyone in the room sees it, never your email.
+              Everyone in it sees it, never your email.
             </p>
-            <Link href="/settings" className={buttonStyles("primary", "sm")}>
-              Settings
-            </Link>
+            <UsernameForm button="Join" />
           </div>
         ) : me && !me.guest ? (
           <AutoJoin code={code} join={joinRoom} />

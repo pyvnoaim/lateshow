@@ -2,6 +2,7 @@
 
 import { Check, Fingerprint, Mail, ScanFace } from "lucide-react";
 import { useEffect, useRef, useState, useSyncExternalStore, type FormEvent, type ReactNode } from "react";
+import { UsernameForm } from "@/components/UsernameForm";
 import { buttonStyles } from "@/components/ui/button";
 import { fieldInputStyles, fieldStyles } from "@/components/ui/field";
 import { authClient } from "@/lib/authClient";
@@ -44,7 +45,7 @@ export function SignInForm({
   const [sentTo, setSentTo] = useState<string | null>(null);
   const [code, setCode] = useState("");
   const [bad, setBad] = useState(false);
-  const [phase, setPhase] = useState<"form" | "offer" | "done">("form");
+  const [phase, setPhase] = useState<"form" | "name" | "offer" | "done">("form");
   const [pending, setPending] = useState(false);
   const [error, setError] = useState("");
   const [wait, setWait] = useState(0);
@@ -129,6 +130,14 @@ export function SignInForm({
       return;
     }
     setError("");
+    // No username yet (new account, or skipped last time): ask for it first, friends and rooms need it
+    const username = (res.data?.user as { username?: string | null } | undefined)?.username;
+    if (!username) setPhase("name");
+    else afterName();
+  }
+
+  /** After the username step: offer Touch ID / Face ID once, else straight back. */
+  function afterName() {
     if (canPasskey && !recall(HAS_PASSKEY) && !recall(NO_PASSKEY)) setPhase("offer");
     else {
       setPhase("done");
@@ -163,7 +172,7 @@ export function SignInForm({
     } else go();
   }
 
-  if (phase === "offer" || phase === "done") {
+  if (phase === "name" || phase === "offer" || phase === "done") {
     return (
       <div className="flex rise flex-col gap-10">
         <span className="flex size-16 pop items-center justify-center rounded-full glass-accent">
@@ -174,9 +183,20 @@ export function SignInForm({
             You&apos;re in.
             <br />
             <span className="text-muted">
-              {phase === "offer" ? `${named ? label : "A passkey"} next time?` : "Taking you back."}
+              {phase === "name"
+                ? "What should friends call you?"
+                : phase === "offer"
+                  ? `${named ? label : "A passkey"} next time?`
+                  : "Taking you back."}
             </span>
           </h1>
+          {phase === "name" && (
+            <p className="text-body leading-normal text-muted">
+              Friends find you by this name.
+              <br />
+              They never see your email.
+            </p>
+          )}
           {phase === "offer" && (
             <p className="text-body leading-normal text-muted">
               This device remembers you, so coming back
@@ -205,6 +225,14 @@ export function SignInForm({
               className={buttonStyles("text", "text")}
             >
               Not now
+            </button>
+          </div>
+        )}
+        {phase === "name" && (
+          <div className="flex flex-col items-start gap-4">
+            <UsernameForm button="Continue" onSaved={afterName} refreshPage={false} />
+            <button type="button" onClick={afterName} className={`${buttonStyles("text", "text")} pl-5`}>
+              Later
             </button>
           </div>
         )}
