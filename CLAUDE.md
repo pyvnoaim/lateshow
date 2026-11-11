@@ -2,7 +2,7 @@
 
 Movies and series: find what to watch, where to stream it, track what you watched.
 Personal, non-commercial (TMDB key terms): no ads, no paid features, ever. Live at https://lateshow.pyvno.xyz (2026-11-11). Buy lateshow.app only if it gets users
-(then change `BETTER_AUTH_URL` in Portainer, add the DNS record and NPM host).
+(then change `BETTER_AUTH_URL` in Portainer and `SITE_URL` in `src/lib/site.ts`, add the DNS record and NPM host).
 Read `node_modules/next/dist/docs/` before using Next APIs (see AGENTS.md).
 
 ## Run
