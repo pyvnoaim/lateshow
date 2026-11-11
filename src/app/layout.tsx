@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter_Tight } from "next/font/google";
+import { AsciiScrollbar } from "@/components/AsciiScrollbar";
 import { GlassSheen } from "@/components/GlassSheen";
 import { Tooltips } from "@/components/Tooltips";
 import "./globals.css";
@@ -18,6 +19,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         {children}
         <GlassSheen />
         <Tooltips />
+        <AsciiScrollbar />
       </body>
     </html>
   );

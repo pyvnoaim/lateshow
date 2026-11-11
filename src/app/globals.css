@@ -35,6 +35,7 @@
   --color-hairline: rgb(255 255 255 / 0.08);
 
   --font-sans: var(--font-inter-tight), -apple-system, system-ui, sans-serif;
+  --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace; /* the ASCII page scrollbar */
 
   /* type */
   --text-hero: 104px;
@@ -46,12 +47,14 @@
   --text-label: 15px;
   --text-small: 14px;
   --text-caption: 13px;
+  --text-scroll: 11px; /* the # and : of the page scrollbar */
   --text-badge: 11px; /* letters in tiny avatars (friends who watched) */
   --tracking-tight: -0.035em;
   --tracking-display: -0.05em;
   --leading-display: 0.92;
 
   /* layout */
+  --leading-cell: 14px; /* one character row of the page scrollbar (AsciiScrollbar CELL) */
   --container-page: 1280px;
   --container-page-wide: 1720px; /* big screens (2xl and up): the page grows instead of leaving a third empty */
   --container-reading: 816px;
@@ -108,6 +111,12 @@
   html {
     background: var(--color-bg);
     color: var(--color-fg);
+  }
+  /* mouse and trackpad: the page scrollbar is AsciiScrollbar, so the native one goes */
+  @media (pointer: fine) {
+    html {
+      scrollbar-width: none;
+    }
   }
   body {
     /* full-bleed strips (bleed) reach 100vw, which includes a desktop scrollbar: never a sideways page scroll */
