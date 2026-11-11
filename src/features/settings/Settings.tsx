@@ -7,6 +7,7 @@ import { shownName } from "@/lib/username";
 import { getRegion } from "@/lib/region";
 import {
   deleteAccount,
+  findFaces,
   setAvatar,
   setLanguage,
   setMyService,
@@ -56,6 +57,7 @@ export async function Settings() {
           current={session.user.image ?? null}
           faces={faces}
           save={setAvatar}
+          find={findFaces}
         />
       </Section>
       <Section title="Friends" description="What friends see on your profile. Off, they only see your name.">

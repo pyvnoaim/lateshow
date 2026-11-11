@@ -13,6 +13,8 @@ import { LANGUAGE_COOKIE, LANGUAGES } from "@/lib/languages";
 import { SPOILER_COOKIE } from "@/lib/settings/queries";
 import { checkUsername } from "@/lib/username";
 import { isAvatarValue } from "@/lib/avatar";
+import { getRegion } from "@/lib/region";
+import { searchPeople } from "@/lib/tmdb";
 
 const providerId = z.number().int().positive();
 
@@ -124,4 +126,14 @@ export async function setAvatar(value: string) {
     .set({ image: v || null, updatedAt: new Date() })
     .where(eq(user.id, session.user.id));
   refresh();
+}
+
+/** People to pick a profile picture from, by name (Settings · Profile picture · Cast). */
+export async function findFaces(query: string) {
+  const session = await getSession();
+  if (!session) throw new Error("Sign in first.");
+  const q = z.string().trim().min(2).max(60).safeParse(query);
+  if (!q.success) return [];
+  const { lang } = await getRegion();
+  return searchPeople(q.data, lang).catch(() => []);
 }

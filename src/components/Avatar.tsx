@@ -10,7 +10,7 @@ const SIZES = {
 } as const;
 
 // written out in full so Tailwind finds them. icy is the accent itself.
-const TONE: Record<Tone, string> = {
+export const TONE_CLASS: Record<Tone, string> = {
   icy: "",
   lavender: "tone-lavender",
   mint: "tone-mint",
@@ -44,6 +44,6 @@ export function Avatar({
       </span>
     );
   }
-  const tone = muted ? "glass-cell text-muted" : `glass-accent ${a?.kind === "tone" ? TONE[a.tone] : ""}`;
+  const tone = muted ? "glass-cell text-muted" : `glass-accent ${a?.kind === "tone" ? TONE_CLASS[a.tone] : ""}`;
   return <span className={`${base} ${tone}`}>{name.charAt(0).toUpperCase()}</span>;
 }
