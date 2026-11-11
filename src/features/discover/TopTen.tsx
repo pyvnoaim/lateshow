@@ -24,26 +24,27 @@ export async function TopTen() {
     <Section title={`Top 10 in ${name}`} description="Most watched this week across streaming services.">
       <ol className="bleed -my-5 flex snap-x scroll-px-4 no-scrollbar gap-2 overflow-x-auto overflow-y-hidden py-5 sm:scroll-px-12 lg:snap-none">
         {titles.slice(0, 10).map(({ t, type }, i) => (
-          <li key={`${type}-${t.id}`} className="shrink-0 snap-start">
-            <Link
-              href={`/title/${type}/${t.id}`}
-              aria-label={`${i + 1}. ${t.title ?? t.name}`}
-              className="group flex items-end"
+          <li key={`${type}-${t.id}`} className="flex shrink-0 snap-start items-end">
+            <span
+              aria-hidden
+              className="-mr-3 pb-13.5 text-hero leading-display font-bold tracking-display text-fg/15 nums"
             >
-              <span
-                aria-hidden
-                className="-mr-3 pb-13.5 text-hero leading-display font-bold tracking-display text-fg/15 nums"
+              {i + 1}
+            </span>
+            {/* the caption (with its + button) sits under the link, never inside it */}
+            <div className="flex w-36 flex-col gap-2.5 sm:w-44">
+              <Link
+                href={`/title/${type}/${t.id}`}
+                aria-label={`${i + 1}. ${t.title ?? t.name}`}
+                className="group flex flex-col gap-2.5 rounded-poster"
               >
-                {i + 1}
-              </span>
-              <div className="flex w-36 flex-col gap-2.5">
                 <div className="relative aspect-poster lift overflow-hidden rounded-poster bg-raised outline-1 -outline-offset-1 outline-hairline">
-                  <Image src={img(t.poster_path, "w342")!} alt="" fill sizes="144px" className="object-cover" />
+                  <Image src={img(t.poster_path, "w342")!} alt="" fill sizes="176px" className="object-cover" />
                 </div>
                 <span className="truncate text-label font-medium">{t.title ?? t.name}</span>
-                <PosterCaption card={titleToCard(t, type)} />
-              </div>
-            </Link>
+              </Link>
+              <PosterCaption card={titleToCard(t, type)} />
+            </div>
           </li>
         ))}
       </ol>
