@@ -110,6 +110,12 @@ delete account), /watchlist + /u/me redirects in `next.config.ts`, 404, errors, 
 - [ ] Later: genre/mood row, imports from TMDB account and Trakt (both have ids), Netflix CSV (titles only, weak).
 - [ ] Watch together = a browser extension (drafts on the canvas, approved 2026-11-11): syncs the streaming site's
       player for everyone in a room, on a laptop. Rejected: a manual 3-2-1 countdown flow without the extension.
+      Plan, v1 = Netflix + Chrome (MV3): 1 room gets a playback state (playing/paused, position, at) on the existing
+      live updates · 2 extension popup (room, who's watching, in sync) using the Lateshow sign-in of that browser ·
+      3 content script with a Netflix adapter (play/pause via the video element, seeking only through Netflix's own
+      player API, a raw currentTime seek errors) · 4 drift fix past ~2 s ("You're 4 s behind", Catch up / Wait for me) ·
+      5 test with friends as "load unpacked". Later: Chrome Web Store ($5 once) or Firefox add-ons (free), one adapter
+      per further service (Disney+, Prime).
 - [ ] Friends (decided 2026-11-11): mutual, by invite link only (7 days, few uses), no people search.
       Friends see everything by default, one Settings switch hides it. Tables: `user.username`, `friendship`
       (one row per pair, lower id first), `invite`. Access checked in one helper. Build order:
