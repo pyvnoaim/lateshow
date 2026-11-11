@@ -138,10 +138,6 @@ export async function Profile({ searchParams }: { searchParams: Promise<{ tab?: 
             ))}
           </PosterGrid>
         ))}
-
-      <Link href="/about" className="text-small text-muted transition-colors hover:text-fg">
-        About Lateshow
-      </Link>
     </div>
   );
 }

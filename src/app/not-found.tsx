@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { StatusMessage } from "@/components/StatusMessage";
+import { Footer } from "@/components/Footer";
 import { TopBar } from "@/components/TopBar";
 import { buttonStyles } from "@/components/ui/button";
 import { Container } from "@/components/ui/Container";
@@ -26,6 +27,7 @@ export default function NotFound() {
           <TrendingRow title="Something to watch instead" />
         </Suspense>
       </Container>
+      <Footer />
     </>
   );
 }
