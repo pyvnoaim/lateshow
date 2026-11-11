@@ -30,7 +30,7 @@ export default function PrivacyPage() {
 
       <Part title="Who is responsible">
         <p>
-          <strong>{OPERATOR.name}</strong>, {OPERATOR.street}, {OPERATOR.city}, {OPERATOR.country}.
+          <strong>{OPERATOR.name}</strong>, {OPERATOR.co}, {OPERATOR.street}, {OPERATOR.city}, {OPERATOR.country}.
           <br />
           Email: {OPERATOR.email}. Also see the{" "}
           <Link href="/impressum" className="text-fg hover:underline">

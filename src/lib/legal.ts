@@ -1,11 +1,15 @@
 /**
  * Who runs Lateshow, for the Impressum and the privacy page. German law (§ 5 DDG) wants a real name, a postal
- * address a letter can reach and a fast way to get in touch. Fill these in before going public.
+ * address a letter can reach and a fast way to get in touch. The address is a rented Impressum address (c/o line),
+ * which the law allows as long as letters reach you there.
  */
 export const OPERATOR = {
-  name: "[YOUR FULL NAME]",
-  street: "[STREET AND NUMBER]",
-  city: "[POSTCODE AND CITY]",
+  // ponytail: a nickname, the owner's choice. § 5 DDG asks for the real first and last name, so this Impressum is
+  // incomplete (risk of a warning letter or fine). Put the real name here to fix that.
+  name: "pyvno",
+  co: "c/o MDC#1250",
+  street: "Welserstraße 3",
+  city: "87463 Dietmannsried",
   country: "Germany",
   email: "[CONTACT EMAIL]",
 };

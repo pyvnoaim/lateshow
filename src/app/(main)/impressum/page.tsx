@@ -15,6 +15,8 @@ export default function ImpressumPage() {
         <address className="text-body leading-relaxed not-italic">
           {OPERATOR.name}
           <br />
+          {OPERATOR.co}
+          <br />
           {OPERATOR.street}
           <br />
           {OPERATOR.city}
