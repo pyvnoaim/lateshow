@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { getSession, LOGIN_LINK_MINUTES } from "@/lib/auth";
 import { SignInForm } from "./components/SignInForm";
-import { safeNext } from "./next";
+import { safeNext } from "@/lib/safeNext";
 
 export async function SignIn({
   searchParams,

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { safeNext } from "./next";
+import { safeNext } from "@/lib/safeNext";
 
 describe("safeNext", () => {
   it("keeps paths on this site", () => {

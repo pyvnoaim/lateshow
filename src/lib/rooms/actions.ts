@@ -4,12 +4,15 @@ import { randomBytes } from "node:crypto";
 import { and, eq, sql } from "drizzle-orm";
 import { cookies } from "next/headers";
 import { refresh } from "next/cache";
+import { redirect } from "next/navigation";
 import { z } from "zod";
 import { getSession } from "@/lib/auth";
 import { db } from "@/lib/db/client";
 import { room, roomMember } from "@/lib/db/schema";
 import { getFriends } from "@/lib/friends/queries";
-import { GUEST_COOKIE, getRoomIdentity } from "./identity";
+import { safeNext } from "@/lib/safeNext";
+import { redeemHandoff } from "./handoff";
+import { GUEST_COOKIE, getRoomIdentity, guestMemberId } from "./identity";
 import { cleanCode, cleanGuestName, newRoomCode, ROOM_HOURS } from "./rules";
 
 const bump = (code: string) =>
@@ -84,7 +87,7 @@ export async function joinAsGuest(raw: string, rawName: string): Promise<string 
   }
   await db
     .insert(roomMember)
-    .values({ roomCode: code, memberId: `guest:${guest}`, name })
+    .values({ roomCode: code, memberId: guestMemberId(guest), name })
     .onConflictDoUpdate({ target: [roomMember.roomCode, roomMember.memberId], set: { name, joined: true } });
   await bump(code);
   refresh();
@@ -121,4 +124,15 @@ export async function leaveRoom(raw: string) {
       .where(eq(room.code, code))
       .run();
   });
+}
+
+/**
+ * "Continue as @name" on the phone. A server action (a same-origin POST), so a link alone can't sign anyone in.
+ * A device that is already signed in keeps its own account and just opens the room.
+ */
+export async function continueOnDevice(form: FormData) {
+  const token = String(form.get("t") ?? "");
+  const safe = safeNext(String(form.get("next") ?? "/"));
+  if (!(await getSession()) && !(await redeemHandoff(token))) redirect(`/login?next=${encodeURIComponent(safe)}`);
+  redirect(safe);
 }

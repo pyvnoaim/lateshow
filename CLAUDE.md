@@ -92,6 +92,6 @@ delete account), /watchlist + /u/me redirects in `next.config.ts`, 404, errors, 
       4 "Friends this week" row + friends on title pages (done) · 5 taste match % (shown from 10 titles each) (done). All five steps done 2026-11-11.
 - [ ] Rooms (drafts on the canvas, 2026-11-11). Tables `room` (4 letter code, 12 h, `version` for live updates) and
       `room_member` (user id or `guest:<cookie id>`, `joined` false = invited friend). Live via SSE that polls the
-      version (`/api/rooms/[code]/events`). Phone QR = Better Auth one-time token (2 min, once) via `/api/handoff`.
+      version (`/api/rooms/[code]/events`). Phone QR = Better Auth one-time token (2 min, once), opens `/handoff` which asks "Continue as @name?" first. Guest member ids are a hash of the cookie secret.
       1 room + lobby + guests + invites + QR (done) · 2 swipe (titles on everyone's shared services, first all-yes wins) ·
       3 bracket 8 > 4 > 2 > 1 · 4 reel (moods, server picks the winner, 3 picks).
