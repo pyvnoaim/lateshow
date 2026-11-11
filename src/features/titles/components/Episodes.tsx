@@ -38,6 +38,11 @@ export function Episodes({ seasons, library }: { seasons: SeasonData[]; library:
     null,
   );
   const [saving, setSaving] = useState(false);
+  useEffect(() => {
+    if (!ask || saving) return;
+    const t = setTimeout(() => setAsk(null), 6000);
+    return () => clearTimeout(t);
+  }, [ask, saving]);
   const list = useRef<HTMLDivElement>(null);
 
   // Open on your next episode instead of episode 1 (only inside the list, the page itself doesn't move).
@@ -78,7 +83,35 @@ export function Episodes({ seasons, library }: { seasons: SeasonData[]; library:
                 </div>
                 <span className="w-6 text-small text-muted nums">{e.n}</span>
                 <span className="min-w-0 flex-1 truncate text-label font-medium">{e.name}</span>
-                {e.runtime ? <span className="text-caption text-muted nums">{e.runtime} min</span> : null}
+                {ask && ask.season === season.number && ask.after === e.n ? (
+                  // the question takes the runtime's place in the row: quiet, and gone after an answer or a few seconds
+                  <span className="flex shrink-0 rise items-center gap-2 text-caption text-muted">
+                    {earlierText(ask.missing.map((m) => m.n))}
+                    <button
+                      type="button"
+                      disabled={saving}
+                      onClick={async () => {
+                        setSaving(true);
+                        await setEarlierWatched(library.ref, ask.season, ask.missing);
+                        setSaving(false);
+                        setAsk(null);
+                      }}
+                      className={buttonStyles("text", "text", "text-caption text-fg")}
+                    >
+                      Yes
+                    </button>
+                    <span aria-hidden>·</span>
+                    <button
+                      type="button"
+                      onClick={() => setAsk(null)}
+                      className={buttonStyles("text", "text", "text-caption")}
+                    >
+                      No
+                    </button>
+                  </span>
+                ) : e.runtime ? (
+                  <span className="text-caption text-muted nums">{e.runtime} min</span>
+                ) : null}
                 <LibraryToggle
                   // remounts when the server's answer changes (the episodes "too?" marked come back checked)
                   key={String(watched.has(`${season.number}-${e.n}`))}
@@ -100,27 +133,6 @@ export function Episodes({ seasons, library }: { seasons: SeasonData[]; library:
                   }}
                 />
               </li>
-              {ask && ask.season === season.number && ask.after === e.n && (
-                <li className="flex rise flex-wrap items-center gap-x-5 gap-y-2 pb-3 pl-28 text-small text-muted">
-                  <span>{earlierText(ask.missing.map((m) => m.n))}</span>
-                  <button
-                    type="button"
-                    disabled={saving}
-                    onClick={async () => {
-                      setSaving(true);
-                      await setEarlierWatched(library.ref, ask.season, ask.missing);
-                      setSaving(false);
-                      setAsk(null);
-                    }}
-                    className={buttonStyles("primary", "sm")}
-                  >
-                    {saving ? "Marking" : "Mark them"}
-                  </button>
-                  <button type="button" onClick={() => setAsk(null)} className={buttonStyles("text", "text")}>
-                    No
-                  </button>
-                </li>
-              )}
             </Fragment>
           ))}
         </ol>
