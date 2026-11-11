@@ -57,7 +57,7 @@ export function StartForm({
         </div>
       </div>
       <div className="grid grid-cols-1 gap-x-6 gap-y-10 sm:grid-cols-3">
-        {GAMES.map((g) => {
+        {GAMES.map((g, gi) => {
           const on = game === g.id;
           return (
             <button
@@ -68,9 +68,19 @@ export function StartForm({
               className="group flex press flex-col gap-4 rounded-banner text-left"
             >
               <span
-                className={`block h-64 overflow-hidden rounded-banner bg-linear-to-b from-raised to-surface transition duration-300 ${on ? "ring-2 ring-accent" : "opacity-70 group-hover:opacity-100"}`}
+                className={`relative block h-64 overflow-hidden rounded-banner bg-linear-to-b from-raised to-surface transition duration-300 ${on ? "ring-2 ring-accent" : "opacity-70 group-hover:opacity-100"}`}
               >
-                <GameArt game={g.id} posters={posters[kind]} />
+                {/* both sets are there and loaded: switching Movie / Series crossfades instead of popping in */}
+                {(["movie", "tv"] as const).map((k) => (
+                  <span
+                    key={k}
+                    aria-hidden={k !== kind}
+                    style={{ transitionDelay: `${gi * 70}ms` }}
+                    className={`absolute inset-0 transition duration-500 ease-out ${k === kind ? "scale-100 opacity-100 blur-none" : "pointer-events-none scale-95 opacity-0 blur-sm"}`}
+                  >
+                    <GameArt game={g.id} posters={posters[k]} />
+                  </span>
+                ))}
               </span>
               <span className="flex flex-col gap-1.5 px-1">
                 <span className="flex items-baseline justify-between gap-3">
