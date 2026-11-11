@@ -5,12 +5,12 @@ import { Logo } from "./Logo";
 import { MobileMenu } from "./MobileMenu";
 import { NavLinks, NavLinksView } from "./NavLinks";
 import { NavSearch } from "./NavSearch";
+import { UpNext } from "./UpNext";
 import { Container } from "./ui/Container";
 import { getSession } from "@/lib/auth";
 
 /**
  * Navbar C: name + links left, search + you right. Sits over the page so backdrops run underneath, scrolls away.
- * ponytail: the "up next" chip comes with the library feature (needs watch progress). Watchlist, Rooms and the profile (/u/me) land with later layers.
  */
 export function TopBar() {
   return (
@@ -23,6 +23,10 @@ export function TopBar() {
           <NavLinks />
         </Suspense>
         <div className="ml-auto flex min-w-0 flex-1 items-center justify-end gap-2">
+          {/* your show in progress, as a small pill (it used to take over Home's hero) */}
+          <Suspense>
+            <UpNext />
+          </Suspense>
           <Suspense fallback={<div aria-hidden className="size-11" />}>
             <NavSearch />
           </Suspense>

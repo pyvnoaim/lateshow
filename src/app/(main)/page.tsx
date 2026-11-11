@@ -3,7 +3,6 @@ import { BackdropHeroSkeleton } from "@/components/BackdropHero";
 import { Container } from "@/components/ui/Container";
 import { PosterGridSkeleton } from "@/components/ui/PosterGrid";
 import { BecauseYouWatched } from "@/features/discover/BecauseYouWatched";
-import { ContinueRow } from "@/features/discover/ContinueRow";
 import { Decide } from "@/features/discover/Decide";
 import { HiddenGems } from "@/features/discover/HiddenGems";
 import { FriendsWeek } from "@/features/discover/FriendsWeek";
@@ -34,9 +33,6 @@ export default function HomePage({ searchParams }: PageProps<"/">) {
         </Row>
         <Row>
           <OutThisWeek />
-        </Row>
-        <Row>
-          <ContinueRow />
         </Row>
         <Row>
           <NewEpisodes />

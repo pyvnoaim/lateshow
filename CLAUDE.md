@@ -78,8 +78,8 @@ pure logic extracted with a `*.test.ts` beside it, no barrel files, move code to
 
 ## Built
 
-Top bar (search with live results, account, phone menu), footer, home (hero carousel or continue watching, rows:
-continue, new episodes, Can't decide?, watchlist, Top 10, trending, because you watched, new on streaming, cinemas, hidden gems),
+Top bar (search with live results, Up next pill with your show in progress, account, phone menu), footer, home (hero
+carousel, rows: new episodes, Can't decide?, watchlist, Top 10, trending, because you watched, new on streaming, cinemas, hidden gems),
 /cinemas calendar, /watchlist (shelves: Watch now with leaving dates from JustWatch, Coming up, On other services,
 Not streaming here; type/genre/sort in the URL, Add a title, Pick one; a + on every poster caption (cinema posters
 too), Out this week from your list on Home), /search (type + genre filters in the URL, browse a genre without a query), title page (where to watch, trailer, episodes + ratings grid, cast, more like), sign in with `?next=`,
