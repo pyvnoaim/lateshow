@@ -8,7 +8,7 @@ export const metadata = { title: "Watchlist · Lateshow" };
 export default function Page({ searchParams }: PageProps<"/watchlist">) {
   return (
     <Container as="main" className="pt-page-top">
-      <Suspense fallback={<PosterGridSkeleton />}>
+      <Suspense fallback={<PosterGridSkeleton page />}>
         <WatchlistPage searchParams={searchParams} />
       </Suspense>
     </Container>

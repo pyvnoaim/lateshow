@@ -68,7 +68,7 @@ export async function SearchResults({ searchParams }: { searchParams: Promise<Se
       ) : (
         <PosterGrid>
           {cards.map((c, i) => (
-            <PosterLink key={`${c.media_type}-${c.id}`} card={c} index={i % PER_STEP} morph={false} eager={i < 6} />
+            <PosterLink key={`${c.media_type}-${c.id}`} card={c} index={i % PER_STEP} morph={false} eager={i < 12} />
           ))}
         </PosterGrid>
       )}

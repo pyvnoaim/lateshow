@@ -9,7 +9,7 @@ export const metadata = { title: "Search · Lateshow" };
 export default function SearchPage({ searchParams }: PageProps<"/search">) {
   return (
     <Container as="main" className="flex flex-col gap-8 pt-page-top">
-      <Suspense fallback={<PosterGridSkeleton />}>
+      <Suspense fallback={<PosterGridSkeleton page />}>
         <SearchResults searchParams={searchParams} />
       </Suspense>
     </Container>

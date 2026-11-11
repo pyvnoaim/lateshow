@@ -28,7 +28,7 @@ export async function CinemaCalendar() {
                 trailer={m.trailer}
                 index={i}
                 showDate={false}
-                eager={d === 0 && i < 6}
+                eager={d < 2 && i < 6}
               />
             ))}
           </PosterGrid>

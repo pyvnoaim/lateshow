@@ -12,7 +12,7 @@ export default function CinemasPage() {
         <h1 className="text-page leading-none font-bold">Coming to cinemas</h1>
         <p className="text-body text-muted">The next six months, by release day.</p>
       </div>
-      <Suspense fallback={<PosterGridSkeleton />}>
+      <Suspense fallback={<PosterGridSkeleton page />}>
         <CinemaCalendar />
       </Suspense>
     </Container>

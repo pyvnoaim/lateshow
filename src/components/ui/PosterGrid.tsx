@@ -8,10 +8,21 @@ export function PosterGrid({ children }: { children: ReactNode }) {
   return <div className={GRID}>{children}</div>;
 }
 
-/** Placeholder posters in the grid's exact layout. `heading` adds a bar where the section title will be. */
-export function PosterGridSkeleton({ count = 12, heading = false }: { count?: number; heading?: boolean }) {
+/**
+ * Placeholder posters in the grid's exact layout. `heading` adds a bar where the section title will be.
+ * `page` fills the screen, so the footer starts below the fold and isn't shoved away when results stream in (CLS).
+ */
+export function PosterGridSkeleton({
+  count = 12,
+  heading = false,
+  page = false,
+}: {
+  count?: number;
+  heading?: boolean;
+  page?: boolean;
+}) {
   const grid = (
-    <div className={GRID} aria-hidden>
+    <div className={`${GRID} content-start ${page ? "min-h-dvh" : ""}`} aria-hidden>
       {Array.from({ length: count }, (_, i) => (
         <div key={i} className="flex flex-col gap-2.5">
           <div className="aspect-poster sk rounded-poster" />

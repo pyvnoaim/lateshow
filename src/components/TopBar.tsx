@@ -32,7 +32,7 @@ export function TopBar() {
             <NavSearch />
           </Suspense>
           {/* phones reach the profile (or sign in) from the menu, so search gets the room */}
-          <div className="hidden sm:flex">
+          <div className="hidden h-11 items-center sm:flex">
             <Suspense fallback={<div aria-hidden className="size-8" />}>
               <AccountButton />
             </Suspense>
