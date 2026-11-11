@@ -47,11 +47,11 @@ export function ScrollBox({
       {/* the rows fade into the page where there's more to scroll: overlays in the page colour, the same in every browser */}
       <div
         aria-hidden
-        className={`pointer-events-none absolute inset-x-0 top-0 h-22 bg-linear-to-b from-bg to-transparent transition-opacity duration-300 ${fade.top ? "opacity-100" : "opacity-0"}`}
+        className={`pointer-events-none absolute inset-x-0 top-0 h-14 bg-linear-to-b from-bg/80 to-transparent transition-opacity duration-300 ${fade.top ? "opacity-100" : "opacity-0"}`}
       />
       <div
         aria-hidden
-        className={`pointer-events-none absolute inset-x-0 bottom-0 h-22 bg-linear-to-t from-bg to-transparent transition-opacity duration-300 ${fade.bottom ? "opacity-100" : "opacity-0"}`}
+        className={`pointer-events-none absolute inset-x-0 bottom-0 h-14 bg-linear-to-t from-bg/80 to-transparent transition-opacity duration-300 ${fade.bottom ? "opacity-100" : "opacity-0"}`}
       />
       <AsciiScrollbar box={ref} />
     </div>
