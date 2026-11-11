@@ -66,6 +66,9 @@ export async function deleteAccount() {
   if (!session) throw new Error("Sign in first.");
   await db.delete(user).where(eq(user.id, session.user.id));
   const jar = await cookies();
-  for (const name of jar.getAll().map((c) => c.name)) if (name.includes("better-auth")) jar.delete(name);
+  // Expire every Better Auth cookie. __Secure- ones (https) only accept an overwrite that is Secure too.
+  for (const { name } of jar.getAll()) {
+    if (name.includes("better-auth")) jar.set(name, "", { path: "/", maxAge: 0, secure: name.startsWith("__Secure-") });
+  }
   redirect("/");
 }

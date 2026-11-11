@@ -10,15 +10,17 @@ import { getGenreNames, getTitle, img, subscriptionServices, type Card } from "@
 export async function PosterCaption({ card }: { card: Card }) {
   const year = (card.release_date ?? card.first_air_date ?? "").slice(0, 4);
   const { code: country, lang } = await getRegion();
-  const genres = await getGenreNames(lang).catch(() => ({}) as Record<number, string>);
+  // ponytail: one cached title lookup per poster (days, per language). Fine for rows of 12-24, a batch endpoint if TMDB limits bite.
+  const [genres, service] = await Promise.all([
+    getGenreNames(lang).catch(() => ({}) as Record<number, string>),
+    Promise.all([getTitle(card.media_type, String(card.id), lang), getMyServiceIds()])
+      .then(([t, mine]) => {
+        const all = subscriptionServices(t, country);
+        return all.find((s) => mine.includes(s.id)) ?? all[0];
+      })
+      .catch(() => undefined),
+  ]);
   const genre = card.genre_ids?.map((id) => genres[id]).find(Boolean);
-  // ponytail: one cached title lookup per poster (days), the same data its title page uses.
-  const service = await Promise.all([getTitle(card.media_type, String(card.id), lang), getMyServiceIds()])
-    .then(([t, mine]) => {
-      const all = subscriptionServices(t, country);
-      return all.find((s) => mine.includes(s.id)) ?? all[0];
-    })
-    .catch(() => undefined);
   return (
     <span className="-mt-2 flex items-center gap-1.5 text-caption text-muted">
       <span className="truncate">

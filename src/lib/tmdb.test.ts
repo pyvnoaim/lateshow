@@ -1,5 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { cinemaDate, mergeProviders, pickLogo, pickTrailer, serviceName, toCards, type Card, type Video } from "./tmdb";
+import {
+  alternate,
+  cinemaDate,
+  mergeProviders,
+  pickLogo,
+  pickTrailer,
+  serviceName,
+  toCards,
+  type Card,
+  type Video,
+} from "./tmdb";
 
 const movie = (id: number): Card => ({ id, media_type: "movie", title: `M${id}`, poster_path: null });
 
@@ -113,5 +123,13 @@ describe("mergeProviders", () => {
       "DE",
     );
     expect(merged.map((s) => s.name)).toEqual(["WOW"]);
+  });
+});
+
+describe("alternate", () => {
+  const tv = (id: number): Card => ({ id, media_type: "tv", name: `S${id}`, poster_path: null });
+  it("mixes movie and series, keeps the leftovers of either", () => {
+    expect(alternate([movie(1), movie(2)], [tv(3)]).map((c) => c.id)).toEqual([1, 3, 2]);
+    expect(alternate([], [tv(3), tv(4)]).map((c) => c.id)).toEqual([3, 4]);
   });
 });

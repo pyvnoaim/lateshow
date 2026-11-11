@@ -33,4 +33,10 @@ describe("toCsv", () => {
       "",
     ]);
   });
+  it("defuses formulas hidden behind a tab", () => {
+    const csv = toCsv([
+      { list: "history", type: "movie", tmdbId: 1, title: "\t=1+1", season: null, episode: null, date: new Date(0) },
+    ]);
+    expect(csv.split("\n")[1]).toBe("history,movie,1,'\t=1+1,,,1970-01-01T00:00:00.000Z");
+  });
 });

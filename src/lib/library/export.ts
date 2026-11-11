@@ -16,7 +16,7 @@ type Row = {
 const cell = (v: string | number | null) => {
   const s = v === null ? "" : String(v);
   // quote when needed, and defuse spreadsheet formulas (a title starting with = + - @)
-  const safe = /^[=+\-@]/.test(s) ? `'${s}` : s;
+  const safe = /^[=+\-@\t\r]/.test(s) ? `'${s}` : s;
   return /[",\n\r]/.test(safe) ? `"${safe.replaceAll('"', '""')}"` : safe;
 };
 

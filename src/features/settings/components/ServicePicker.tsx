@@ -28,7 +28,13 @@ export function ServicePicker({
       setOptimistic(next);
       try {
         await save(id, on);
-        setSaved(next);
+        // from the last saved set, not the optimistic one: another flip may still be pending or fail
+        setSaved((prev) => {
+          const done = new Set(prev);
+          if (on) done.add(id);
+          else done.delete(id);
+          return done;
+        });
       } catch {
         // optimistic state falls back to `saved` on its own
       }

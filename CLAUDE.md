@@ -65,7 +65,8 @@ pure logic extracted with a `*.test.ts` beside it, no barrel files, move code to
 - Switchers are plain text (active white, rest grey). Posters stay clean, extra actions go in the caption line.
 - Top bar scrolls away (absolute). Inputs are glass pills like search.
 - Rejected, don't bring back: white pill switchers, dock nav, frosted fixed bar on scroll, poster glow, cinema motifs,
-  serif accents, play button on posters, moving hover arrows, service logos on New on streaming.
+  serif accents, play button on posters, moving hover arrows.
+- Every poster caption is the same everywhere (`PosterCaption`): Type · Year · Genre + small service icon.
 - Every page: press feel, shaped skeletons (no spinners), reserved image space + blur-up, optimistic toggles, tabular nums,
   visible focus ring, empty states with one action, Esc closes overlays, `/` opens search.
 - Screenshot desktop and phone after every UI change before calling it done.

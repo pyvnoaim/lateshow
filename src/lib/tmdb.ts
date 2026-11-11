@@ -297,8 +297,23 @@ export async function getOnMyServices(
     kind === "tv" ? [] : discover("movie", params, country, lang),
     kind === "movie" ? [] : discover("tv", params, country, lang),
   ]);
-  if (kind !== "all") return [...movies, ...shows];
-  return movies.flatMap((m, i) => (shows[i] ? [m, shows[i]] : [m]));
+  return (kind === "all" ? alternate(movies, shows) : [...movies, ...shows]).filter((c) => c.poster_path);
+}
+
+/** Movie, series, movie... so neither type takes over a row. Leftovers of the longer list go at the end. Pure. */
+export function alternate(movies: Card[], shows: Card[]): Card[] {
+  const out: Card[] = [];
+  for (let i = 0; i < Math.max(movies.length, shows.length); i++) {
+    if (movies[i]) out.push(movies[i]);
+    if (shows[i]) out.push(shows[i]);
+  }
+  return out;
+}
+
+/** English title for a title (JustWatch is searched in English, whatever language the page shows). */
+export async function getEnglishName(type: MediaType, id: number) {
+  const t = await getTitle(type, String(id));
+  return t.title ?? t.name ?? "";
 }
 
 const daysAgo = (n: number) => new Date(Date.now() - n * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
@@ -349,8 +364,7 @@ export async function getNewOnStreaming(country: string, lang: string = DEFAULT_
       lang,
     ),
   ]);
-  // alternate movie, show, movie... so neither type takes over the row
-  return movies.flatMap((m, i) => (shows[i] ? [m, shows[i]] : [m])).filter((c) => c.poster_path);
+  return alternate(movies, shows).filter((c) => c.poster_path);
 }
 
 /**
@@ -370,10 +384,7 @@ export async function getGenreTitles(
     kind === "tv" || ids.movie === null ? [] : discover("movie", params(ids.movie), country, lang),
     kind === "movie" || ids.tv === null ? [] : discover("tv", params(ids.tv), country, lang),
   ]);
-  const mixed = kind === "all" ? movies.flatMap((m, i) => (shows[i] ? [m, shows[i]] : [m])) : [...movies, ...shows];
-  // alternating stops when movies run out, so leftover series go at the end
-  const rest = kind === "all" ? shows.slice(movies.length) : [];
-  return [...mixed, ...rest].filter((c) => c.poster_path);
+  return (kind === "all" ? alternate(movies, shows) : [...movies, ...shows]).filter((c) => c.poster_path);
 }
 
 /** Very well rated titles with few votes, on a subscription in the country. A different page each day. */
@@ -392,7 +403,7 @@ export async function getHiddenGems(country: string, lang: string = DEFAULT_LANG
     discover("movie", params, country, lang),
     discover("tv", params, country, lang),
   ]);
-  return movies.flatMap((m, i) => (shows[i] ? [m, shows[i]] : [m])).filter((c) => c.poster_path);
+  return alternate(movies, shows).filter((c) => c.poster_path);
 }
 
 /** "2026 · Action, Thriller · 1 h 52 min" or "2008 · Drama, Crime · 5 seasons". */

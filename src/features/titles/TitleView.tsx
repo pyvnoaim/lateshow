@@ -24,6 +24,7 @@ import {
   titleMeta,
   serviceName,
   subscriptionServices,
+  getEnglishName,
 } from "@/lib/tmdb";
 import { Episodes, type SeasonData } from "./components/Episodes";
 import { RatingsGrid } from "./components/RatingsGrid";
@@ -40,7 +41,10 @@ export async function TitleView({ type, id }: { type: string; id: string }) {
   const t = await getTitle(type, id, region.lang).catch(() => notFound());
   const name = t.title ?? t.name ?? "";
   const [allLinks, session, myIds] = await Promise.all([
-    getWatchLinks(type, t.id, name, region.code),
+    // JustWatch is searched in English, a translated title would miss it
+    getEnglishName(type, t.id)
+      .catch(() => name)
+      .then((en) => getWatchLinks(type, t.id, en, region.code)),
     getSession(),
     getMyServiceIds(),
   ]);
