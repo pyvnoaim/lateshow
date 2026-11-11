@@ -1,22 +1,21 @@
 "use client";
 
-import { Mail } from "lucide-react";
+import { Check, Mail } from "lucide-react";
 import { useEffect, useRef, useState, type FormEvent } from "react";
 import { buttonStyles } from "@/components/ui/button";
 import { fieldInputStyles, fieldStyles } from "@/components/ui/field";
 import { authClient } from "@/lib/authClient";
+import { mailApp } from "@/features/auth/mailApp";
 
 const RESEND_SECONDS = 30;
 
 export function SignInForm({
   linkError,
   minutes,
-  devHint,
   next,
 }: {
   linkError: boolean;
   minutes: number;
-  devHint: boolean;
   /** Where the link takes you after signing in (already checked to be a path on this site). */
   next: string;
 }) {
@@ -65,43 +64,48 @@ export function SignInForm({
   }
 
   if (sentTo) {
+    const app = mailApp(sentTo);
     return (
-      <div className="flex flex-col items-start gap-8">
-        <div className="flex size-16 pop items-center justify-center rounded-full bg-accent text-bg">
-          <Mail size={28} strokeWidth={2} aria-hidden />
-        </div>
-        <div className="flex rise flex-col gap-4">
-          <h1 className="text-page leading-none font-bold">Check your inbox.</h1>
-          <p className="text-body leading-normal text-muted">
-            We sent a sign in link to <span className="text-fg">{sentTo}</span>.
+      <div className="flex rise flex-col gap-14">
+        <div className="flex flex-col gap-6">
+          <h1 className="text-page leading-none font-bold">
+            Check your
             <br />
-            It works for {minutes} minutes.
-            {devHint && (
-              <>
-                <br />
-                Dev mode: the link is printed in your terminal.
-              </>
-            )}
-          </p>
+            <span className="text-muted">inbox.</span>
+          </h1>
+          <p className="text-body leading-normal text-muted">We sent a link. It works for {minutes} minutes.</p>
         </div>
-        {error && (
-          <p role="alert" className="text-caption">
-            {error}
-          </p>
-        )}
-        {/* pulled left by the button padding, so the text lines up with the headline */}
-        <div className="-ml-5 flex rise flex-wrap gap-1 text-muted">
-          <button type="button" onClick={() => setSentTo(null)} className={buttonStyles("ghost", "sm")}>
-            Use a different email
-          </button>
-          <button
-            type="button"
-            disabled={wait > 0 || pending}
-            onClick={() => void send(sentTo)}
-            className={buttonStyles("ghost", "sm")}
-          >
-            {wait > 0 ? `Send again in ${wait} s` : "Send again"}
-          </button>
+        <div className="flex flex-col gap-4">
+          {/* the email sits where the field was, same pill */}
+          <output className={fieldStyles("lg")}>
+            <Check size={18} strokeWidth={2.25} aria-hidden className="shrink-0 pop text-accent" />
+            <span className="min-w-0 flex-1 truncate text-label text-fg">{sentTo}</span>
+            {app && (
+              <a href={app.url} target="_blank" rel="noopener noreferrer" className={buttonStyles("primary", "sm")}>
+                Open {app.name}
+              </a>
+            )}
+          </output>
+          {error && (
+            <p role="alert" className="text-caption">
+              {error}
+            </p>
+          )}
+          {/* pulled left by the button padding, so the text lines up with the pill's text */}
+          <div className="-ml-5 flex flex-wrap items-center text-muted">
+            <button type="button" onClick={() => setSentTo(null)} className={buttonStyles("ghost", "sm")}>
+              Different email
+            </button>
+            <span aria-hidden>·</span>
+            <button
+              type="button"
+              disabled={wait > 0 || pending}
+              onClick={() => void send(sentTo)}
+              className={buttonStyles("ghost", "sm")}
+            >
+              {wait > 0 ? <span className="nums">Send again in {wait} s</span> : "Send again"}
+            </button>
+          </div>
         </div>
       </div>
     );

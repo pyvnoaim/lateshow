@@ -250,7 +250,7 @@
     box-shadow var(--duration-hover) ease-out,
     transform var(--duration-press) var(--ease-spring);
   @media (hover: hover) {
-    &:hover:not(:has(input)) {
+    &:hover:not(:has(input), output) {
       --sheen: 1;
       background:
         radial-gradient(
