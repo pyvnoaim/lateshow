@@ -559,3 +559,41 @@ export async function getCinemaCalendar(country: string, lang: string = DEFAULT_
     .filter((m): m is NonNullable<typeof m> => m !== null && m.date !== null && m.date >= today && m.date <= until)
     .toSorted((a, b) => a.date!.localeCompare(b.date!));
 }
+
+/** Films by title, in English (exports are English), for the import. Up to 20 hits, the caller picks. */
+export async function searchMovies(query: string) {
+  "use cache";
+  cacheLife("days");
+  const data = await tmdb<{
+    results: {
+      id: number;
+      title: string;
+      original_title?: string;
+      release_date?: string;
+      poster_path: string | null;
+    }[];
+  }>("/search/movie", { query, include_adult: "false" }, "en-US");
+  return data.results;
+}
+
+/** The TMDB title for an IMDb id (tt0133093), for the IMDb import. Null when TMDB doesn't know it. */
+export async function findByImdbId(imdbId: string) {
+  "use cache";
+  cacheLife("days");
+  const data = await tmdb<{ movie_results: Card[]; tv_results: Card[] }>(
+    `/find/${imdbId}`,
+    { external_source: "imdb_id" },
+    "en-US",
+  );
+  const movie = data.movie_results[0];
+  const tv = data.tv_results[0];
+  return movie ? { ...movie, media_type: "movie" as const } : tv ? { ...tv, media_type: "tv" as const } : null;
+}
+
+/** A film's runtime in minutes (0 if unknown), so imported films count in your hours. */
+export async function getRuntime(id: number) {
+  "use cache";
+  cacheLife("max");
+  const data = await tmdb<{ runtime: number | null }>(`/movie/${id}`, {}, "en-US");
+  return data.runtime ?? 0;
+}

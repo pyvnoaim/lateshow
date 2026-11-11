@@ -82,7 +82,7 @@ pure logic extracted with a `*.test.ts` beside it, no barrel files, move code to
 - Every page: press feel, shaped skeletons (no spinners for loading; rooms' small braille Spinner means waiting on people, not loading), reserved image space + blur-up, optimistic toggles, tabular nums,
   visible focus ring, empty states with one action, Esc closes overlays, `/` opens search.
 - Screenshot desktop and phone after every UI change before calling it done.
-- Drafts canvas: https://claude.ai/artifact/KDPVeZzb5JSDArwfVghDnx (the old one is gone, 2026-11-11)
+- Drafts canvas: https://claude.ai/artifact/D9iEtJrwAM3qnJ74rehn4R (browser extension, import)
 
 ## Built
 
@@ -104,7 +104,12 @@ delete account), /watchlist + /u/me redirects in `next.config.ts`, 404, errors, 
       /privacy and /impressum exist (2026-11-11): fill the placeholders in `src/lib/legal.ts` and the email provider
       line on /privacy. Keep /privacy true to the code: no browser request may go to TMDB/JustWatch (images go
       through next/image), cookies listed there are the only ones.
-- [ ] Later: genre/mood row, TMDB account import, imports (Netflix CSV, Letterboxd, Trakt).
+- [x] Import (2026-11-11): Settings › Import takes a Letterboxd export ZIP or IMDb ratings/watchlist CSVs. The browser
+      unpacks and reads them (fflate), only rows go to the server in batches of 150 (`lib/library/importActions.ts`),
+      IMDb matches by id, Letterboxd by title + year (±1), unclear ones are picked by hand. Ratings aren't imported.
+- [ ] Later: genre/mood row, imports from TMDB account and Trakt (both have ids), Netflix CSV (titles only, weak).
+- [ ] Watch together = a browser extension (drafts on the canvas, approved 2026-11-11): syncs the streaming site's
+      player for everyone in a room, on a laptop. Rejected: a manual 3-2-1 countdown flow without the extension.
 - [ ] Friends (decided 2026-11-11): mutual, by invite link only (7 days, few uses), no people search.
       Friends see everything by default, one Settings switch hides it. Tables: `user.username`, `friendship`
       (one row per pair, lower id first), `invite`. Access checked in one helper. Build order:

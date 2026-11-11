@@ -20,6 +20,7 @@ import { getServiceChoices, img } from "@/lib/tmdb";
 import { AvatarPicker } from "./components/AvatarPicker";
 import { ChoicePicker } from "./components/ChoicePicker";
 import { DeleteAccount } from "./components/DeleteAccount";
+import { ImportHistory } from "./components/ImportHistory";
 import { TextSetting } from "./components/TextSetting";
 import { Passkeys } from "./components/Passkeys";
 import { ServicePicker } from "./components/ServicePicker";
@@ -118,6 +119,9 @@ export async function Settings() {
           }))}
           remove={removePasskey}
         />
+      </Section>
+      <Section title="Import" description="Bring your history from Letterboxd or IMDb.">
+        <ImportHistory />
       </Section>
       <Section title="Your data" description="Everything you track, as a spreadsheet. Or remove it all.">
         <DeleteAccount remove={deleteAccount}>
