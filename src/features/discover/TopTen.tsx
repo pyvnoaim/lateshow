@@ -22,7 +22,7 @@ export async function TopTen() {
 
   return (
     <Section title={`Top 10 in ${name}`} description="Most watched this week across streaming services.">
-      <ol className="bleed -my-5 flex snap-x scroll-px-4 gap-2 overflow-x-auto overflow-y-hidden py-5 sm:scroll-px-12 lg:snap-none">
+      <ol className="bleed -my-5 flex snap-x scroll-px-4 no-scrollbar gap-2 overflow-x-auto overflow-y-hidden py-5 sm:scroll-px-12 lg:snap-none">
         {titles.slice(0, 10).map(({ t, type }, i) => (
           <li key={`${type}-${t.id}`} className="shrink-0 snap-start">
             <Link
