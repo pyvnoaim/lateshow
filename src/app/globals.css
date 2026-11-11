@@ -197,6 +197,10 @@
   margin-inline: calc(50% - 50vw);
   padding-inline: calc(50vw - 50%);
 }
+/* sits on the screen's right edge from inside the page column (the end of a bleed strip) */
+@utility edge-end {
+  right: calc(50% - 50vw);
+}
 @utility swipe-card {
   width: min(100%, calc((100dvh - var(--spacing-swipe-chrome)) * 2 / 3));
 }
