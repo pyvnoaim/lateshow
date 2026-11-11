@@ -8,9 +8,10 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { getSession } from "@/lib/auth";
 import { db } from "@/lib/db/client";
-import { room, roomMember, roomVote } from "@/lib/db/schema";
+import { room, roomMember, roomPick, roomVote } from "@/lib/db/schema";
 import { getFriends } from "@/lib/friends/queries";
 import { getRegion } from "@/lib/region";
+import { BRACKET_SIZE, bracketState } from "./bracket";
 import { buildDeck } from "./deck";
 import { findMatch } from "./swipe";
 import { safeNext } from "@/lib/safeNext";
@@ -117,14 +118,15 @@ async function deal(r: typeof room.$inferSelect, round: number) {
     .where(and(eq(roomMember.roomCode, r.code), eq(roomMember.joined, true)));
   const country = r.country ?? (await getRegion()).code;
   const people = members.map((m) => m.id).filter((id) => !id.startsWith("guest:"));
-  return { country, ...(await buildDeck(r.code, r.kind, people, country, round)) };
+  const size = r.game === "bracket" ? BRACKET_SIZE : undefined;
+  return { country, ...(await buildDeck(r.code, r.kind, people, country, round, size)) };
 }
 
 /** The host starts the game. Swipe gets its shared deck now. Late joiners can still come in. */
 export async function startRoom(raw: string) {
   const r = await hostedRoom(raw);
   if (!r || r.status !== "lobby") return;
-  const dealt = r.game === "swipe" ? await deal(r, 0) : {};
+  const dealt = r.game === "reel" ? {} : await deal(r, 0);
   await db
     .update(room)
     .set({ status: "playing", ...dealt, version: sql`${room.version} + 1` })
@@ -140,6 +142,7 @@ export async function playAgain(raw: string) {
   const dealt = await deal(r, round);
   db.transaction((tx) => {
     tx.delete(roomVote).where(eq(roomVote.roomCode, r.code)).run();
+    tx.delete(roomPick).where(eq(roomPick.roomCode, r.code)).run();
     tx.update(room)
       .set({ ...dealt, winner: null, version: sql`${room.version} + 1` })
       .where(eq(room.code, r.code))
@@ -184,6 +187,46 @@ export async function swipe(raw: string, input: z.input<typeof vote>) {
     }
     tx.update(room)
       .set({ winner: findMatch(r.deck, likes, members), version: sql`${room.version} + 1` })
+      .where(eq(room.code, code))
+      .run();
+  });
+}
+
+const pick = z.object({ match: z.number().int().min(0).max(6), choice: z.number().int().positive() });
+
+/** A bracket vote on the match being played. The final's winner becomes the room's winner. */
+export async function pickInBracket(raw: string, input: z.input<typeof pick>) {
+  const code = cleanCode(raw);
+  const me = await getRoomIdentity();
+  const parsed = pick.safeParse(input);
+  if (!code || !me || !parsed.success) return;
+  const { match, choice } = parsed.data;
+  db.transaction((tx) => {
+    const r = tx.select().from(room).where(eq(room.code, code)).get();
+    if (!r || r.status !== "playing" || r.game !== "bracket" || r.winner || !r.deck) return;
+    const members = tx
+      .select({ id: roomMember.memberId })
+      .from(roomMember)
+      .where(and(eq(roomMember.roomCode, code), eq(roomMember.joined, true)))
+      .all()
+      .map((m) => m.id);
+    if (!members.includes(me.id)) return;
+    const votesOf = () => {
+      const all = new Map<number, Map<string, number>>();
+      for (const p of tx.select().from(roomPick).where(eq(roomPick.roomCode, code)).all()) {
+        all.set(p.match, (all.get(p.match) ?? new Map()).set(p.memberId, p.choice));
+      }
+      return all;
+    };
+    // only the match being played, and only one of its two titles
+    const now = bracketState(r.deck, votesOf(), members).current;
+    if (!now || now.index !== match || (choice !== now.a && choice !== now.b)) return;
+    tx.insert(roomPick)
+      .values({ roomCode: code, memberId: me.id, match, choice })
+      .onConflictDoUpdate({ target: [roomPick.roomCode, roomPick.memberId, roomPick.match], set: { choice } })
+      .run();
+    tx.update(room)
+      .set({ winner: bracketState(r.deck, votesOf(), members).champion, version: sql`${room.version} + 1` })
       .where(eq(room.code, code))
       .run();
   });

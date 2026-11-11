@@ -11,6 +11,7 @@ import { getRoom } from "@/lib/rooms/queries";
 import { cleanCode } from "@/lib/rooms/rules";
 import { AutoJoin, CopyRoomLink, GuestJoin, LeaveRoom, StartRoom } from "./components/RoomButtons";
 import { LiveRoom } from "./components/LiveRoom";
+import { BracketGame } from "./BracketGame";
 import { SwipeGame } from "./SwipeGame";
 
 function Heading({ top, muted, detail }: { top: ReactNode; muted: ReactNode; detail?: ReactNode }) {
@@ -71,17 +72,17 @@ export async function RoomLobby({ code: raw }: { code: string }) {
 
   const host = r.hostId === me!.id;
 
-  if (r.status === "playing" && r.game === "swipe") {
+  if (r.status === "playing" && r.game !== "reel") {
     return (
       <div className="flex flex-col gap-10">
         <LiveRoom code={code} />
         <div className="flex items-center justify-between gap-6">
           <span className="text-small text-muted">
-            Room {code} · {r.kind === "movie" ? "Movie" : "Series"} · Swipe
+            Room {code} · {r.kind === "movie" ? "Movie" : "Series"} · {game.name}
           </span>
           <LeaveRoom code={code} leave={leaveRoom} host={host} />
         </div>
-        <SwipeGame r={r} meId={me!.id} />
+        {r.game === "swipe" ? <SwipeGame r={r} meId={me!.id} /> : <BracketGame r={r} meId={me!.id} />}
       </div>
     );
   }

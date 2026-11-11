@@ -143,3 +143,17 @@ export const roomVote = sqliteTable(
   },
   (t) => [primaryKey({ columns: [t.roomCode, t.memberId, t.tmdbId] })],
 );
+
+/** A bracket vote: in match `match` (0-6), this member picked `choice` (a TMDB id). */
+export const roomPick = sqliteTable(
+  "room_pick",
+  {
+    roomCode: text("room_code")
+      .notNull()
+      .references(() => room.code, { onDelete: "cascade" }),
+    memberId: text("member_id").notNull(),
+    match: integer("match").notNull(),
+    choice: integer("choice").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.roomCode, t.memberId, t.match] })],
+);

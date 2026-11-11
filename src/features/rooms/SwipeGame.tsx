@@ -1,15 +1,11 @@
-import { ArrowUpRight } from "lucide-react";
 import Image from "next/image";
-import { buttonStyles } from "@/components/ui/button";
-import { getWatchLinks } from "@/lib/justwatch";
 import { getLanguage } from "@/lib/region";
 import { playAgain, swipe } from "@/lib/rooms/actions";
-import { getVotes, type getRoom } from "@/lib/rooms/queries";
-import { getEnglishName, getTitle, img, pickTrailer, shortGenre, subscriptionServices } from "@/lib/tmdb";
+import { getVotes } from "@/lib/rooms/queries";
+import { getTitle, img, pickTrailer, shortGenre, subscriptionServices } from "@/lib/tmdb";
 import { PlayAgain } from "./components/RoomButtons";
 import { SwipeDeck, type SwipeCard } from "./components/SwipeDeck";
-
-type Room = NonNullable<Awaited<ReturnType<typeof getRoom>>>;
+import { Winner, type Room } from "./Winner";
 
 /** Swipe, for one member: your cards, who's still going, and the match (or no match) for everyone at once. */
 export async function SwipeGame({ r, meId }: { r: Room; meId: string }) {
@@ -21,38 +17,13 @@ export async function SwipeGame({ r, meId }: { r: Room; meId: string }) {
   const count = (id: string) => votes.filter((v) => v.memberId === id).length;
 
   if (r.winner) {
-    const t = await getTitle(r.kind, String(r.winner), lang);
-    const english = await getEnglishName(r.kind, t.id).catch(() => t.title ?? t.name ?? "");
-    const links = await getWatchLinks(r.kind, t.id, english, r.country ?? "DE");
-    const link = links.find((l) => l.included) ?? links[0];
-    const name = t.title ?? t.name ?? "";
     return (
-      <div className="flex flex-col gap-10 sm:flex-row sm:items-center sm:gap-14">
-        <div className="relative aspect-poster w-40 shrink-0 pop overflow-hidden rounded-banner bg-raised shadow-2xl sm:w-72">
-          {t.poster_path && (
-            <Image src={img(t.poster_path, "w780")!} alt="" fill sizes="320px" className="object-cover" />
-          )}
-        </div>
-        <div className="flex rise flex-col gap-6">
-          <span className="text-label text-muted">
-            All {members.length} of you said yes{members.length === 1 ? "" : ", it's on"}.
-          </span>
-          <h1 className="text-page leading-none font-bold break-words">
-            It&apos;s a match.
-            <br />
-            <span className="text-muted">{name}.</span>
-          </h1>
-          <div className="flex flex-wrap items-center gap-4">
-            {link && (
-              <a href={link.url} target="_blank" rel="noopener noreferrer" className={buttonStyles("primary", "md")}>
-                {link.included ? "Watch" : "Rent or buy"} on {link.service}
-                <ArrowUpRight size={18} strokeWidth={2} aria-hidden />
-              </a>
-            )}
-            {host && <PlayAgain code={r.code} again={playAgain} />}
-          </div>
-        </div>
-      </div>
+      <Winner
+        r={r}
+        host={host}
+        detail={`All ${members.length} of you said yes.`}
+        headline={(name) => ["It's a match.", `${name}.`]}
+      />
     );
   }
 

@@ -11,7 +11,14 @@ export const DECK_SIZE = 20;
  * A room's shared deck: well rated titles on the services everyone in it has (see roomServices), the same 20 for
  * everyone, in an order seeded by the room. `round` gives Play again a different deck.
  */
-export async function buildDeck(code: string, kind: MediaType, memberIds: string[], country: string, round = 0) {
+export async function buildDeck(
+  code: string,
+  kind: MediaType,
+  memberIds: string[],
+  country: string,
+  round = 0,
+  size = DECK_SIZE,
+) {
   const perPerson = await Promise.all(
     memberIds.map((id) =>
       db
@@ -34,5 +41,5 @@ export async function buildDeck(code: string, kind: MediaType, memberIds: string
         .map((c) => c.id),
     ),
   ];
-  return { services, deck: seededShuffle(ids, `${code}:${round}`).slice(0, DECK_SIZE) };
+  return { services, deck: seededShuffle(ids, `${code}:${round}`).slice(0, size) };
 }

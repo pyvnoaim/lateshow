@@ -57,6 +57,13 @@
       "when": 1794393314185,
       "tag": "0007_low_nitro",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1794393958541,
+      "tag": "0008_sharp_daredevil",
+      "breakpoints": true
     }
   ]
 }

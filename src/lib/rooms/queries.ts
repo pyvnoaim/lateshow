@@ -2,7 +2,7 @@ import "server-only";
 import { and, eq, gt } from "drizzle-orm";
 import { user } from "@/lib/db/auth-schema";
 import { db } from "@/lib/db/client";
-import { room, roomMember, roomVote } from "@/lib/db/schema";
+import { room, roomMember, roomPick, roomVote } from "@/lib/db/schema";
 
 /** A room that is still open (not expired), with everyone in it, host first. Null when it's gone. */
 export async function getRoom(code: string) {
@@ -43,4 +43,13 @@ export async function getRoomInvites(userId: string) {
 /** Every swipe in a room, for progress (who's done), your remaining cards and the no-match ranking. */
 export async function getVotes(code: string) {
   return db.select().from(roomVote).where(eq(roomVote.roomCode, code));
+}
+
+/** Bracket votes as match -> member -> chosen title, the shape bracketState reads. */
+export async function getPicks(code: string) {
+  const all = new Map<number, Map<string, number>>();
+  for (const p of await db.select().from(roomPick).where(eq(roomPick.roomCode, code))) {
+    all.set(p.match, (all.get(p.match) ?? new Map()).set(p.memberId, p.choice));
+  }
+  return all;
 }
