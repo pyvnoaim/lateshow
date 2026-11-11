@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-const sizes = { wide: "max-w-page", narrow: "max-w-reading" } as const;
+const sizes = { wide: "max-w-page 2xl:max-w-page-wide 2xl:px-16", narrow: "max-w-reading" } as const;
 
 /** The page column: same side padding everywhere. `wide` for grids and heroes, `narrow` for reading pages. */
 export function Container({

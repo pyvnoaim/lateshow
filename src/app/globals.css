@@ -52,6 +52,7 @@
 
   /* layout */
   --container-page: 1280px;
+  --container-page-wide: 1720px; /* big screens (2xl and up): the page grows instead of leaving a third empty */
   --container-reading: 816px;
   --container-hero-text: 700px;
   --container-search: 560px;
