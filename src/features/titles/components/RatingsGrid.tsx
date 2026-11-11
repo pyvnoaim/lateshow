@@ -4,10 +4,10 @@ import { Section } from "@/components/ui/Section";
 import type { SeasonData } from "./Episodes";
 
 // Brightness is relative to this show's own best and worst episode, so weaker shows still get a readable spread.
+// seen keeps its brightness (the rating still reads) and gets a dot: an icy tint alone was too close to grey
 const UNSEEN = ["bg-fg/10", "bg-fg/25", "bg-fg/45", "bg-fg/70", "bg-fg"];
-const SEEN = ["bg-accent/30", "bg-accent/45", "bg-accent/60", "bg-accent/80", "bg-accent"];
 
-/** One square per episode, a row per season. Brighter is better, icy is seen. Rating on hover. */
+/** One square per episode, a row per season. Brighter is better, a dot is seen. Rating on hover. */
 export function RatingsGrid({ seasons, watched }: { seasons: SeasonData[]; watched: string[] }) {
   const rated = seasons.flatMap((s) => s.episodes.map((e) => ({ s: s.number, ...e }))).filter((e) => e.rating > 0);
   if (rated.length === 0) return null;
@@ -43,8 +43,12 @@ export function RatingsGrid({ seasons, watched }: { seasons: SeasonData[]; watch
                         ]
                           .filter(Boolean)
                           .join(" · ")}
-                        className={`aspect-square rounded-sm glass-cell ${e.rating > 0 ? (isSeen ? SEEN : UNSEEN)[tone] : "bg-raised"}`}
-                      />
+                        className={`relative flex aspect-square items-center justify-center rounded-sm glass-cell ${e.rating > 0 ? UNSEEN[tone] : "bg-raised"}`}
+                      >
+                        {isSeen && (
+                          <span aria-hidden className={`size-1.5 rounded-full ${tone >= 3 ? "bg-bg" : "bg-accent"}`} />
+                        )}
+                      </div>
                     );
                   })}
                 </div>
@@ -55,7 +59,9 @@ export function RatingsGrid({ seasons, watched }: { seasons: SeasonData[]; watch
         <div className="flex gap-4 pl-8 text-caption text-muted">
           <span>Brighter is better</span>
           <span className="flex items-center gap-1.5">
-            <span className="size-1.5 rounded-full bg-accent" />
+            <span className="flex size-3.5 items-center justify-center rounded-sm bg-fg/25">
+              <span className="size-1 rounded-full bg-accent" />
+            </span>
             Seen
           </span>
         </div>
