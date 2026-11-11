@@ -19,7 +19,7 @@ export function SignOutButton() {
           router.refresh();
         })
       }
-      className={buttonStyles("ghost", "sm")}
+      className={buttonStyles("text", "text")}
     >
       Sign out
     </button>

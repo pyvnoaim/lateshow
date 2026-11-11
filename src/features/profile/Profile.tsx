@@ -42,15 +42,15 @@ export async function Profile({ searchParams }: { searchParams: Promise<{ tab?: 
     <div className="flex flex-col gap-section">
       <div className="flex flex-col gap-10">
         <div className="flex rise flex-wrap items-center gap-5">
-          <div className="flex size-16 items-center justify-center rounded-full bg-accent text-section font-bold text-bg">
+          <div className="flex size-16 items-center justify-center rounded-full text-section font-bold glass-accent">
             {name.charAt(0).toUpperCase()}
           </div>
           <div className="min-w-0 flex-1">
             <div className="text-body font-semibold">{name}</div>
             <div className="text-small text-muted">Since {since}</div>
           </div>
-          <div className="-mr-5 flex text-muted">
-            <Link href="/settings" className={buttonStyles("ghost", "sm")}>
+          <div className="flex gap-6">
+            <Link href="/settings" className={buttonStyles("text", "text")}>
               Settings
             </Link>
             <SignOutButton />

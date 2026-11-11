@@ -6,8 +6,10 @@ const tones = {
   primary: "glass-tint",
   /** Frosted glass, secondary actions over images. */
   glass: "glass",
-  /** No background until hover, for icons and text actions. */
-  ghost: "hover:bg-fg/10",
+  /** Icon only, no background until hover, then glass fades in (same as quiet links). */
+  ghost: "glass-hover",
+  /** Quiet text action (Sign out, Send again): grey, turns white on hover, nothing else moves or fills. */
+  text: "text-muted transition-colors hover:text-fg",
   /** Blue tinted glass, for something that is on (watched, on the watchlist). */
   accent: "glass-accent",
 } as const;
@@ -16,6 +18,8 @@ const sizes = {
   md: "h-12 px-6 text-base",
   sm: "h-11 px-5 text-label",
   icon: "size-11",
+  /** Just the text, no height or padding, so it lines up with the text around it. */
+  text: "text-label",
   /** Small round icon for dense lists. The invisible ring keeps the tap target finger-sized. */
   iconSm: "relative size-8 before:absolute before:-inset-1.5",
 } as const;

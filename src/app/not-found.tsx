@@ -12,9 +12,9 @@ export const metadata = { title: "Not found · Lateshow" };
 // Root level, so it also catches unknown URLs. It brings its own top bar because it renders outside (main).
 export default function NotFound() {
   return (
-    <>
+    <div className="flex min-h-dvh flex-col">
       <TopBar />
-      <Container as="main" className="flex flex-col gap-section pt-page-top pb-24">
+      <Container as="main" className="flex flex-1 flex-col gap-section pt-page-top pb-24">
         <StatusMessage title="This page doesn't exist." detail="Maybe it moved, or the link has a typo.">
           <Link href="/" className={buttonStyles("primary")}>
             Go home
@@ -28,6 +28,6 @@ export default function NotFound() {
         </Suspense>
       </Container>
       <Footer />
-    </>
+    </div>
   );
 }

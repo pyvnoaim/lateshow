@@ -18,7 +18,7 @@ export async function AccountButton() {
       href="/u/me"
       aria-label="Your profile"
       data-tip="Your profile"
-      className="flex size-8 press items-center justify-center rounded-full bg-accent text-small font-semibold text-bg"
+      className="flex size-8 press items-center justify-center rounded-full text-small font-semibold glass-accent"
     >
       {initial}
     </Link>

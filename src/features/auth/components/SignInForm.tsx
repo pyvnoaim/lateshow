@@ -9,10 +9,6 @@ import { mailApp } from "@/features/auth/mailApp";
 
 const RESEND_SECONDS = 30;
 
-// Quiet text actions: only the color changes on hover, no fill to collide with the dot between them.
-const textAction =
-  "press text-label font-semibold transition-colors hover:text-fg disabled:pointer-events-none disabled:opacity-50";
-
 export function SignInForm({
   linkError,
   minutes,
@@ -96,7 +92,7 @@ export function SignInForm({
             </p>
           )}
           <div className="flex flex-wrap items-center gap-3 pl-5 text-muted">
-            <button type="button" onClick={() => setSentTo(null)} className={textAction}>
+            <button type="button" onClick={() => setSentTo(null)} className={buttonStyles("text", "text")}>
               Different email
             </button>
             <span aria-hidden>·</span>
@@ -104,7 +100,7 @@ export function SignInForm({
               type="button"
               disabled={wait > 0 || pending}
               onClick={() => void send(sentTo)}
-              className={textAction}
+              className={buttonStyles("text", "text")}
             >
               {wait > 0 ? <span className="nums">Send again in {wait} s</span> : "Send again"}
             </button>
