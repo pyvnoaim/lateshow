@@ -58,7 +58,7 @@ pure logic extracted with a `*.test.ts` beside it, no barrel files, move code to
 - Glass family: `glass` (clear), `glass-tint` (primary), `glass-accent` (on state), `glass-cell` (small tiles), `glass-hover`
   (quiet links). Pointer sheen via `GlassSheen`. Write only standard `backdrop-filter`.
 - Motion utilities: `press` (buttons), `lift` (cards in a `group`), `sk` (skeleton shimmer), `rise`, `stagger`.
-- Tooltips: never `title`. Use `data-tip` (+ `data-tip-meta`), one global `Tooltips`. Icon-only buttons always get one.
+- Tooltips: never `title`. Use `data-tip` (+ `data-tip-meta`, `data-tip-key` for a shortcut), one global `Tooltips`. Icon-only buttons always get one.
 
 ## Design
 

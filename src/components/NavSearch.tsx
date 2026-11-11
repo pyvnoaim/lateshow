@@ -124,7 +124,7 @@ export function NavSearch() {
         type={expanded ? "submit" : "button"}
         aria-label={expanded ? "Search" : "Open search"}
         data-tip={expanded ? undefined : "Search"}
-        data-tip-meta={expanded ? undefined : "Press /"}
+        data-tip-key={expanded ? undefined : "/"}
         onClick={() => {
           if (expanded) return;
           setOpen(true);

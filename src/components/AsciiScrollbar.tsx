@@ -90,7 +90,10 @@ export function AsciiScrollbar({ box }: { box?: RefObject<HTMLElement | null> })
   if (!bar) return null;
   const el = () => box?.current ?? null;
   const all = () => el()?.scrollHeight ?? document.documentElement.scrollHeight;
-  const ratio = () => all() / (el()?.clientHeight ?? innerHeight);
+  const seen = () => el()?.clientHeight ?? innerHeight;
+  // the thumb travels n - len cells for the whole scroll distance (its length is capped, see thumb())
+  const travel = () => Math.max((bar.n - bar.len) * CELL, 1);
+  const ratio = () => (all() - seen()) / travel();
   const scrollTop = () => el()?.scrollTop ?? scrollY;
   const go = (top: number) => (el() ?? window).scrollTo({ top });
 
@@ -101,7 +104,7 @@ export function AsciiScrollbar({ box }: { box?: RefObject<HTMLElement | null> })
         const cell = Math.floor((e.clientY - e.currentTarget.getBoundingClientRect().top) / CELL);
         // on the rail: jump so the thumb centres there; on the thumb: just start dragging
         if (cell < bar.top || cell >= bar.top + bar.len) {
-          go(((cell - bar.len / 2) / bar.n) * all());
+          go(((cell - bar.len / 2) / Math.max(bar.n - bar.len, 1)) * (all() - seen()));
         }
         drag.current = { y: e.clientY, scroll: scrollTop() };
         e.currentTarget.setPointerCapture(e.pointerId);
