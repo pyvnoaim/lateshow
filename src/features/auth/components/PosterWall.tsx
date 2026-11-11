@@ -30,7 +30,8 @@ export async function PosterWall() {
     <div aria-hidden className="absolute inset-0 overflow-hidden lg:left-1/2">
       <div className="absolute inset-0 grid scale-125 -rotate-6 grid-cols-4 gap-4 px-4">
         {columns.map((col, ci) => (
-          <div key={ci} className="flex drift flex-col gap-4" style={{ animationDuration: col.speed }}>
+          // pb-4: 16 posters have only 15 gaps. One more at the end makes half the height exactly one loop, so no 8px jump
+          <div key={ci} className="flex drift flex-col gap-4 pb-4" style={{ animationDuration: col.speed }}>
             {col.posters.map((src, i) => (
               <div
                 key={i}

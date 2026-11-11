@@ -512,7 +512,7 @@
   animation: rise var(--duration-rise) var(--ease-spring) both;
 }
 
-/* Sign in poster wall: each column holds its posters twice and moves up by half, so the loop has no jump */
+/* Sign in poster wall: each column holds its posters twice (+ one trailing gap) and moves up by half, so the loop has no jump */
 @utility drift {
   animation: drift 80s linear infinite;
 }
