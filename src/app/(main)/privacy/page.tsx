@@ -96,7 +96,7 @@ export default function PrivacyPage() {
         <p>Lateshow only sets cookies it needs to work. No tracking, so no cookie banner (§ 25 (2) TDDDG).</p>
         <ul className="flex list-disc flex-col gap-2 pl-5">
           <li>
-            <strong>better-auth.session_token</strong> keeps you signed in. Up to 7 days.
+            <strong>__Secure-better-auth.session_token</strong> keeps you signed in. Up to 7 days.
           </li>
           <li>
             <strong>lang</strong> remembers the language you picked. 1 year.

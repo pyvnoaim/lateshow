@@ -21,7 +21,7 @@ export async function PosterCaption({ card, plus = true }: { card: Card; plus?: 
         return all.find((s) => mine.includes(s.id)) ?? all[0];
       })
       .catch(() => undefined),
-    getMyWatchlistKeys(),
+    plus ? getMyWatchlistKeys() : null,
   ]);
   const genre = card.genre_ids?.map((id) => genres[id]).find(Boolean);
   return (

@@ -8,6 +8,7 @@ import { db } from "@/lib/db/client";
 import { watched, watchlist } from "@/lib/db/schema";
 import { getLanguage } from "@/lib/region";
 import { img, searchTitles } from "@/lib/tmdb";
+import { getMyWatchlistKeys } from "./queries";
 
 // Title and poster come from our own server rendered page. Validated anyway, and they only ever show to the same user.
 const titleRef = z.object({
@@ -105,10 +106,7 @@ export async function findToAdd(raw: string): Promise<AddResult[]> {
   if (!query.success || !session) return [];
   const [cards, listed] = await Promise.all([
     searchTitles(query.data, await getLanguage()).catch(() => []),
-    db
-      .select({ mediaType: watchlist.mediaType, tmdbId: watchlist.tmdbId })
-      .from(watchlist)
-      .where(eq(watchlist.userId, session.user.id)),
+    getMyWatchlistKeys(),
   ]);
   return cards.slice(0, 5).map((c) => ({
     type: c.media_type,
@@ -119,6 +117,6 @@ export async function findToAdd(raw: string): Promise<AddResult[]> {
       .join(" · "),
     poster: img(c.poster_path, "w92"),
     posterPath: c.poster_path,
-    listed: listed.some((l) => l.mediaType === c.media_type && l.tmdbId === c.id),
+    listed: listed?.has(`${c.media_type}-${c.id}`) ?? false,
   }));
 }

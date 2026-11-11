@@ -18,6 +18,12 @@ export function WatchlistPlus({
   label?: [string, string];
 }) {
   const [saved, setSaved] = useState(initial);
+  const [seen, setSeen] = useState(initial);
+  if (seen !== initial) {
+    // the server's state changed (another + for the same title, the watchlist page, the title page): follow it
+    setSeen(initial);
+    setSaved(initial);
+  }
   const [on, setOn] = useOptimistic(saved);
   const [, startTransition] = useTransition();
   const name = titleRef.title;
@@ -32,8 +38,12 @@ export function WatchlistPlus({
         const next = !on;
         startTransition(async () => {
           setOn(next);
-          await setOnWatchlist(titleRef, next);
-          setSaved(next);
+          try {
+            await setOnWatchlist(titleRef, next);
+            setSaved(next);
+          } catch {
+            // not saved (signed out meanwhile): the optimistic flip falls back on its own
+          }
         });
       }}
       className={`-m-1.5 inline-flex shrink-0 press items-center gap-1 rounded-full p-1.5 transition-colors ${on ? "text-accent" : "text-muted hover:text-fg"}`}

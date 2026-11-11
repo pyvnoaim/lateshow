@@ -12,10 +12,11 @@ export function shelfFor(t: { release: string | null; today: string; onYours: bo
   return "nowhere";
 }
 
-/** Whole days until a moment, rounded up, never below 0. Null without a date. Pure. */
+/** Whole days until a moment, rounded up. Null without a date, or when it already passed (a stale offer). Pure. */
 export function daysUntil(iso: string | null | undefined, now: Date) {
   if (!iso) return null;
-  return Math.max(0, Math.ceil((new Date(iso).getTime() - now.getTime()) / 86_400_000));
+  const ms = new Date(iso).getTime() - now.getTime();
+  return ms < 0 ? null : Math.ceil(ms / 86_400_000);
 }
 
 export const SORTS = ["leaving", "added", "rating", "shortest"] as const;

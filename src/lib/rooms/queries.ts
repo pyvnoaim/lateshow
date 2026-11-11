@@ -1,11 +1,20 @@
 import "server-only";
-import { and, eq, gt } from "drizzle-orm";
+import { and, eq, gt, lt } from "drizzle-orm";
 import { user } from "@/lib/db/auth-schema";
 import { db } from "@/lib/db/client";
 import { room, roomMember, roomMood, roomPick, roomVote } from "@/lib/db/schema";
 
+/**
+ * Housekeeping: rooms (with their members, votes, moods) are deleted a day after they close, as the privacy page
+ * says. Runs whenever a room is opened or read, a cheap delete on a small table.
+ */
+export async function sweepRooms() {
+  await db.delete(room).where(lt(room.expiresAt, new Date(Date.now() - 24 * 3600_000)));
+}
+
 /** A room that is still open (not expired), with everyone in it, host first. Null when it's gone. */
 export async function getRoom(code: string) {
+  await sweepRooms();
   const [r] = await db
     .select({ room, host: user.username })
     .from(room)

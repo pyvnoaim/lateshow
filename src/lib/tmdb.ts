@@ -86,12 +86,17 @@ export function pickTrailer(videos: Video[]) {
  * Falls back to TMDB's main release date when the country has none.
  */
 export function cinemaDate(t: Pick<Title, "release_date" | "release_dates">, country: string) {
+  return theatricalDate(t, country) ?? t.release_date ?? null;
+}
+
+/** The cinema release day in the country (theatrical or limited), or null when it never had one there. */
+export function theatricalDate(t: Pick<Title, "release_dates">, country: string) {
   const dates =
     t.release_dates?.results
       .find((r) => r.iso_3166_1 === country)
       ?.release_dates.filter((d) => d.type === 3 || d.type === 2)
       .toSorted((a, b) => a.type - b.type || a.release_date.localeCompare(b.release_date)) ?? [];
-  return (dates.find((d) => d.type === 3) ?? dates[0])?.release_date.slice(0, 10) ?? t.release_date ?? null;
+  return (dates.find((d) => d.type === 3) ?? dates[0])?.release_date.slice(0, 10) ?? null;
 }
 
 export type Kind = MediaType | "all";

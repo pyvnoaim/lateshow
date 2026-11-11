@@ -16,7 +16,8 @@ describe("daysUntil", () => {
   it("rounds up and never goes negative", () => {
     const now = new Date("2026-11-11T12:00:00Z");
     expect(daysUntil("2026-11-17T23:59:00Z", now)).toBe(7);
-    expect(daysUntil("2026-11-01T00:00:00Z", now)).toBe(0);
+    expect(daysUntil("2026-11-11T18:00:00Z", now)).toBe(1);
+    expect(daysUntil("2026-11-01T00:00:00Z", now)).toBeNull();
     expect(daysUntil(null, now)).toBeNull();
   });
 });

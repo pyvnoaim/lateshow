@@ -8,7 +8,7 @@ import { z } from "zod";
 import { getSession } from "@/lib/auth";
 import { db } from "@/lib/db/client";
 import { user } from "@/lib/db/auth-schema";
-import { userServices } from "@/lib/db/schema";
+import { roomMember, roomMood, roomPick, roomVote, userServices } from "@/lib/db/schema";
 import { LANGUAGE_COOKIE, LANGUAGES } from "@/lib/languages";
 import { SPOILER_COOKIE } from "@/lib/settings/queries";
 import { checkUsername } from "@/lib/username";
@@ -81,7 +81,13 @@ export async function setUsername(raw: string): Promise<Saved> {
 export async function deleteAccount() {
   const session = await getSession();
   if (!session) throw new Error("Sign in first.");
-  await db.delete(user).where(eq(user.id, session.user.id));
+  const uid = session.user.id;
+  db.transaction((tx) => {
+    // your part of other people's rooms (those rows point at you by id, no foreign key), then you
+    for (const table of [roomVote, roomPick, roomMood, roomMember])
+      tx.delete(table).where(eq(table.memberId, uid)).run();
+    tx.delete(user).where(eq(user.id, uid)).run();
+  });
   const jar = await cookies();
   // Expire every Better Auth cookie. __Secure- ones (https) only accept an overwrite that is Secure too.
   for (const { name } of jar.getAll()) {

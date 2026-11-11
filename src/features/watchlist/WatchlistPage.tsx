@@ -62,7 +62,7 @@ export async function WatchlistPage({ searchParams }: { searchParams: Promise<Pa
   const shown = byKind.filter((i) => !genre || i.genre === genre);
   const shelf = (s: WatchlistItem["shelf"]) => shown.filter((i) => i.shelf === s);
   const now = sortShelf(shelf("now"), sort);
-  const coming = shelf("coming").toSorted((a, b) => (a.note ?? "").localeCompare(b.note ?? ""));
+  const coming = shelf("coming").toSorted((a, b) => (a.release ?? "").localeCompare(b.release ?? ""));
   const rent = shelf("rent");
   const nowhere = shelf("nowhere");
 
@@ -74,12 +74,9 @@ export async function WatchlistPage({ searchParams }: { searchParams: Promise<Pa
           <br />
           <span className="text-muted">Tap + on anything you want to watch.</span>
         </h1>
-        <div className="flex flex-wrap items-center gap-4">
-          <Link href="/" className={buttonStyles("primary", "md")}>
-            See what&apos;s trending
-          </Link>
-          <AddTitle find={findToAdd} add={addFromSearch} />
-        </div>
+        <Link href="/" className={buttonStyles("primary", "md")}>
+          See what&apos;s trending
+        </Link>
       </div>
     );
   }

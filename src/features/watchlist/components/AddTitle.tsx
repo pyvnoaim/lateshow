@@ -21,16 +21,27 @@ export function AddTitle({
 
   useEffect(() => {
     if (q.trim().length < 2) return;
-    const timer = setTimeout(() => void find(q).then(setResults), 250);
-    return () => clearTimeout(timer);
+    let live = true; // a slower reply to an older query must not replace newer results
+    const timer = setTimeout(() => void find(q).then((r) => live && setResults(r)), 250);
+    return () => {
+      live = false;
+      clearTimeout(timer);
+    };
   }, [q, find]);
 
   const shown = q.trim().length < 2 ? [] : results;
   const keyOf = (r: AddResult) => `${r.type}-${r.id}`;
   const put = (r: AddResult) => {
     if (r.listed || added.includes(keyOf(r))) return;
-    setAdded((a) => [...a, keyOf(r)]);
-    startTransition(() => add(r));
+    const key = keyOf(r);
+    setAdded((a) => [...a, key]);
+    startTransition(async () => {
+      try {
+        await add(r);
+      } catch {
+        setAdded((a) => a.filter((k) => k !== key)); // didn't save (signed out meanwhile): back to Add
+      }
+    });
   };
   function submit(e: FormEvent) {
     e.preventDefault();

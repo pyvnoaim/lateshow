@@ -5,7 +5,7 @@ import { userServices } from "@/lib/db/schema";
 import { getFriendsWatchlisting } from "@/lib/friends/queries";
 import { getWatchLinks } from "@/lib/justwatch";
 import {
-  cinemaDate,
+  theatricalDate,
   getEnglishName,
   getTitle,
   shortGenre,
@@ -31,8 +31,10 @@ export type WatchlistItem = {
   /** Watch now: the service of yours it's on, its logo and the deep link. */
   on?: { name: string; logoPath: string; url?: string };
   leavesIn: number | null;
-  /** Coming up: "In cinemas Dec 17", "Out Mar 3". Watch now (series): "Season 3 · Mar 12". */
+  /** Coming up: "In cinemas Dec 17" (a real cinema release), "Out Mar 3". Watch now (series): "Season 3 · Mar 12". */
   note?: string;
+  /** The day it comes out (cinema or streaming), YYYY-MM-DD, for Coming up's order. */
+  release: string | null;
   /** On other services: "On Apple TV", or "Rent on Videobuster, Apple TV Store". */
   rentOn?: string;
   friends: string[];
@@ -61,9 +63,12 @@ export async function getWatchlistView(userId: string, country: string, lang: st
 
   const items = await Promise.all(
     rows.map(async (row): Promise<WatchlistItem | null> => {
-      const t = await getTitle(row.mediaType, String(row.tmdbId), lang).catch(() => null);
+      const [t, englishName] = await Promise.all([
+        getTitle(row.mediaType, String(row.tmdbId), lang).catch(() => null),
+        getEnglishName(row.mediaType, row.tmdbId).catch(() => null),
+      ]);
       if (!t) return null;
-      const english = await getEnglishName(row.mediaType, t.id).catch(() => t.title ?? t.name ?? "");
+      const english = englishName ?? t.title ?? t.name ?? "";
       const links = await getWatchLinks(row.mediaType, t.id, english, country);
       const subs = subscriptionServices(t, country);
       const yours = mine.length > 0 ? subs.filter((s) => mine.includes(s.id)) : subs;
@@ -74,7 +79,7 @@ export async function getWatchlistView(userId: string, country: string, lang: st
       const rentNames =
         paid.length > 0 ? paid : [...(providers?.rent ?? []), ...(providers?.buy ?? [])].map((p) => p.provider_name);
 
-      const cinema = row.mediaType === "movie" ? cinemaDate(t, country) : null;
+      const cinema = row.mediaType === "movie" ? theatricalDate(t, country) : null;
       const release = row.mediaType === "movie" ? (cinema ?? t.release_date ?? null) : (t.first_air_date ?? null);
       const others = readableNames(subs.filter((s) => !yours.includes(s)).map((s) => s.name));
       const shelf = shelfFor({ release, today, onYours: !!service, elsewhere: others.length + rentNames.length > 0 });
@@ -102,6 +107,7 @@ export async function getWatchlistView(userId: string, country: string, lang: st
         on: service ? { name: service.name, logoPath: service.logoPath, url: link?.url } : undefined,
         leavesIn: shelf === "now" ? daysUntil(link?.leavesAt, now) : null,
         note,
+        release,
         rentOn:
           shelf !== "rent"
             ? undefined
@@ -125,7 +131,7 @@ export async function getOutThisWeek(userId: string, country: string, lang: stri
       const t = await getTitle(row.mediaType, String(row.tmdbId), lang).catch(() => null);
       if (!t) return null;
       const release =
-        row.mediaType === "movie" ? (cinemaDate(t, country) ?? t.release_date ?? null) : (t.first_air_date ?? null);
+        row.mediaType === "movie" ? (theatricalDate(t, country) ?? t.release_date ?? null) : (t.first_air_date ?? null);
       return release && release >= weekAgo && release <= today
         ? { card: titleToCard(t, row.mediaType), release }
         : null;
