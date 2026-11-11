@@ -70,7 +70,7 @@ export function TextSetting({
           className={fieldInputStyles}
         />
         <button type="submit" disabled={pending || !changed} className={buttonStyles("primary", "sm")}>
-          {pending ? "Saving" : changed ? "Save" : "Saved"}
+          {pending ? "Saving" : changed || !saved ? "Save" : "Saved"}
         </button>
       </form>
       {error && (

@@ -24,3 +24,6 @@ export function checkUsername(raw: string): { ok: true; value: string } | { ok: 
   if (RESERVED.has(value)) return { ok: false, error: "That one is taken." };
   return { ok: true, value };
 }
+
+/** The name everyone sees: your username, or the start of your email until you pick one. */
+export const shownName = (u: { username?: string | null; email: string }) => u.username || u.email.split("@")[0];

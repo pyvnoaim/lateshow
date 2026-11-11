@@ -45,23 +45,10 @@ export async function setSpoilerGuard(value: "show" | "hide") {
   refresh();
 }
 
-const displayName = z.string().trim().min(1).max(40);
-
 /** What a text setting's save returns: the value as stored, or what went wrong. */
 export type Saved = { value: string } | { error: string };
 
-/** The name shown on your profile and to friends. */
-export async function setName(name: string): Promise<Saved> {
-  const session = await getSession();
-  if (!session) return { error: "Sign in again to save this." };
-  const parsed = displayName.safeParse(name);
-  if (!parsed.success) return { error: "Use 1 to 40 characters." };
-  await db.update(user).set({ name: parsed.data, updatedAt: new Date() }).where(eq(user.id, session.user.id));
-  refresh();
-  return { value: parsed.data };
-}
-
-/** Your username, the address of your profile (/u/name). Unique, stored lowercase. */
+/** Your username: the name everyone sees and your profile address (/u/name). Unique, stored lowercase. */
 export async function setUsername(raw: string): Promise<Saved> {
   const session = await getSession();
   if (!session) return { error: "Sign in again to save this." };
@@ -75,7 +62,11 @@ export async function setUsername(raw: string): Promise<Saved> {
     .limit(1);
   if (taken.length > 0) return { error: "That one is taken." };
   try {
-    await db.update(user).set({ username: check.value, updatedAt: new Date() }).where(eq(user.id, uid));
+    // Better Auth's `name` follows the username, so there is only one name anywhere
+    await db
+      .update(user)
+      .set({ username: check.value, name: check.value, updatedAt: new Date() })
+      .where(eq(user.id, uid));
   } catch {
     return { error: "That one is taken." }; // the unique index caught a race with someone else
   }

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getSession } from "@/lib/auth";
+import { shownName } from "@/lib/username";
 import { buttonStyles } from "./ui/button";
 
 /** "Sign in" when signed out, the avatar when signed in. */
@@ -12,7 +13,7 @@ export async function AccountButton() {
       </Link>
     );
   }
-  const initial = (session.user.name || session.user.email).charAt(0).toUpperCase();
+  const initial = shownName(session.user).charAt(0).toUpperCase();
   return (
     <Link
       href="/u/me"

@@ -6,6 +6,7 @@ import { PosterGrid } from "@/components/ui/PosterGrid";
 import { Section } from "@/components/ui/Section";
 import { SegmentedTabs } from "@/components/ui/SegmentedTabs";
 import { getSession } from "@/lib/auth";
+import { shownName } from "@/lib/username";
 import { getHistory, getStats, getWatchlist, getWatchTimes } from "@/lib/library/queries";
 import type { Card } from "@/lib/tmdb";
 import { SignOutButton } from "./components/SignOutButton";
@@ -41,7 +42,7 @@ export async function Profile({
     getWatchlist(uid),
     getWatchTimes(uid, new Date(now.getTime() - 380 * 24 * 60 * 60 * 1000)),
   ]);
-  const name = session.user.name || session.user.email.split("@")[0];
+  const name = shownName(session.user);
   const since = session.user.createdAt.toLocaleDateString("en", { month: "long", year: "numeric" });
   const empty = stats.movies + stats.episodes === 0;
 
@@ -54,9 +55,7 @@ export async function Profile({
           </div>
           <div className="min-w-0 flex-1">
             <div className="text-body font-semibold">{name}</div>
-            <div className="text-small text-muted">
-              {session.user.username && `@${session.user.username} · `}Since {since}
-            </div>
+            <div className="text-small text-muted">Since {since}</div>
           </div>
           <div className="flex gap-6">
             <Link href="/settings" className={buttonStyles("text", "text")}>
