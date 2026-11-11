@@ -8,7 +8,6 @@ const BASE = "http://lateshow.invalid";
  */
 export function safeNext(raw: string | string[] | undefined): string {
   const value = (Array.isArray(raw) ? raw[0] : raw) ?? "";
-  // eslint-disable-next-line no-control-regex -- matching control characters is the point
   if (!value.startsWith("/") || value.startsWith("//") || /[\u0000-\u001f\u007f\\]/.test(value)) return "/";
   const url = new URL(value, BASE);
   if (url.origin !== BASE) return "/";
