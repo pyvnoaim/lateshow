@@ -63,7 +63,8 @@ pure logic extracted with a `*.test.ts` beside it, no barrel files, move code to
 ## Design
 
 - Apple TV style: near-black, Inter Tight, tight headlines, no borders or cards, posters carry the color, accent Frost icy
-  (#b4c8ea, primary #eef1f6). No logo yet (wordmark only).
+  (#b4c8ea, primary #eef1f6). Logo = `src/app/icon.svg` (dark glass screen, icy light rising),
+  used by `Logo`, apple-icon.png rendered from it.
 - Premium comes from states, glass, motion and type, never decoration motifs.
 - Switchers are plain text (active white, rest grey). Posters stay clean, extra actions go in the caption line.
 - Top bar scrolls away (absolute). Inputs are glass pills like search.

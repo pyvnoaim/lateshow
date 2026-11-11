@@ -1,0 +1,15 @@
+<!-- Lateshow: dark frosted glass, an icy light rising inside. Source of truth for the logo (favicon, top bar, app icon). -->
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="40 40 220 220">
+  <defs>
+    <linearGradient id="face" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#3a4253"/><stop offset="0.55" stop-color="#232835"/><stop offset="1" stop-color="#171a24"/></linearGradient>
+    <radialGradient id="sun" cx="0.5" cy="0.3" r="0.7"><stop offset="0" stop-color="#ffffff"/><stop offset="0.45" stop-color="#a9c2ea"/><stop offset="1" stop-color="#3d64b0" stop-opacity="0"/></radialGradient>
+    <linearGradient id="rim" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity="0.45"/><stop offset="0.3" stop-color="#fff" stop-opacity="0.08"/><stop offset="1" stop-color="#fff" stop-opacity="0.18"/></linearGradient>
+    <filter id="soft" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="9"/></filter>
+    <clipPath id="tile"><path id="shape" d="M98,46 H202 Q254,46 254,98 V202 Q254,254 202,254 H98 Q46,254 46,202 V98 Q46,46 98,46 Z"/></clipPath>
+  </defs>
+  <use href="#shape" fill="url(#face)"/>
+  <g clip-path="url(#tile)">
+    <circle cx="150" cy="236" r="118" fill="url(#sun)" filter="url(#soft)"/>
+    <use href="#shape" fill="none" stroke="url(#rim)" stroke-width="10"/>
+  </g>
+</svg>
