@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Avatar } from "@/components/Avatar";
 import { buttonStyles } from "@/components/ui/button";
-import { SegmentedTabs } from "@/components/ui/SegmentedTabs";
 import { GAMES, type Game } from "@/lib/rooms/games";
 import { GameArt } from "./GameArt";
 
@@ -35,6 +34,28 @@ export function StartForm({
 
   return (
     <div className="flex flex-col gap-12">
+      {/* the choice is part of the sentence: the picked word bright, the other dim */}
+      <div className="flex flex-col gap-2.5">
+        <span className="text-body text-muted">Tonight we pick a</span>
+        <div role="group" aria-label="Movie or series" className="flex items-baseline gap-6">
+          {(
+            [
+              ["movie", "Movie"],
+              ["tv", "Series"],
+            ] as const
+          ).map(([k, label]) => (
+            <button
+              key={k}
+              type="button"
+              aria-pressed={kind === k}
+              onClick={() => setKind(k)}
+              className={`press rounded-thumb text-choice leading-none font-bold tracking-tight transition-colors duration-300 ${kind === k ? "text-fg" : "text-fg/20 hover:text-fg/45"}`}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </div>
       <div className="grid grid-cols-1 gap-x-6 gap-y-10 sm:grid-cols-3">
         {GAMES.map((g) => {
           const on = game === g.id;
@@ -67,13 +88,6 @@ export function StartForm({
 
       <div className="flex flex-wrap items-center justify-between gap-x-10 gap-y-6">
         <div className="flex flex-wrap items-center gap-x-10 gap-y-4">
-          <SegmentedTabs
-            label="Movie or series"
-            items={[
-              { key: "movie", label: "Movie", active: kind === "movie", onSelect: () => setKind("movie") },
-              { key: "tv", label: "Series", active: kind === "tv", onSelect: () => setKind("tv") },
-            ]}
-          />
           {friends.length > 0 && (
             <ul aria-label="Invite friends" className="flex flex-wrap gap-2">
               {friends.map((f) => {
