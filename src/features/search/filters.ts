@@ -2,22 +2,22 @@ import type { Card, MediaType } from "@/lib/tmdb";
 
 /**
  * Genres people browse by, with TMDB's movie and series ids (series lump some together, like Sci-Fi & Fantasy).
- * null: TMDB has no such series genre, so the genre only finds movies.
+ * null: TMDB has no such series genre, so the genre only finds movies. A to Z, as shown.
  */
 export const GENRES = [
   { slug: "action", label: "Action", movie: 28, tv: 10759 },
+  { slug: "animation", label: "Animation", movie: 16, tv: 16 },
   { slug: "comedy", label: "Comedy", movie: 35, tv: 35 },
-  { slug: "drama", label: "Drama", movie: 18, tv: 18 },
   { slug: "crime", label: "Crime", movie: 80, tv: 80 },
-  { slug: "thriller", label: "Thriller", movie: 53, tv: null },
-  { slug: "horror", label: "Horror", movie: 27, tv: null },
-  { slug: "sci-fi", label: "Sci-Fi", movie: 878, tv: 10765 },
+  { slug: "documentary", label: "Documentary", movie: 99, tv: 99 },
+  { slug: "drama", label: "Drama", movie: 18, tv: 18 },
+  { slug: "family", label: "Family", movie: 10751, tv: 10751 },
   { slug: "fantasy", label: "Fantasy", movie: 14, tv: 10765 },
+  { slug: "horror", label: "Horror", movie: 27, tv: null },
   { slug: "mystery", label: "Mystery", movie: 9648, tv: 9648 },
   { slug: "romance", label: "Romance", movie: 10749, tv: null },
-  { slug: "animation", label: "Animation", movie: 16, tv: 16 },
-  { slug: "family", label: "Family", movie: 10751, tv: 10751 },
-  { slug: "documentary", label: "Documentary", movie: 99, tv: 99 },
+  { slug: "sci-fi", label: "Sci-Fi", movie: 878, tv: 10765 },
+  { slug: "thriller", label: "Thriller", movie: 53, tv: null },
   { slug: "war", label: "War", movie: 10752, tv: 10768 },
   { slug: "western", label: "Western", movie: 37, tv: 37 },
 ] as const;
