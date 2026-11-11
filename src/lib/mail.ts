@@ -31,7 +31,8 @@ export function codeEmail(code: string) {
 
 /**
  * Sends the sign-in code. Production: Resend's API (no SDK, one request). Dev: printed in the terminal.
- * Throws when sending fails, so the sign-in screen can say so instead of waiting for a mail that never comes.
+ * Throws when sending fails. auth.ts turns that into an error for the sign-in screen (Better Auth itself would
+ * swallow it).
  */
 export async function sendCode(to: string, code: string) {
   if (!isProduction) {

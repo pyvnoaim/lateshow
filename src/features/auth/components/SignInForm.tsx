@@ -85,7 +85,7 @@ export function SignInForm({
     if (res.error) {
       setError(
         res.error.status === 429
-          ? "Too many tries. Wait a minute and try again."
+          ? "Too many codes. Wait a few minutes and try again."
           : "That didn't go out. Check the address and try again.",
       );
       return;

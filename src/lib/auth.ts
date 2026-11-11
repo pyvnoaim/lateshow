@@ -1,5 +1,6 @@
 import "server-only";
 import { betterAuth } from "better-auth";
+import { APIError, createAuthMiddleware } from "better-auth/api";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { nextCookies } from "better-auth/next-js";
 import { passkey } from "@better-auth/passkey";
@@ -12,10 +13,21 @@ import * as schema from "@/lib/db/auth-schema";
 import { db } from "@/lib/db/client";
 import { env } from "@/lib/env";
 import { CODE_MINUTES, sendCode } from "@/lib/mail";
+import { takeSendSlot } from "@/lib/sendLimit";
 
 const { BETTER_AUTH_SECRET, BETTER_AUTH_URL } = env("auth");
 
 export const LOGIN_CODE_MINUTES = CODE_MINUTES;
+
+const SEND_PATH = "/email-otp/send-verification-otp";
+const sendLog = new Map<string, number[]>();
+// Better Auth swallows errors from sendVerificationOTP and answers success, so a failed mail is noted here
+// and turned into an error after the route, or the sign-in screen would wait for a mail that never comes.
+const failedSends = new Set<string>();
+const emailOf = (body: unknown) =>
+  String((body as { email?: unknown } | undefined)?.email ?? "")
+    .trim()
+    .toLowerCase();
 
 export const auth = betterAuth({
   secret: BETTER_AUTH_SECRET,
@@ -32,6 +44,16 @@ export const auth = betterAuth({
       shareActivity: { type: "boolean", required: false, defaultValue: true, input: false },
     },
   },
+  hooks: {
+    before: createAuthMiddleware(async (ctx) => {
+      if (ctx.path === SEND_PATH && !takeSendSlot(sendLog, emailOf(ctx.body), Date.now()))
+        throw new APIError("TOO_MANY_REQUESTS", { message: "Too many codes for this address" });
+    }),
+    after: createAuthMiddleware(async (ctx) => {
+      if (ctx.path === SEND_PATH && failedSends.delete(emailOf(ctx.body)))
+        throw new APIError("BAD_GATEWAY", { message: "The sign-in email didn't go out" });
+    }),
+  },
   plugins: [
     // Sign in with a 6 digit code by email: typed on the device you're signing in on (a link would sign in the
     // device that opens the mail). 10 minutes, 5 tries, stored hashed. New emails get an account on first sign-in.
@@ -42,7 +64,13 @@ export const auth = betterAuth({
       storeOTP: "hashed",
       rateLimit: { window: 60, max: 6 }, // per IP: a few typos must not lock out the right code
       // only sign-in codes exist here: other types would send a "sign-in" mail that works nowhere
-      sendVerificationOTP: async ({ email, otp, type }) => (type === "sign-in" ? sendCode(email, otp) : undefined),
+      sendVerificationOTP: async ({ email, otp, type }) => {
+        if (type !== "sign-in") return;
+        await sendCode(email, otp).catch((e: unknown) => {
+          failedSends.add(email.toLowerCase());
+          throw e; // still logged by Better Auth
+        });
+      },
     }),
     // Face ID / Touch ID / Windows Hello after the first sign-in, tied to this site's domain.
     passkey({ rpName: "Lateshow", rpID: new URL(BETTER_AUTH_URL).hostname }),
