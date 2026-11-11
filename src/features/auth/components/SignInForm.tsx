@@ -245,7 +245,8 @@ export function SignInForm({
               id="otp"
               inputMode="numeric"
               autoComplete="one-time-code"
-              maxLength={6}
+              // no maxLength: the email shows "951 456", and a cap of 6 would cut the pasted space version short.
+              // typed() keeps the first 6 digits anyway.
               value={code}
               disabled={pending}
               onChange={(e) => typed(e.target.value)}
