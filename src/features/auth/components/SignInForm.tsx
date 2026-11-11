@@ -1,7 +1,7 @@
 "use client";
 
 import { Check, Mail } from "lucide-react";
-import { useEffect, useRef, useState, type FormEvent } from "react";
+import { useEffect, useRef, useState, type FormEvent, type ReactNode } from "react";
 import { buttonStyles } from "@/components/ui/button";
 import { fieldInputStyles, fieldStyles } from "@/components/ui/field";
 import { authClient } from "@/lib/authClient";
@@ -13,11 +13,16 @@ export function SignInForm({
   linkError,
   minutes,
   next,
+  heading,
+  intro = "No password. We email you a link.",
 }: {
   linkError: boolean;
   minutes: number;
   /** Where the link takes you after signing in (already checked to be a path on this site). */
   next: string;
+  /** Replaces "Everything you watch. One place." (the invite page says who invited you). */
+  heading?: ReactNode;
+  intro?: string;
 }) {
   const [email, setEmail] = useState("");
   const [sentTo, setSentTo] = useState<string | null>(null);
@@ -114,13 +119,17 @@ export function SignInForm({
     <div className="flex rise flex-col gap-14">
       <div className="flex flex-col gap-6">
         <h1 className="text-page leading-none font-bold">
-          Everything
-          <br />
-          you watch.
-          <br />
-          <span className="text-muted">One place.</span>
+          {heading ?? (
+            <>
+              Everything
+              <br />
+              you watch.
+              <br />
+              <span className="text-muted">One place.</span>
+            </>
+          )}
         </h1>
-        <p className="text-body leading-normal text-muted">No password. We email you a link.</p>
+        <p className="text-body leading-normal text-muted">{intro}</p>
       </div>
       <div className="flex flex-col gap-4">
         <form onSubmit={onSubmit} className={fieldStyles("lg")}>

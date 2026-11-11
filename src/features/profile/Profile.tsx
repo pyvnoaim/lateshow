@@ -5,7 +5,10 @@ import { buttonStyles } from "@/components/ui/button";
 import { PosterGrid } from "@/components/ui/PosterGrid";
 import { Section } from "@/components/ui/Section";
 import { SegmentedTabs } from "@/components/ui/SegmentedTabs";
+import { InviteButton } from "@/components/friends/InviteButton";
 import { getSession } from "@/lib/auth";
+import { getInviteLink } from "@/lib/friends/actions";
+import { getFriendCount } from "@/lib/friends/queries";
 import { shownName } from "@/lib/username";
 import { getHistory, getStats, getWatchlist, getWatchTimes } from "@/lib/library/queries";
 import type { Card } from "@/lib/tmdb";
@@ -36,11 +39,12 @@ export async function Profile({
 
   const uid = session.user.id;
   const now = new Date();
-  const [stats, history, watchlist, times] = await Promise.all([
+  const [stats, history, watchlist, times, friends] = await Promise.all([
     getStats(uid),
     getHistory(uid, 60),
     getWatchlist(uid),
     getWatchTimes(uid, new Date(now.getTime() - 380 * 24 * 60 * 60 * 1000)),
+    getFriendCount(uid),
   ]);
   const name = shownName(session.user);
   const since = session.user.createdAt.toLocaleDateString("en", { month: "long", year: "numeric" });
@@ -55,8 +59,12 @@ export async function Profile({
           </div>
           <div className="min-w-0 flex-1">
             <div className="text-body font-semibold">{name}</div>
-            <div className="text-small text-muted">Since {since}</div>
+            <div className="text-small text-muted">
+              Since {since}
+              {friends > 0 && ` · ${plural(friends, "friend")}`}
+            </div>
           </div>
+          <InviteButton getLink={getInviteLink} />
           <div className="flex gap-6">
             <Link href="/settings" className={buttonStyles("text", "text")}>
               Settings

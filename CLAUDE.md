@@ -88,6 +88,6 @@ delete account), /watchlist + /u/me redirects in `next.config.ts`, 404, errors, 
 - [ ] Friends (decided 2026-11-11): mutual, by invite link only (7 days, few uses), no people search.
       Friends see everything by default, one Settings switch hides it. Tables: `user.username`, `friendship`
       (one row per pair, lower id first), `invite`. Access checked in one helper. Build order:
-      1 username + `/u/[username]` (done) · 2 invite, accept, remove · 3 Friends tab + friends' profiles + privacy switch ·
+      1 username + `/u/[username]` (done) · 2 invite + accept (done) · 3 Friends tab + friends' profiles + remove + privacy switch ·
       4 "Friends this week" row + friends on title pages · 5 taste match % (shown from 10 titles each).
 - [ ] Rooms (nav link hidden): Movie or Series first, swipe to match, 8-title bracket, category wheel.

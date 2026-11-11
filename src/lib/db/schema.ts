@@ -56,3 +56,33 @@ export const userServices = sqliteTable(
   },
   (t) => [primaryKey({ columns: [t.userId, t.providerId] })],
 );
+
+/** Two users who are friends. One row per pair, the smaller user id in `a`, so a pair can't be stored twice. */
+export const friendship = sqliteTable(
+  "friendship",
+  {
+    a: text("a")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    b: text("b")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).default(now).notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.a, t.b] }), index("friendship_b").on(t.b)],
+);
+
+/** An invite link (/invite/<code>). Works until `expiresAt` for `usesLeft` more friends. */
+export const invite = sqliteTable(
+  "invite",
+  {
+    code: text("code").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    expiresAt: integer("expires_at", { mode: "timestamp_ms" }).notNull(),
+    usesLeft: integer("uses_left").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).default(now).notNull(),
+  },
+  (t) => [index("invite_by_user").on(t.userId)],
+);
