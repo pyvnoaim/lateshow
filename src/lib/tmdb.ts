@@ -197,9 +197,16 @@ export function serviceName(name: string): string {
     .replace(/\s+Plus$/, "+");
 }
 
-/** Names of the services in the country that include this title in a subscription, TMDB's order. */
-export function subscriptionServices(t: Pick<Title, "watch/providers">, country: string): string[] {
-  return t["watch/providers"].results[country]?.flatrate?.map((p) => serviceName(p.provider_name)) ?? [];
+export type Service = { name: string; logoPath: string };
+
+/** Services in the country that include this title in a subscription (Netflix, Prime Video...), TMDB's order. */
+export function subscriptionServices(t: Pick<Title, "watch/providers">, country: string): Service[] {
+  return (
+    t["watch/providers"].results[country]?.flatrate?.map((p) => ({
+      name: serviceName(p.provider_name),
+      logoPath: p.logo_path,
+    })) ?? []
+  );
 }
 
 const daysAgo = (n: number) => new Date(Date.now() - n * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);

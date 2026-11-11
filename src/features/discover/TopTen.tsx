@@ -42,7 +42,7 @@ export async function TopTen() {
                 <span className="truncate text-label font-medium">{t.title ?? t.name}</span>
                 {/* nbsp keeps every column the same height when there's no service */}
                 <span className="-mt-2 truncate text-caption text-muted">
-                  {subscriptionServices(t, code)[0] ?? "\u00a0"}
+                  {subscriptionServices(t, code)[0]?.name ?? "\u00a0"}
                 </span>
               </div>
             </Link>

@@ -1,6 +1,7 @@
+import Image from "next/image";
 import Link from "next/link";
 import { ViewTransition, type CSSProperties } from "react";
-import { getGenreNames, img, type Card } from "@/lib/tmdb";
+import { getGenreNames, img, type Card, type Service } from "@/lib/tmdb";
 import { TmdbImage } from "./TmdbImage";
 
 /**
@@ -12,12 +13,15 @@ export async function PosterLink({
   index = 0,
   morph = true,
   caption,
+  service,
 }: {
   card: Card;
   index?: number;
   morph?: boolean;
   /** Replaces the "Movie · 2024" line. `null` hides it (the caller renders its own line under the link). */
   caption?: string | null;
+  /** Small app icon at the end of the caption: where it streams on a subscription. */
+  service?: Service;
 }) {
   const name = card.title ?? card.name ?? "";
   const year = (card.release_date ?? card.first_air_date ?? "").slice(0, 4);
@@ -54,8 +58,20 @@ export async function PosterLink({
       )}
       <span className="text-label font-medium">{name}</span>
       {caption !== null && (
-        <span className="-mt-2 text-caption text-muted">
-          {caption ?? [card.media_type === "tv" ? "Series" : "Movie", year, genre].filter(Boolean).join(" · ")}
+        <span className="-mt-2 flex items-center gap-1.5 text-caption text-muted">
+          <span className="truncate">
+            {caption ?? [card.media_type === "tv" ? "Series" : "Movie", year, genre].filter(Boolean).join(" · ")}
+          </span>
+          {service && (
+            <Image
+              src={img(service.logoPath, "w92")!}
+              alt={`On ${service.name}`}
+              data-tip={service.name}
+              width={14}
+              height={14}
+              className="size-3.5 shrink-0 rounded-sm"
+            />
+          )}
         </span>
       )}
     </Link>

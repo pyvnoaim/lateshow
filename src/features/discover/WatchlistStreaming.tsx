@@ -22,7 +22,7 @@ export async function WatchlistStreaming() {
         name: t.name,
         poster_path: t.poster_path,
       };
-      return { card, service: services[0] };
+      return { card, service: services[0].name };
     }),
   );
   const streaming = titles.filter((x) => x !== null);
