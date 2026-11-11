@@ -1,4 +1,5 @@
 import { getSession } from "@/lib/auth";
+import { getLanguage } from "@/lib/region";
 import { getLastWatched, getWatchedTitleKeys } from "@/lib/library/queries";
 import { getTitle } from "@/lib/tmdb";
 import { PosterSection } from "./PosterSection";
@@ -9,7 +10,7 @@ export async function BecauseYouWatched() {
   if (!session) return null;
   const [last, seen] = await Promise.all([getLastWatched(session.user.id), getWatchedTitleKeys(session.user.id)]);
   if (!last) return null;
-  const t = await getTitle(last.mediaType, String(last.tmdbId)).catch(() => null);
+  const t = await getTitle(last.mediaType, String(last.tmdbId), await getLanguage()).catch(() => null);
   if (!t) return null;
   const cards = t.recommendations.results.filter((c) => !seen.has(`${c.media_type}-${c.id}`) && c.poster_path);
   return <PosterSection title={`Because you watched ${last.title}`} cards={cards} />;

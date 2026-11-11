@@ -1,4 +1,5 @@
 import "server-only";
+import { getLanguage } from "@/lib/region";
 import { getWatchLinks } from "@/lib/justwatch";
 import { nextEpisode, parseEpisodeKeys, showProgress } from "@/lib/library/progress";
 import { getRecentShows, getTitleLibrary } from "@/lib/library/queries";
@@ -14,7 +15,8 @@ export async function getShowsInProgress(userId: string, limit: number, country:
 }
 
 async function loadShow(userId: string, tmdbId: number, fallbackName: string, country: string) {
-  const t = await getTitle("tv", String(tmdbId)).catch(() => null);
+  const lang = await getLanguage();
+  const t = await getTitle("tv", String(tmdbId), lang).catch(() => null);
   if (!t) return null;
   const seasons = (t.seasons ?? []).map((s) => ({ number: s.season_number, episodeCount: s.episode_count }));
   const watched = parseEpisodeKeys((await getTitleLibrary(userId, "tv", t.id)).watched);
@@ -22,14 +24,14 @@ async function loadShow(userId: string, tmdbId: number, fallbackName: string, co
   if (!next) return null;
   const name = t.name ?? fallbackName;
   const [[season], links] = await Promise.all([
-    getSeasons(String(t.id), [next.season]),
+    getSeasons(String(t.id), [next.season], lang),
     getWatchLinks("tv", t.id, name, country),
   ]);
   return {
     id: t.id,
     name,
     backdropPath: t.backdrop_path,
-    logo: pickLogo(t),
+    logo: pickLogo(t, lang),
     next,
     episodeName: season?.episodes.find((e) => e.episode_number === next.episode)?.name,
     percent: showProgress(seasons, watched).percent,

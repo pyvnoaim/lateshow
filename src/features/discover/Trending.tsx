@@ -20,10 +20,9 @@ export async function Trending({ searchParams }: { searchParams: Promise<HomeSea
   // "My services" only shows once you picked some in settings.
   const tabs = mine.length > 0 ? TABS : TABS.filter((t) => t.kind !== "mine");
   const active = tabs.find((t) => t.param === current.trending) ?? tabs[0];
+  const { code, lang } = await getRegion();
   const cards = (
-    active.kind === "mine"
-      ? await getOnMyServices("all", mine, (await getRegion()).code)
-      : await getTrending(active.kind)
+    active.kind === "mine" ? await getOnMyServices("all", mine, code, lang) : await getTrending(active.kind, 1, lang)
   ).slice(0, 12);
 
   return (

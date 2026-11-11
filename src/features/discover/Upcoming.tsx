@@ -6,8 +6,8 @@ import { getRegion } from "@/lib/region";
 
 /** "Coming to cinemas" on Home: the next 6 releases in your country, the rest on /cinemas. */
 export async function Upcoming() {
-  const { code, name } = await getRegion();
-  const movies = (await getUpcomingInCinemas(code).catch(() => [])).slice(0, 6);
+  const { code, name, lang } = await getRegion();
+  const movies = (await getUpcomingInCinemas(code, lang).catch(() => [])).slice(0, 6);
   if (movies.length === 0) return null;
   return (
     <Section title="Coming to cinemas" description={`New in cinemas in ${name} soon.`} moreHref="/cinemas">

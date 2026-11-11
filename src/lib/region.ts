@@ -1,6 +1,7 @@
 import "server-only";
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { cache } from "react";
+import { LANGUAGE_COOKIE, pickLanguage } from "./languages";
 
 export const DEFAULT_COUNTRY = "DE";
 
@@ -60,8 +61,14 @@ export function countryInSentence(code: string) {
   return WITH_THE.has(code) ? `the ${name}` : name;
 }
 
-/** "DE" -> { code: "DE", name: "Germany" }, "US" -> { code: "US", name: "the United States" } */
+/** Language for TMDB data: your choice in Settings, else your browser's. */
+export const getLanguage = cache(async () => {
+  const [c, h] = await Promise.all([cookies(), headers()]);
+  return pickLanguage(c.get(LANGUAGE_COOKIE)?.value, h.get("accept-language"));
+});
+
+/** Country and language for this request: { code: "DE", name: "Germany", lang: "de-DE" } */
 export async function getRegion() {
-  const code = await getCountry();
-  return { code, name: countryInSentence(code) };
+  const [code, lang] = await Promise.all([getCountry(), getLanguage()]);
+  return { code, name: countryInSentence(code), lang };
 }

@@ -29,6 +29,7 @@ Later: Resend emails, Docker on the VPS behind Nginx Proxy Manager + Cloudflare,
 - TMDB v3 (bearer token, server only): everything about titles, plus `discover` for picks and filters.
 - JustWatch unofficial GraphQL (`apis.justwatch.com/graphql`): direct "Watch on" links and the Top 10. Can break anytime,
   `lib/justwatch.ts` returns [] on failure. Fallback if it dies: Streaming Availability API (RapidAPI free).
+- Language: every TMDB function takes `lang` last (caches per language), callers get it from `getRegion()`.
 - Country: auto-detected from `cf-ipcountry` / `x-vercel-ip-country`, default DE, nothing stored (`lib/region.ts`).
   Every country-dependent function takes the country as a param so caches are per country.
 - No tracking, so no cookie banner. TMDB attribution only on /about. Legal links only, no piracy.
@@ -76,11 +77,10 @@ Top bar (search with live results, account, phone menu), footer, home (hero caro
 continue, new episodes, Can't decide?, watchlist, Top 10, trending, because you watched, new on streaming, cinemas, hidden gems),
 /cinemas calendar, /search (type + genre filters in the URL, browse a genre without a query), title page (where to watch, trailer, episodes + ratings grid, cast, more like), sign in with `?next=`,
 profile /u/me (stats, heatmap, history, watchlist), /settings (your services: My services tab on Trending,
-picks only from them, your service first in captions and Watch on), /watchlist + /u/me redirects in `next.config.ts`, 404, errors, /about.
+picks only from them, your service first in captions and Watch on, language for TMDB data in a cookie, else the browser's), /watchlist + /u/me redirects in `next.config.ts`, 404, errors, /about.
 
 ## Todo (in order)
 
-- [ ] Settings: language (TMDB titles and descriptions). Services are done.
 - [ ] Before public: privacy page + Impressum, Resend, nightly SQLite backup off the VPS, Docker deploy, buy lateshow.app.
 - [ ] Later: genre/mood row, TMDB account import, imports (Netflix CSV, Letterboxd, Trakt).
 - [ ] Friends: follow, activity, taste match, invites.

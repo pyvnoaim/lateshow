@@ -3,8 +3,8 @@ import { PosterSection } from "./PosterSection";
 import { getRegion } from "@/lib/region";
 
 export async function HiddenGems() {
-  const { code } = await getRegion();
-  const cards = await getHiddenGems(code).catch(() => []);
+  const { code, lang } = await getRegion();
+  const cards = await getHiddenGems(code, lang).catch(() => []);
   return (
     <PosterSection
       title="Hidden gems"

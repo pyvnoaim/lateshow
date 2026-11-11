@@ -1,11 +1,12 @@
 import { PosterLink } from "@/components/PosterLink";
+import { getLanguage } from "@/lib/region";
 import { PosterGrid } from "@/components/ui/PosterGrid";
 import { Section } from "@/components/ui/Section";
 import { getTrending } from "@/lib/tmdb";
 
 /** One row of trending posters, for pages that would otherwise be a dead end (404). Nothing if TMDB is down. */
 export async function TrendingRow({ title }: { title: string }) {
-  const cards = await getTrending().catch(() => []);
+  const cards = await getTrending("all", 1, await getLanguage()).catch(() => []);
   if (cards.length === 0) return null;
   return (
     <Section title={title}>

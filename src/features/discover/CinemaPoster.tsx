@@ -1,5 +1,6 @@
 import { PosterLink } from "@/components/PosterLink";
 import { Trailer } from "@/components/Trailer";
+import { getLanguage } from "@/lib/region";
 import { getGenreNames, type Card } from "@/lib/tmdb";
 
 export const shortDate = (iso: string) =>
@@ -19,7 +20,7 @@ export async function CinemaPoster({
   index: number;
   showDate?: boolean;
 }) {
-  const genres = await getGenreNames().catch(() => ({}) as Record<number, string>);
+  const genres = await getGenreNames(await getLanguage()).catch(() => ({}) as Record<number, string>);
   const genre = card.genre_ids?.map((id) => genres[id]).find(Boolean);
   // Same shape as every other caption ("Movie · 2026 · Crime"), the release day stands in for the year.
   const parts = ["Movie", showDate ? shortDate(date) : null, genre].filter(Boolean);

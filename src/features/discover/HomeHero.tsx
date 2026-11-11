@@ -10,7 +10,7 @@ import { setOnWatchlist } from "@/lib/library/actions";
 import { getTitleLibrary } from "@/lib/library/queries";
 import { getTitle, getTrending, img, pickLogo, pickTrailer, titleMeta } from "@/lib/tmdb";
 import { getShowsInProgress, type ShowInProgress } from "./inProgress";
-import { getRegion } from "@/lib/region";
+import { getLanguage, getRegion } from "@/lib/region";
 
 /** Your show in progress when there is one, otherwise this week's top trending title. */
 export async function HomeHero() {
@@ -54,13 +54,14 @@ function ContinueWatching(show: ShowInProgress) {
 
 /** Top 5 trending titles with a backdrop, rotating. Logo artwork, meta, trailer, details, watchlist. */
 async function Featured({ userId }: { userId?: string }) {
-  const top = (await getTrending()).filter((c) => c.backdrop_path).slice(0, 5);
+  const lang = await getLanguage();
+  const top = (await getTrending("all", 1, lang)).filter((c) => c.backdrop_path).slice(0, 5);
   const slides = await Promise.all(
     top.map(async (c): Promise<HeroSlide | null> => {
-      const t = await getTitle(c.media_type, String(c.id)).catch(() => null);
+      const t = await getTitle(c.media_type, String(c.id), lang).catch(() => null);
       if (!t) return null;
       const name = t.title ?? t.name ?? "";
-      const logo = pickLogo(t);
+      const logo = pickLogo(t, lang);
       const listed = userId ? (await getTitleLibrary(userId, c.media_type, t.id)).onWatchlist : false;
       return {
         key: `${c.media_type}-${t.id}`,

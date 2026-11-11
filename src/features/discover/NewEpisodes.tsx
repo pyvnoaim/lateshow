@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { getLanguage } from "@/lib/region";
 import Link from "next/link";
 import { Section } from "@/components/ui/Section";
 import { getSession } from "@/lib/auth";
@@ -34,7 +35,8 @@ export async function NewEpisodes() {
   ];
 
   const { today, weekEnd } = nextSevenDays();
-  const shows = await Promise.all(ids.map((id) => getTitle("tv", String(id)).catch(() => null)));
+  const lang = await getLanguage();
+  const shows = await Promise.all(ids.map((id) => getTitle("tv", String(id), lang).catch(() => null)));
   const upcoming = shows
     .flatMap((t) => {
       const ep = t?.next_episode_to_air;

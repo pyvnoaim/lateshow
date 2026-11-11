@@ -28,7 +28,7 @@ import {
 import { Episodes, type SeasonData } from "./components/Episodes";
 import { RatingsGrid } from "./components/RatingsGrid";
 import { Trailer } from "@/components/Trailer";
-import { getRegion } from "@/lib/region";
+import { getLanguage, getRegion } from "@/lib/region";
 import { getMyServiceIds } from "@/lib/settings/queries";
 import { Suspense } from "react";
 
@@ -36,9 +36,9 @@ type Library = { signedIn: boolean; onWatchlist: boolean; watched: string[]; ref
 
 export async function TitleView({ type, id }: { type: string; id: string }) {
   if ((type !== "movie" && type !== "tv") || !/^\d+$/.test(id)) notFound();
-  const t = await getTitle(type, id).catch(() => notFound());
-  const name = t.title ?? t.name ?? "";
   const region = await getRegion();
+  const t = await getTitle(type, id, region.lang).catch(() => notFound());
+  const name = t.title ?? t.name ?? "";
   const [allLinks, session, myIds] = await Promise.all([
     getWatchLinks(type, t.id, name, region.code),
     getSession(),
@@ -227,7 +227,7 @@ async function SeasonSections({ t, library, next }: { t: Title; library: Library
   const numbers = (t.seasons ?? [])
     .filter((s) => s.season_number > 0 && s.episode_count > 0)
     .map((s) => s.season_number);
-  const raw = await getSeasons(String(t.id), numbers);
+  const raw = await getSeasons(String(t.id), numbers, await getLanguage());
   const seasons: SeasonData[] = raw.map((s) => ({
     number: s.number,
     episodes: s.episodes.map((e) => ({

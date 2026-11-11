@@ -22,8 +22,8 @@ export async function Decide({ searchParams }: { searchParams: Promise<HomeSearc
   // Fewer results with only your services, so the page wraps around what exists (page 1 always does).
   const pool =
     roll > 0
-      ? await discoverOnSubscription(type, ((roll - 1) % PAGES) + 1, region.code, mine).then((cards) =>
-          cards.length >= 3 ? cards : discoverOnSubscription(type, 1, region.code, mine),
+      ? await discoverOnSubscription(type, ((roll - 1) % PAGES) + 1, region.code, mine, region.lang).then((cards) =>
+          cards.length >= 3 ? cards : discoverOnSubscription(type, 1, region.code, mine, region.lang),
         )
       : [];
   const picks = pick(pool, 3, roll);

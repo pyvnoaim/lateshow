@@ -9,8 +9,8 @@ const longDate = (iso: string) =>
 
 /** Cinema releases in your country for the next 6 months, grouped by release day. */
 export async function CinemaCalendar() {
-  const { code } = await getRegion();
-  const movies = await getCinemaCalendar(code).catch(() => []);
+  const { code, lang } = await getRegion();
+  const movies = await getCinemaCalendar(code, lang).catch(() => []);
   if (movies.length === 0) {
     return <p className="text-body text-muted">No upcoming releases right now. Check back soon.</p>;
   }

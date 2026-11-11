@@ -8,11 +8,11 @@ import { getRegion } from "@/lib/region";
 
 /** The 10 most watched titles in your country right now, big rank numbers, scrolls sideways. */
 export async function TopTen() {
-  const { code, name } = await getRegion();
+  const { code, name, lang } = await getRegion();
   const top = await getTopInCountry(code);
   const loaded = await Promise.all(
     top.map(({ type, tmdbId }) =>
-      getTitle(type, String(tmdbId))
+      getTitle(type, String(tmdbId), lang)
         .then((t) => ({ t, type }))
         .catch(() => null),
     ),

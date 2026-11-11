@@ -14,10 +14,10 @@ export async function SearchResults({ searchParams }: { searchParams: Promise<Se
   const s = readSearch(await searchParams);
   const region = await getRegion();
   const cards = s.q
-    ? filterCards(await searchTitles(s.q), s.type, s.genre)
+    ? filterCards(await searchTitles(s.q, region.lang), s.type, s.genre)
     : s.genre
-      ? (await getGenreTitles(s.type, s.genre, region.code).catch(() => [])).slice(0, 24)
-      : (await getTrending(s.type).catch(() => [])).slice(0, 12);
+      ? (await getGenreTitles(s.type, s.genre, region.code, region.lang).catch(() => [])).slice(0, 24)
+      : (await getTrending(s.type, 1, region.lang).catch(() => [])).slice(0, 12);
   const filtered = s.type !== "all" || s.genre !== null;
 
   return (

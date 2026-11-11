@@ -2,9 +2,10 @@ import { redirect } from "next/navigation";
 import { Section } from "@/components/ui/Section";
 import { getSession } from "@/lib/auth";
 import { getRegion } from "@/lib/region";
-import { setMyService } from "@/lib/settings/actions";
+import { setLanguage, setMyService } from "@/lib/settings/actions";
 import { getMyServiceIds } from "@/lib/settings/queries";
 import { getServiceChoices, img } from "@/lib/tmdb";
+import { LanguagePicker } from "./components/LanguagePicker";
 import { ServicePicker } from "./components/ServicePicker";
 
 export async function Settings() {
@@ -29,6 +30,12 @@ export async function Settings() {
             save={setMyService}
           />
         )}
+      </Section>
+      <Section
+        title="Language"
+        description="For titles, descriptions and posters. The rest of Lateshow stays in English."
+      >
+        <LanguagePicker current={region.lang} save={setLanguage} />
       </Section>
     </div>
   );

@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { getLanguage } from "@/lib/region";
 import { getTrending, img } from "@/lib/tmdb";
 
 const SPEEDS = ["70s", "95s", "80s", "105s"];
@@ -10,7 +11,8 @@ const PER_COLUMN = 8;
  */
 export async function PosterWall() {
   // Two pages of trending: 40 posters for 32 slots, so no title shows twice on the wall.
-  const pages = await Promise.all([1, 2].map((page) => getTrending("all", page).catch(() => [])));
+  const lang = await getLanguage();
+  const pages = await Promise.all([1, 2].map((page) => getTrending("all", page, lang).catch(() => [])));
   const posters = [...new Set(pages.flat().map((c) => img(c.poster_path, "w342")))].filter(
     (p): p is string => p !== null,
   );
