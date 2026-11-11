@@ -69,9 +69,11 @@ export const auth = betterAuth({
       storeOTP: "hashed",
       rateLimit: { window: 60, max: 6 }, // per IP: a few typos must not lock out the right code
       // only sign-in codes exist here: other types would send a "sign-in" mail that works nowhere
-      sendVerificationOTP: async ({ email, otp, type }) => {
+      sendVerificationOTP: async ({ email, otp, type }, ctx) => {
         if (type !== "sign-in") return;
-        await sendCode(email, otp).catch((e: unknown) => {
+        await sendCode(email, otp).catch(async (e: unknown) => {
+          // the slot comes back only because the code dies with the mail: no free codes (and guesses) in an outage
+          await ctx?.context.internalAdapter.deleteVerificationByIdentifier(`sign-in-otp-${email.toLowerCase()}`);
           failedSends.add(email.toLowerCase());
           refundSendSlot(sendLog, email);
           throw e; // still logged by Better Auth
