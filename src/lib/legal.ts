@@ -11,7 +11,7 @@ export const OPERATOR = {
   street: "Welserstraße 3",
   city: "87463 Dietmannsried",
   country: "Germany",
-  email: "[CONTACT EMAIL]",
+  email: "pyvnovlr@gmail.com",
 };
 
 /** Where the site runs and how long the web server keeps access logs. Fill in with the VPS deploy. */
