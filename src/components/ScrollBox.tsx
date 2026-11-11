@@ -22,8 +22,9 @@ export function ScrollBox({
     const el = ref.current;
     if (!el) return;
     const fade = () => {
-      el.style.setProperty("--fade-top", el.scrollTop > 2 ? "56px" : "0px");
-      el.style.setProperty("--fade-bottom", el.scrollTop + el.clientHeight < el.scrollHeight - 2 ? "56px" : "0px");
+      const top = el.scrollTop > 2;
+      const bottom = el.scrollTop + el.clientHeight < el.scrollHeight - 2;
+      el.dataset.fade = top && bottom ? "both" : top ? "top" : bottom ? "bottom" : "";
     };
     fade();
     el.addEventListener("scroll", fade, { passive: true });
