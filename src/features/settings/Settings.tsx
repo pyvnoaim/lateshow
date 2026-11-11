@@ -7,7 +7,6 @@ import { shownName } from "@/lib/username";
 import { getRegion } from "@/lib/region";
 import {
   deleteAccount,
-  findFaces,
   setAvatar,
   setLanguage,
   setMyService,
@@ -16,7 +15,7 @@ import {
   setUsername,
   removePasskey,
 } from "@/lib/settings/actions";
-import { getAvatarFaces, getMyPasskeys, getMyServiceIds, getSpoilerGuard } from "@/lib/settings/queries";
+import { getMyPasskeys, getMyServiceIds, getSpoilerGuard } from "@/lib/settings/queries";
 import { getServiceChoices, img } from "@/lib/tmdb";
 import { AvatarPicker } from "./components/AvatarPicker";
 import { ChoicePicker } from "./components/ChoicePicker";
@@ -29,12 +28,11 @@ export async function Settings() {
   const session = await getSession();
   if (!session) redirect(`/login?next=${encodeURIComponent("/settings")}`);
   const region = await getRegion();
-  const [choices, mine, guard, passkeys, faces] = await Promise.all([
+  const [choices, mine, guard, passkeys] = await Promise.all([
     getServiceChoices(region.code).catch(() => []),
     getMyServiceIds(),
     getSpoilerGuard(),
     getMyPasskeys(),
-    getAvatarFaces(session.user.id, region.lang),
   ]);
 
   return (
@@ -52,13 +50,7 @@ export async function Settings() {
         />
       </Section>
       <Section title="Profile picture">
-        <AvatarPicker
-          name={shownName(session.user)}
-          current={session.user.image ?? null}
-          faces={faces}
-          save={setAvatar}
-          find={findFaces}
-        />
+        <AvatarPicker name={shownName(session.user)} current={session.user.image ?? null} save={setAvatar} />
       </Section>
       <Section title="Friends" description="What friends see on your profile. Off, they only see your name.">
         <ChoicePicker

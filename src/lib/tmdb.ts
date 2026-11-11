@@ -175,29 +175,6 @@ export async function searchTitles(query: string, lang: string = DEFAULT_LANGUAG
   return toCards(data.results);
 }
 
-/** People with a photo, for picking a profile picture: name, photo path and what they're known for. */
-export async function searchPeople(query: string, lang: string = DEFAULT_LANGUAGE) {
-  "use cache";
-  cacheLife("hours");
-  const data = await tmdb<{
-    results: {
-      id: number;
-      name: string;
-      profile_path: string | null;
-      known_for?: { title?: string; name?: string }[];
-    }[];
-  }>("/search/person", { query, include_adult: "false" }, lang);
-  return data.results
-    .filter((p) => p.profile_path)
-    .slice(0, 18)
-    .map((p) => ({
-      id: p.id,
-      name: p.name,
-      path: p.profile_path!,
-      title: p.known_for?.[0]?.title ?? p.known_for?.[0]?.name ?? "",
-    }));
-}
-
 /** Flattens people into their known titles, keeps only movies and series, drops duplicates (first one wins). */
 export function toCards(hits: SearchHit[]): Card[] {
   const seen = new Set<string>();

@@ -68,8 +68,7 @@ export default function PrivacyPage() {
             <strong>Your username</strong>, which friends and people in your rooms see.
           </li>
           <li>
-            <strong>Your profile picture choice</strong>: a color, or which cast photo from TMDB. We never store an
-            uploaded photo, and the cast photo loads through our server like every other image.
+            <strong>Your profile picture color</strong>, which friends and people in your rooms see.
           </li>
           <li>
             <strong>Sign-in sessions</strong>, with the IP address and browser they started from, so your login is safe.
