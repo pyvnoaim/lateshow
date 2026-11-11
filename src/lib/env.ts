@@ -39,3 +39,4 @@ export function env<A extends Area>(area: A): Env<A> {
 }
 
 export const isProduction = process.env.NODE_ENV === "production";
+export const isBuildPhase = process.env.NEXT_PHASE === "phase-production-build";

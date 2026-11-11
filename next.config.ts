@@ -6,6 +6,8 @@ import type { NextConfig } from "next";
 const SESSION_COOKIES = ["better-auth.session_token", "__Secure-better-auth.session_token"];
 
 const nextConfig: NextConfig = {
+  // a self-contained server in .next/standalone, what the Docker image runs
+  output: "standalone",
   cacheComponents: true,
   async redirects() {
     return [

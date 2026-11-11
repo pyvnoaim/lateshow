@@ -8,7 +8,11 @@ Read `node_modules/next/dist/docs/` before using Next APIs (see AGENTS.md).
 
 - `pnpm dev --port 3000`, `pnpm check` (prettier + typecheck + eslint + vitest) must pass before every commit.
 - `.env.local`: `TMDB_TOKEN` (Read Access Token), `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`. See `.env.example`.
-- DB: `data/lateshow.db` (gitignored). `pnpm db:generate` / `pnpm db:migrate`. Auth schema via `npx @better-auth/cli generate`.
+- DB: `data/lateshow.db` (gitignored). `pnpm db:generate` writes a migration, the server applies pending ones on start
+  (`src/instrumentation.ts`, skipped during build). Auth schema via `npx @better-auth/cli generate`.
+- Deploy: `Dockerfile` (standalone, volumes `/data` + `/app/.next/cache`), `docker-compose.yml` for the VPS,
+  `/api/health` for checks. CI (`.github/workflows/ci.yml`): `pnpm check` on every push/PR, main also pushes
+  `ghcr.io/pyvnoaim/lateshow:latest` + `:<sha>`. Build needs no secrets (placeholder auth secret in the Dockerfile).
 - Sign in = 6 digit email code (Better Auth emailOTP, 10 min, 5 tries, hashed) + passkeys (@better-auth/passkey).
   Dev prints the code in the terminal (`Sign in code for <email>: 123456`). Prod sends through Resend
   (`RESEND_API_KEY`, `MAIL_FROM`, `MAIL_REPLY_TO`, see .env.example). Passkey table is hand-written in auth-schema.ts.
@@ -24,7 +28,7 @@ Read `node_modules/next/dist/docs/` before using Next APIs (see AGENTS.md).
 
 Next.js 16 App Router (Cache Components, Turbopack), React 19, TS strict, Tailwind v4 (tokens only), Radix, lucide-react,
 SQLite + Drizzle, Better Auth (email code + passkeys), zod, Vitest, Prettier, Playwright screenshots.
-Later: Docker on the VPS behind Nginx Proxy Manager + Cloudflare, SSE for rooms.
+Hosting: Docker on the VPS behind Nginx Proxy Manager + Cloudflare, SSE for rooms.
 
 ## Data
 
@@ -90,7 +94,8 @@ delete account), /watchlist + /u/me redirects in `next.config.ts`, 404, errors, 
 
 ## Todo (in order)
 
-- [ ] Before public: Resend account + DNS records for the sending domain, nightly SQLite backup off the VPS, Docker deploy, buy lateshow.app.
+- [ ] Before public: Resend account + DNS records for the sending domain, SQLite backup off the VPS (Litestream to R2 planned), deploy on the VPS (image + CI done 2026-11-11, next: NPM host with
+      buffering off for `/api/rooms/*/events`, auto deploy on push), buy lateshow.app.
       /privacy and /impressum exist (2026-11-11): fill the placeholders in `src/lib/legal.ts` and the email provider
       line on /privacy. Keep /privacy true to the code: no browser request may go to TMDB/JustWatch (images go
       through next/image), cookies listed there are the only ones.

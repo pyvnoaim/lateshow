@@ -1,0 +1,19 @@
+# On the VPS: put the production .env next to this file, then `docker compose pull && docker compose up -d`.
+services:
+  lateshow:
+    image: ghcr.io/pyvnoaim/lateshow:latest
+    build: .
+    env_file: .env
+    volumes:
+      - data:/data
+      - cache:/app/.next/cache
+    ports:
+      - "127.0.0.1:3000:3000"
+    init: true
+    restart: unless-stopped
+    # Next finishes requests in flight on SIGTERM. Rooms keep connections open, so give it time.
+    stop_grace_period: 30s
+
+volumes:
+  data:
+  cache:

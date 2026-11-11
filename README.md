@@ -24,13 +24,22 @@ Needs Node 22+ and pnpm.
 ```sh
 pnpm install
 cp .env.example .env.local   # add TMDB_TOKEN and BETTER_AUTH_SECRET
-pnpm db:migrate
 pnpm dev
 ```
 
-Open [localhost:3000](http://localhost:3000). The sign-in code shows up in the terminal.
+Open [localhost:3000](http://localhost:3000). The database sets itself up on first start
+and the sign-in code shows up in the terminal.
 
-Run `pnpm check` before every commit (format, types, lint, tests).
+Run `pnpm check` before every commit (format, types, lint, tests). CI runs it too.
+
+## Deploy
+
+```sh
+docker compose pull && docker compose up -d   # needs a .env next to docker-compose.yml
+```
+
+Every push to main builds `ghcr.io/pyvnoaim/lateshow`. The database lives in a Docker volume,
+migrations run on start and `/api/health` reports if it is up.
 
 ## Built with
 
