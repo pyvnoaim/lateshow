@@ -41,4 +41,31 @@ describe("bracketState", () => {
     expect(s.champion).toBe(1);
     expect(s.current).toBeNull();
   });
+  it("never goes back when someone joins late or leaves", () => {
+    const v = votes([
+      [0, { a: 2, b: 2 }],
+      [1, { a: 3, b: 4 }],
+    ]);
+    // a late joiner c isn't required: decided matches stay decided
+    expect(bracketState(deck, v, ["a", "b"]).current?.index).toBe(2);
+    // b left: only a is required now, results stay the same (b's votes still count)
+    const after = bracketState(deck, v, ["a"]);
+    expect(after.matches[0].winner).toBe(2);
+    expect(after.matches[1].winner).toBe(3);
+  });
+  it("gives a bye when the deck is short", () => {
+    const s = bracketState(
+      [1, 2, 3, 4, 5],
+      votes([
+        [0, { a: 1 }],
+        [1, { a: 3 }],
+        [4, { a: 1 }],
+      ]),
+      ["a"],
+    );
+    expect(s.matches[2].winner).toBe(5); // 5 had no opponent
+    expect(s.matches[3].winner).toBeNull(); // no titles at all there
+    expect(s.matches[5].winner).toBe(5);
+    expect(s.current).toMatchObject({ index: 6, a: 1, b: 5 });
+  });
 });

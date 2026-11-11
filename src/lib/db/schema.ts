@@ -108,6 +108,8 @@ export const room = sqliteTable("room", {
   deck: text("deck", { mode: "json" }).$type<number[]>(),
   // the title everyone picked (swipe: the first one all of you liked)
   winner: integer("winner"),
+  // who was in the room when the game started (bracket waits for these, not for late joiners)
+  players: text("players", { mode: "json" }).$type<string[]>(),
   // reel: the mood the spin landed on (its 3 picks are in `deck`)
   mood: text("mood"),
   createdAt: integer("created_at", { mode: "timestamp_ms" }).default(now).notNull(),

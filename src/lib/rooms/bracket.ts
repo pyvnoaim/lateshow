@@ -5,19 +5,25 @@ const FEEDS: Record<number, [number, number]> = { 4: [0, 1], 5: [2, 3], 6: [4, 5
 export type Match = { index: number; a: number | null; b: number | null; winner: number | null; voted: string[] };
 
 /**
- * The whole bracket from the votes (match -> member -> chosen title). A match is decided when every member voted
- * on it: most votes wins, a tie goes to the higher seed (earlier in the deck). Members who left don't count. Pure.
+ * The whole bracket from the votes (match -> member -> chosen title).
+ * `required` are the people who must vote on each match: those who were there at the start and are still here.
+ * Late joiners may vote (their votes count) but nobody waits for them, and someone leaving never undoes a decided
+ * match, so the bracket only ever moves forward. Most votes wins, a tie goes to the higher seed (earlier in the deck).
+ * A missing title (a deck short of 8) is a bye: the other one goes through. Pure.
  */
-export function bracketState(deck: number[], votes: Map<number, Map<string, number>>, members: string[]) {
+export function bracketState(deck: number[], votes: Map<number, Map<string, number>>, required: string[]) {
   const matches: Match[] = [];
   for (let i = 0; i < 7; i++) {
     const [a, b] = i < 4 ? [deck[2 * i] ?? null, deck[2 * i + 1] ?? null] : FEEDS[i].map((m) => matches[m].winner);
     const mine = votes.get(i) ?? new Map<string, number>();
-    const voted = members.filter((m) => mine.has(m));
+    const voted = [...mine.keys()];
     let winner: number | null = null;
-    if (a !== null && b !== null && members.length > 0 && voted.length === members.length) {
-      const forA = voted.filter((m) => mine.get(m) === a).length;
-      const forB = voted.length - forA;
+    if (a !== null && b === null) winner = i < 4 || matches[FEEDS[i][1]].a === null ? a : null;
+    else if (a === null && b !== null) winner = i < 4 || matches[FEEDS[i][0]].a === null ? b : null;
+    else if (a !== null && b !== null && required.length > 0 && required.every((m) => mine.has(m))) {
+      const all = [...mine.values()];
+      const forA = all.filter((c) => c === a).length;
+      const forB = all.filter((c) => c === b).length;
       winner = forA > forB ? a : forB > forA ? b : deck.indexOf(a) < deck.indexOf(b) ? a : b;
     }
     matches.push({ index: i, a, b, winner, voted });

@@ -6,7 +6,7 @@ import { buttonStyles } from "@/components/ui/button";
 import { fieldInputStyles, fieldStyles } from "@/components/ui/field";
 
 /** Joins with your account as soon as you open the room (you opened its link, that's the intent). */
-export function AutoJoin({ code, join }: { code: string; join: (code: string) => Promise<void> }) {
+export function AutoJoin({ code, join }: { code: string; join: (code: string) => Promise<string | null> }) {
   useEffect(() => {
     void join(code);
   }, [code, join]);

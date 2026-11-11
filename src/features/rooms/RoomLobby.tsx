@@ -1,16 +1,15 @@
 import Link from "next/link";
 import { connection } from "next/server";
 import type { ReactNode } from "react";
-import { renderSVG } from "uqr";
 import { buttonStyles } from "@/components/ui/button";
-import { joinAsGuest, joinRoom, leaveRoom, startRoom } from "@/lib/rooms/actions";
+import { joinAsGuest, joinRoom, leaveRoom, phoneQr, startRoom } from "@/lib/rooms/actions";
 import { GAMES } from "@/lib/rooms/games";
-import { handoffUrl } from "@/lib/rooms/handoff";
 import { getRoomIdentity } from "@/lib/rooms/identity";
 import { getRoom } from "@/lib/rooms/queries";
 import { cleanCode } from "@/lib/rooms/rules";
 import { AutoJoin, CopyRoomLink, GuestJoin, LeaveRoom, StartRoom } from "./components/RoomButtons";
 import { LiveRoom } from "./components/LiveRoom";
+import { PhoneQr } from "./components/PhoneQr";
 import { BracketGame } from "./BracketGame";
 import { ReelGame } from "./ReelGame";
 import { SwipeGame } from "./SwipeGame";
@@ -53,7 +52,18 @@ export async function RoomLobby({ code: raw }: { code: string }) {
     return (
       <div className="flex flex-col gap-10">
         <Heading detail={what} top={`${r.host}'s room.`} muted="Jump in." />
-        {me && !me.guest ? (
+        {me && !me.guest && !me.username ? (
+          <div className="flex flex-col items-start gap-4">
+            <p className="text-body text-muted">
+              Pick a username first.
+              <br />
+              Everyone in the room sees it, never your email.
+            </p>
+            <Link href="/settings" className={buttonStyles("primary", "sm")}>
+              Settings
+            </Link>
+          </div>
+        ) : me && !me.guest ? (
           <AutoJoin code={code} join={joinRoom} />
         ) : (
           <div className="flex flex-col gap-4">
@@ -95,12 +105,10 @@ export async function RoomLobby({ code: raw }: { code: string }) {
   }
   const joined = r.members.filter((m) => m.joined);
   const invited = r.members.filter((m) => !m.joined);
-  // the QR signs your phone in as you; guests have no account to hand over, theirs just opens the room
-  const qr = me && !me.guest ? renderSVG(await handoffUrl(`/rooms/${code}`), { border: 1 }) : null;
 
   return (
     <div className="flex flex-col gap-section">
-      <LiveRoom code={code} every={qr ? 90_000 : undefined} />
+      <LiveRoom code={code} />
       <Heading detail={what} top="Waiting for" muted="everyone." />
 
       <div className="flex flex-wrap items-end gap-10">
@@ -109,23 +117,7 @@ export async function RoomLobby({ code: raw }: { code: string }) {
           <span className="text-page leading-none font-bold tracking-widest">{code}</span>
         </div>
         <CopyRoomLink code={code} />
-        {qr && (
-          <div className="ml-auto hidden items-center gap-5 rounded-banner glass-cell py-4 pr-6 pl-4 sm:flex">
-            {/* uqr output: a plain SVG we built from our own URL */}
-            <div
-              role="img"
-              aria-label="QR code to open this room on your phone"
-              className="size-28 overflow-hidden rounded-thumb bg-fg"
-              dangerouslySetInnerHTML={{ __html: qr }}
-            />
-            <div className="flex max-w-56 flex-col gap-1.5">
-              <span className="text-body font-semibold">Continue on your phone</span>
-              <span className="text-small leading-normal text-muted">
-                Scan with the camera. You land in this room, already signed in.
-              </span>
-            </div>
-          </div>
-        )}
+        {me && !me.guest && <PhoneQr code={code} load={phoneQr} />}
       </div>
 
       <section className="flex flex-col gap-5">

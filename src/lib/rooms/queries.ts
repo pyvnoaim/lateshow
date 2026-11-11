@@ -14,7 +14,8 @@ export async function getRoom(code: string) {
     .limit(1);
   if (!r) return null;
   const members = await db.select().from(roomMember).where(eq(roomMember.roomCode, code)).orderBy(roomMember.joinedAt);
-  return { ...r.room, host: r.host, members: members.toSorted((a) => (a.memberId === r.room.hostId ? -1 : 0)) };
+  const isHost = (m: { memberId: string }) => (m.memberId === r.room.hostId ? 1 : 0);
+  return { ...r.room, host: r.host, members: members.toSorted((a, b) => isHost(b) - isHost(a)) };
 }
 
 /** The room's change counter, for the live lobby. Null when the room is gone. */

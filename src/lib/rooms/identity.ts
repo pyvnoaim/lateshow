@@ -14,12 +14,21 @@ export const GUEST_COOKIE = "room_guest";
 export const guestMemberId = (secret: string) =>
   `guest:${createHash("sha256").update(secret).digest("hex").slice(0, 32)}`;
 
-export type RoomIdentity = { id: string; name: string | null; guest: boolean };
+export type RoomIdentity = { id: string; name: string | null; guest: boolean; username: string | null };
 
 /** Who is looking at a room: your account, or the guest id this browser got when joining by code, or nobody. */
 export async function getRoomIdentity(): Promise<RoomIdentity | null> {
   const session = await getSession();
-  if (session) return { id: session.user.id, name: shownName(session.user), guest: false };
+  if (session) {
+    return {
+      id: session.user.id,
+      name: shownName(session.user),
+      guest: false,
+      username: session.user.username ?? null,
+    };
+  }
   const guest = (await cookies()).get(GUEST_COOKIE)?.value;
-  return guest && /^[a-f0-9]{32}$/.test(guest) ? { id: guestMemberId(guest), name: null, guest: true } : null;
+  return guest && /^[a-f0-9]{32}$/.test(guest)
+    ? { id: guestMemberId(guest), name: null, guest: true, username: null }
+    : null;
 }

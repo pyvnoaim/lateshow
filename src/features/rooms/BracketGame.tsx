@@ -1,9 +1,10 @@
 import { getLanguage } from "@/lib/region";
-import { pickInBracket } from "@/lib/rooms/actions";
+import { pickInBracket, playAgain } from "@/lib/rooms/actions";
 import { bracketState, roundLabel } from "@/lib/rooms/bracket";
 import { getPicks } from "@/lib/rooms/queries";
 import { getTitle, img, shortGenre } from "@/lib/tmdb";
 import { BracketVote, type Contender } from "./components/BracketVote";
+import { PlayAgain } from "./components/RoomButtons";
 import { Winner, type Room } from "./Winner";
 
 /** Bracket, for one member: the match being played, who still has to vote, the tree so far, then the winner. */
@@ -12,11 +13,10 @@ export async function BracketGame({ r, meId }: { r: Room; meId: string }) {
   const deck = r.deck ?? [];
   const members = r.members.filter((m) => m.joined);
   const picks = await getPicks(r.code);
-  const state = bracketState(
-    deck,
-    picks,
-    members.map((m) => m.memberId),
-  );
+  // the people the bracket waits for: there at the start and still here (late joiners vote, nobody waits for them)
+  const here = members.map((m) => m.memberId);
+  const waitFor = r.players ? r.players.filter((p) => here.includes(p)) : here;
+  const state = bracketState(deck, picks, waitFor);
   const host = r.hostId === meId;
   const titles = new Map(
     await Promise.all(
@@ -52,7 +52,19 @@ export async function BracketGame({ r, meId }: { r: Room; meId: string }) {
     );
   }
 
-  const now = state.current!;
+  const now = state.current;
+  if (!now) {
+    return (
+      <div className="flex flex-col items-start gap-8">
+        <h1 className="text-page leading-none font-bold">
+          Not enough titles.
+          <br />
+          <span className="text-muted">Your shared services came up short.</span>
+        </h1>
+        {host && <PlayAgain code={r.code} again={playAgain} />}
+      </div>
+    );
+  }
   const label = roundLabel(now.index);
   const name = (id: number | null) => (id === null ? "" : (titles.get(id)?.title ?? ""));
   const slot = (id: number | null, won: boolean, live: boolean) => (
@@ -94,7 +106,7 @@ export async function BracketGame({ r, meId }: { r: Room; meId: string }) {
             ))}
           </div>
           <span className="text-caption text-muted nums">
-            {now.voted.length} of {members.length} voted
+            {waitFor.filter((id) => now.voted.includes(id)).length} of {waitFor.length} voted
           </span>
         </div>
       </div>
@@ -105,7 +117,9 @@ export async function BracketGame({ r, meId }: { r: Room; meId: string }) {
         match={now.index}
         pair={[titles.get(now.a!)!, titles.get(now.b!)!]}
         picked={picks.get(now.index)?.get(meId) ?? null}
-        waitingFor={members.filter((m) => !now.voted.includes(m.memberId) && m.memberId !== meId).map((m) => m.name)}
+        waitingFor={members
+          .filter((m) => waitFor.includes(m.memberId) && !now.voted.includes(m.memberId) && m.memberId !== meId)
+          .map((m) => m.name)}
         pick={pickInBracket}
       />
 
