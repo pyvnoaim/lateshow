@@ -13,7 +13,7 @@ const tones = {
   /** Blue tinted glass, for something that is on (watched, on the watchlist). */
   accent: "glass-accent",
   /** Frosted glass with a red label: an action that deletes something. */
-  danger: "glass text-danger",
+  danger: "glass sheen-danger text-danger",
   /** Red glass: confirming the deletion. */
   dangerConfirm: "glass-danger",
 } as const;

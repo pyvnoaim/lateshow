@@ -199,6 +199,10 @@
   }
 }
 /* Blue tinted glass: "this is on" (watched, on the watchlist). Same material as the other glass. */
+/* Tints the pointer highlight on a glass element red (the Delete account pill) */
+@utility sheen-danger {
+  --sheen-color: var(--color-danger);
+}
 /* Red version of glass-accent, for the one destructive confirm ("Delete for good") */
 @utility glass-danger {
   background:
@@ -268,7 +272,7 @@
   background:
     radial-gradient(
       circle 90px at var(--mx, 50%) var(--my, 0%),
-      rgb(255 255 255 / calc(var(--sheen) * 0.22)),
+      color-mix(in srgb, var(--sheen-color, white) calc(var(--sheen) * 22%), transparent),
       transparent 70%
     ),
     linear-gradient(180deg, var(--color-glass-hi), var(--color-glass-lo));
@@ -287,7 +291,7 @@
       background:
         radial-gradient(
           circle 90px at var(--mx, 50%) var(--my, 0%),
-          rgb(255 255 255 / calc(var(--sheen) * 0.22)),
+          color-mix(in srgb, var(--sheen-color, white) calc(var(--sheen) * 22%), transparent),
           transparent 70%
         ),
         linear-gradient(180deg, var(--color-glass-hi-hover), var(--color-glass-lo-hover));
