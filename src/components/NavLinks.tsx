@@ -1,17 +1,19 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 
+// ponytail: "Rooms" comes back when watch together rooms exist.
 const links = [
   { href: "/", label: "Home" },
   { href: "/watchlist", label: "Watchlist" },
-  { href: "/rooms", label: "Rooms" },
 ] as const;
 
 export function NavLinks() {
   const path = usePathname();
-  return <NavLinksView path={path} />;
+  const tab = useSearchParams().get("tab");
+  // the watchlist lives on the profile, so that tab counts as being on "Watchlist"
+  return <NavLinksView path={path === "/u/me" && tab === "watchlist" ? "/watchlist" : path} />;
 }
 
 /** The links themselves. Rendered with path null as the Suspense fallback, so nothing moves while the URL is read. */

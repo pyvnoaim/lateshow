@@ -254,8 +254,9 @@ Rules:
 
 ## Todo (agreed 2026-11-11, in this order)
 
-- [ ] Dead nav links: "Watchlist" and "Rooms" in the top bar both go to the 404 page. Watchlist -> the profile's
-      Watchlist tab (or its own page), Rooms -> build the page or hide the link until rooms exist.
+- [x] Dead nav links (2026-11-11): "Watchlist" -> /watchlist (your profile's Watchlist tab, or sign in first and come
+      back), "Rooms" hidden until rooms exist. Sign in takes `?next=` (only paths on this site), sign-in buttons pass the
+      page you were on.
 - [ ] Phone navigation: Home / Watchlist / Rooms are hidden below `sm` with nothing replacing them. Needs a small menu.
 - [ ] Settings page: language (TMDB titles and descriptions) and your streaming services (powers "My services" on
       Trending, picks only from your services, sorts them first). Country stays auto-detected.

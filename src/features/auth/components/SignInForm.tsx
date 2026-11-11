@@ -8,7 +8,18 @@ import { authClient } from "@/lib/authClient";
 
 const RESEND_SECONDS = 30;
 
-export function SignInForm({ linkError, minutes, devHint }: { linkError: boolean; minutes: number; devHint: boolean }) {
+export function SignInForm({
+  linkError,
+  minutes,
+  devHint,
+  next,
+}: {
+  linkError: boolean;
+  minutes: number;
+  devHint: boolean;
+  /** Where the link takes you after signing in (already checked to be a path on this site). */
+  next: string;
+}) {
   const [email, setEmail] = useState("");
   const [sentTo, setSentTo] = useState<string | null>(null);
   const [pending, setPending] = useState(false);
@@ -32,8 +43,8 @@ export function SignInForm({ linkError, minutes, devHint }: { linkError: boolean
     setError("");
     const res = await authClient.signIn.magicLink({
       email: to,
-      callbackURL: "/",
-      errorCallbackURL: "/login?error=link",
+      callbackURL: next,
+      errorCallbackURL: `/login?error=link&next=${encodeURIComponent(next)}`,
     });
     setPending(false);
     if (res.error) {

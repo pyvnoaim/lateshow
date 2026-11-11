@@ -2,6 +2,7 @@
 
 import { Check, Plus } from "lucide-react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useOptimistic, useState, useTransition } from "react";
 import { buttonStyles, type ButtonSize } from "@/components/ui/button";
 
@@ -34,6 +35,7 @@ export function LibraryToggle({
   size?: Extract<ButtonSize, "icon" | "iconSm">;
 }) {
   const k = kinds[kind];
+  const path = usePathname(); // signed out: sign in, then come back to this page
   const [saved, setSaved] = useState(initial);
   const [on, setOptimistic] = useOptimistic(saved);
   const [, startTransition] = useTransition();
@@ -42,7 +44,7 @@ export function LibraryToggle({
   if (!signedIn) {
     return (
       <Link
-        href="/login"
+        href={`/login?next=${encodeURIComponent(path)}`}
         aria-label={`${k.off} (sign in first)`}
         data-tip={k.off}
         data-tip-meta="Sign in first"
