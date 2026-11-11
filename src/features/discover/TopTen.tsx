@@ -2,7 +2,8 @@ import Image from "next/image";
 import Link from "next/link";
 import { Section } from "@/components/ui/Section";
 import { getTopInCountry } from "@/lib/justwatch";
-import { getTitle, img, subscriptionServices } from "@/lib/tmdb";
+import { PosterCaption } from "@/components/PosterCaption";
+import { getTitle, img, titleToCard } from "@/lib/tmdb";
 import { getRegion } from "@/lib/region";
 
 /** The 10 most watched titles in your country right now, big rank numbers, scrolls sideways. */
@@ -40,10 +41,7 @@ export async function TopTen() {
                   <Image src={img(t.poster_path, "w342")!} alt="" fill sizes="144px" className="object-cover" />
                 </div>
                 <span className="truncate text-label font-medium">{t.title ?? t.name}</span>
-                {/* nbsp keeps every column the same height when there's no service */}
-                <span className="-mt-2 truncate text-caption text-muted">
-                  {subscriptionServices(t, code)[0]?.name ?? "\u00a0"}
-                </span>
+                <PosterCaption card={titleToCard(t, type)} />
               </div>
             </Link>
           </li>

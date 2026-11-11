@@ -1,32 +1,26 @@
-import Image from "next/image";
 import Link from "next/link";
 import { ViewTransition, type CSSProperties } from "react";
-import { getGenreNames, img, type Card, type Service } from "@/lib/tmdb";
+import { img, type Card } from "@/lib/tmdb";
+import { PosterCaption } from "./PosterCaption";
 import { TmdbImage } from "./TmdbImage";
 
 /**
  * Poster that links to its title page. With `morph` the poster grows into the title's backdrop.
  * Turn `morph` off when the same title can show twice on one screen (transition names must be unique).
  */
-export async function PosterLink({
+export function PosterLink({
   card,
   index = 0,
   morph = true,
-  caption,
-  service,
+  caption = true,
 }: {
   card: Card;
   index?: number;
   morph?: boolean;
-  /** Replaces the "Movie · 2024" line. `null` hides it (the caller renders its own line under the link). */
-  caption?: string | null;
-  /** Small app icon at the end of the caption: where it streams on a subscription. */
-  service?: Service;
+  /** `false` hides the "Movie · 2026 · Crime" line (the caller renders its own under the link). */
+  caption?: boolean;
 }) {
   const name = card.title ?? card.name ?? "";
-  const year = (card.release_date ?? card.first_air_date ?? "").slice(0, 4);
-  const genres = await getGenreNames().catch(() => ({}) as Record<number, string>);
-  const genre = card.genre_ids?.map((id) => genres[id]).find(Boolean);
   const poster = img(card.poster_path, "w500");
   const artwork = (
     <div className="relative aspect-poster lift overflow-hidden rounded-poster bg-raised outline-1 -outline-offset-1 outline-hairline">
@@ -57,23 +51,7 @@ export async function PosterLink({
         artwork
       )}
       <span className="text-label font-medium">{name}</span>
-      {caption !== null && (
-        <span className="-mt-2 flex items-center gap-1.5 text-caption text-muted">
-          <span className="truncate">
-            {caption ?? [card.media_type === "tv" ? "Series" : "Movie", year, genre].filter(Boolean).join(" · ")}
-          </span>
-          {service && (
-            <Image
-              src={img(service.logoPath, "w92")!}
-              alt={`On ${service.name}`}
-              data-tip={service.name}
-              width={14}
-              height={14}
-              className="size-3.5 shrink-0 rounded-sm"
-            />
-          )}
-        </span>
-      )}
+      {caption && <PosterCaption card={card} />}
     </Link>
   );
 }

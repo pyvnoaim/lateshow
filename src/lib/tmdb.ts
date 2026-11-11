@@ -48,7 +48,7 @@ export type Title = {
   first_air_date?: string;
   runtime?: number;
   number_of_seasons?: number;
-  genres: { name: string }[];
+  genres: { id: number; name: string }[];
   vote_average: number;
   seasons?: { season_number: number; episode_count: number }[];
   credits: { cast: { id: number; name: string; character: string; profile_path: string | null }[] };
@@ -195,6 +195,20 @@ export function serviceName(name: string): string {
     .replace(/\s+(Standard\s+)?with\s+Ads$/i, "")
     .replace(/^Amazon\s+/, "")
     .replace(/\s+Plus$/, "+");
+}
+
+/** A full title as a poster card (for lists that start from title ids, like the watchlist or the Top 10). */
+export function titleToCard(t: Title, type: MediaType): Card {
+  return {
+    id: t.id,
+    media_type: type,
+    title: t.title,
+    name: t.name,
+    poster_path: t.poster_path,
+    release_date: t.release_date,
+    first_air_date: t.first_air_date,
+    genre_ids: t.genres.map((g) => g.id),
+  };
 }
 
 export type Service = { name: string; logoPath: string };

@@ -14,14 +14,12 @@ export function PosterSection({
   aside,
   cards,
   max = 6,
-  caption,
 }: {
   title: string;
   description?: string;
   aside?: ReactNode;
   cards: Card[];
   max?: 6 | 12;
-  caption?: (card: Card) => string | undefined;
 }) {
   const fullRows = Math.floor(Math.min(cards.length, max) / 6) * 6;
   const shown = cards.slice(0, fullRows || Math.min(cards.length, max));
@@ -30,7 +28,7 @@ export function PosterSection({
     <Section title={title} description={description} aside={aside}>
       <PosterGrid>
         {shown.map((c, i) => (
-          <PosterLink key={`${c.media_type}-${c.id}`} card={c} index={i} morph={false} caption={caption?.(c)} />
+          <PosterLink key={`${c.media_type}-${c.id}`} card={c} index={i} morph={false} />
         ))}
       </PosterGrid>
     </Section>

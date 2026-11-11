@@ -21,14 +21,15 @@ export async function CinemaPoster({
 }) {
   const genres = await getGenreNames().catch(() => ({}) as Record<number, string>);
   const genre = card.genre_ids?.map((id) => genres[id]).find(Boolean);
-  const parts = [showDate ? shortDate(date) : null, genre].filter(Boolean);
+  // Same shape as every other caption ("Movie · 2026 · Crime"), the release day stands in for the year.
+  const parts = ["Movie", showDate ? shortDate(date) : null, genre].filter(Boolean);
   return (
     <div className="flex flex-col gap-0.5">
-      <PosterLink card={card} index={index} morph={false} caption={null} />
+      <PosterLink card={card} index={index} morph={false} caption={false} />
       {/* date and trailer live outside the link: a button inside a link is invalid */}
       <div className="flex items-center gap-1.5 text-caption text-muted nums">
-        {parts.length > 0 && <span className="truncate">{parts.join(" · ")}</span>}
-        {parts.length > 0 && trailer && <span aria-hidden>·</span>}
+        <span className="truncate">{parts.join(" · ")}</span>
+        {trailer && <span aria-hidden>·</span>}
         {trailer && <Trailer youtubeKey={trailer} title={card.title ?? ""} variant="text" />}
       </div>
     </div>
