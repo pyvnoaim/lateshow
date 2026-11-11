@@ -30,14 +30,16 @@ export function Footer() {
   return (
     <footer className="mt-section border-t border-hairline">
       <Container className="flex flex-col gap-12 pt-14 pb-10">
-        <div className="flex flex-wrap justify-between gap-12">
+        {/* baseline: the name and the column headings sit on one line */}
+        <div className="flex flex-wrap items-baseline justify-between gap-12">
           <div className="flex flex-col gap-2">
             <Link href="/" className="w-fit text-logo font-bold tracking-tight">
               Lateshow
             </Link>
             <p className="text-small text-muted">Everything you watch. One place.</p>
           </div>
-          <nav aria-label="Footer" className="grid grid-cols-2 gap-x-16 gap-y-8 sm:grid-cols-3">
+          {/* columns as wide as their links, so the last one ends flush with the right edge like the line below */}
+          <nav aria-label="Footer" className="flex flex-wrap gap-x-16 gap-y-8">
             {COLUMNS.map((col) => (
               <div key={col.title} className="flex flex-col gap-3">
                 <span className="text-caption font-semibold text-fg">{col.title}</span>
