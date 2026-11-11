@@ -2,8 +2,8 @@
 
 import { Search } from "lucide-react";
 import Link from "next/link";
-import { useEffect, useState, type ReactNode } from "react";
-import { NavLinks } from "./NavLinks";
+import { Suspense, useEffect, useState, type ReactNode } from "react";
+import { NavLinks, NavLinksView } from "./NavLinks";
 
 const TOP = 48; // the top bar is on its way out here: the island takes over, so there's never a moment with neither
 
@@ -34,7 +34,10 @@ export function NavIsland({ account }: { account: ReactNode }) {
         <span aria-hidden className="block size-8 mark-round" />
       </Link>
       <span className="px-1">
-        <NavLinks />
+        {/* usePathname inside: Suspense with the same links as fallback, like the top bar (Cache Components) */}
+        <Suspense fallback={<NavLinksView path={null} />}>
+          <NavLinks />
+        </Suspense>
       </span>
       <span className="flex items-center gap-1">
         <Link
