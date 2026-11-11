@@ -1,6 +1,8 @@
 import Link from "next/link";
 import { Suspense } from "react";
+import { isProduction } from "@/lib/env";
 import { AccountButton } from "./AccountButton";
+import { DevSkeletonToggle } from "./DevSkeletonToggle";
 import { NavLinks, NavLinksView } from "./NavLinks";
 import { NavSearch } from "./NavSearch";
 import { Container } from "./ui/Container";
@@ -21,6 +23,7 @@ export function TopBar() {
           <NavLinks />
         </Suspense>
         <div className="ml-auto flex items-center gap-2">
+          {!isProduction && <DevSkeletonToggle />}
           <Suspense fallback={<div aria-hidden className="size-11" />}>
             <NavSearch />
           </Suspense>

@@ -1,9 +1,9 @@
 import { ArrowUpRight, Play, Star, Ticket } from "lucide-react";
 import Image from "next/image";
 import { notFound } from "next/navigation";
-import { Suspense } from "react";
 import { LibraryToggle } from "@/components/library/LibraryToggle";
 import { PosterLink } from "@/components/PosterLink";
+import { Loading } from "@/components/Loading";
 import { BackdropHero, BackdropHeroSkeleton, heroTitle } from "@/components/BackdropHero";
 import { buttonStyles } from "@/components/ui/button";
 import { Container } from "@/components/ui/Container";
@@ -63,9 +63,9 @@ export async function TitleView({ type, id }: { type: string; id: string }) {
       <WhereToWatch links={links} fallback={t["watch/providers"].results[region.code]?.link} country={region.name} />
       <Container as="main" className="flex flex-col gap-section pt-section">
         {type === "tv" && (
-          <Suspense fallback={<div className="h-80 sk rounded-banner" />}>
+          <Loading fallback={<div className="h-80 sk rounded-banner" />}>
             <SeasonSections t={t} library={library} next={next} />
-          </Suspense>
+          </Loading>
         )}
         <Cast t={t} />
         {t.recommendations.results.length > 0 && (
