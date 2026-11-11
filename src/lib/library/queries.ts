@@ -93,3 +93,15 @@ export const getMyWatchlistKeys = cache(async () => {
     .where(eq(watchlist.userId, session.user.id));
   return new Set(rows.map((r) => `${r.mediaType}-${r.tmdbId}`));
 });
+
+/** Titles you watched anything of, most recent first (Settings: faces to pick a profile picture from). */
+export async function getRecentTitles(userId: string, limit = 12) {
+  const last = max(watched.watchedAt);
+  return db
+    .select({ mediaType: watched.mediaType, tmdbId: watched.tmdbId, last })
+    .from(watched)
+    .where(eq(watched.userId, userId))
+    .groupBy(watched.mediaType, watched.tmdbId)
+    .orderBy(desc(last))
+    .limit(limit);
+}

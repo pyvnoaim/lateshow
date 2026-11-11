@@ -12,6 +12,7 @@ import { roomMember, roomMood, roomPick, roomVote, userServices } from "@/lib/db
 import { LANGUAGE_COOKIE, LANGUAGES } from "@/lib/languages";
 import { SPOILER_COOKIE } from "@/lib/settings/queries";
 import { checkUsername } from "@/lib/username";
+import { isAvatarValue } from "@/lib/avatar";
 
 const providerId = z.number().int().positive();
 
@@ -110,5 +111,17 @@ export async function removePasskey(id: string) {
   const session = await getSession();
   if (!session) throw new Error("Sign in first.");
   await db.delete(passkey).where(and(eq(passkey.id, z.string().min(1).parse(id)), eq(passkey.userId, session.user.id)));
+  refresh();
+}
+
+/** Your profile picture: a tone ("c:mint"), a cast photo ("p:/abc.jpg") or "" for the default. */
+export async function setAvatar(value: string) {
+  const session = await getSession();
+  if (!session) throw new Error("Sign in first.");
+  const v = z.string().max(80).refine(isAvatarValue).parse(value);
+  await db
+    .update(user)
+    .set({ image: v || null, updatedAt: new Date() })
+    .where(eq(user.id, session.user.id));
   refresh();
 }

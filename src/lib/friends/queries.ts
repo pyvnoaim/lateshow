@@ -32,7 +32,13 @@ export async function areFriends(x: string, y: string) {
 /** The public side of a user, by username (never their email). */
 export async function getUserByUsername(username: string) {
   const [row] = await db
-    .select({ id: user.id, username: user.username, createdAt: user.createdAt, shareActivity: user.shareActivity })
+    .select({
+      id: user.id,
+      username: user.username,
+      image: user.image,
+      createdAt: user.createdAt,
+      shareActivity: user.shareActivity,
+    })
     .from(user)
     .where(eq(user.username, username.toLowerCase()))
     .limit(1);
@@ -49,7 +55,7 @@ export async function getFriends(userId: string) {
   const ids = pairs.map((p) => (p.a === userId ? p.b : p.a));
   if (ids.length === 0) return [];
   const people = await db
-    .select({ id: user.id, username: user.username, shareActivity: user.shareActivity })
+    .select({ id: user.id, username: user.username, image: user.image, shareActivity: user.shareActivity })
     .from(user)
     .where(inArray(user.id, ids));
   // ponytail: one small query per friend for their latest row. Fine for dozens of friends, a window query past that.
@@ -154,4 +160,14 @@ export async function getFriendsWatchlisting(userId: string) {
     out.set(key, [...(out.get(key) ?? []), friends.get(r.userId)!]);
   }
   return out;
+}
+
+/** Profile pictures by username, for the small faces next to names ("anna_k watched this"). */
+export async function getImagesByUsername(usernames: string[]) {
+  if (usernames.length === 0) return new Map<string, string | null>();
+  const rows = await db
+    .select({ username: user.username, image: user.image })
+    .from(user)
+    .where(inArray(user.username, usernames));
+  return new Map(rows.map((r) => [r.username!, r.image]));
 }

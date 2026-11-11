@@ -22,7 +22,13 @@ export async function getRoom(code: string) {
     .where(and(eq(room.code, code), gt(room.expiresAt, new Date())))
     .limit(1);
   if (!r) return null;
-  const members = await db.select().from(roomMember).where(eq(roomMember.roomCode, code)).orderBy(roomMember.joinedAt);
+  const rows = await db
+    .select({ member: roomMember, image: user.image })
+    .from(roomMember)
+    .leftJoin(user, eq(user.id, roomMember.memberId)) // guests have no user row, so no picture
+    .where(eq(roomMember.roomCode, code))
+    .orderBy(roomMember.joinedAt);
+  const members = rows.map((r) => ({ ...r.member, image: r.image }));
   const isHost = (m: { memberId: string }) => (m.memberId === r.room.hostId ? 1 : 0);
   return { ...r.room, host: r.host, members: members.toSorted((a, b) => isHost(b) - isHost(a)) };
 }

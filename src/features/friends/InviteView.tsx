@@ -4,19 +4,24 @@ import { buttonStyles } from "@/components/ui/button";
 import { getSession } from "@/lib/auth";
 import { acceptInvite } from "@/lib/friends/actions";
 import { areFriends, getInvite } from "@/lib/friends/queries";
+import { Avatar } from "@/components/Avatar";
+import { getImagesByUsername } from "@/lib/friends/queries";
 import { inviteState } from "@/lib/friends/rules";
 import { shownName } from "@/lib/username";
 import { AcceptInvite } from "./components/AcceptInvite";
 
-const avatar = "flex size-18 items-center justify-center rounded-full text-section font-bold glass-accent";
-
-function Avatars({ names }: { names: string[] }) {
+async function Avatars({ names }: { names: string[] }) {
+  const images = await getImagesByUsername(names);
   return (
     <div className="flex">
       {names.map((n, i) => (
-        <div key={n} className={`${avatar} pop ${i > 0 ? "-ml-4 ring-4 ring-bg" : ""}`}>
-          {n.charAt(0).toUpperCase()}
-        </div>
+        <Avatar
+          key={n}
+          name={n}
+          image={images.get(n)}
+          size="xl"
+          className={`pop ${i > 0 ? "-ml-4 ring-4 ring-bg" : ""}`}
+        />
       ))}
     </div>
   );

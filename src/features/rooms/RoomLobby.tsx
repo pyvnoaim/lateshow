@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Avatar } from "@/components/Avatar";
 import { connection } from "next/server";
 import type { ReactNode } from "react";
 import { buttonStyles } from "@/components/ui/button";
@@ -125,11 +126,7 @@ export async function RoomLobby({ code: raw }: { code: string }) {
         <ul className="flex flex-wrap gap-6">
           {[...joined, ...invited].map((m) => (
             <li key={m.memberId} className="flex w-22 pop flex-col items-center gap-2.5 text-center">
-              <span
-                className={`flex size-16 items-center justify-center rounded-full text-section font-bold ${m.joined ? "glass-accent" : "glass-cell text-muted"}`}
-              >
-                {m.name.charAt(0).toUpperCase()}
-              </span>
+              <Avatar name={m.name} image={m.image} size="lg" muted={!m.joined} />
               <span className="w-full truncate text-small">{m.name}</span>
               <span className="text-caption text-muted">
                 {m.memberId === r.hostId

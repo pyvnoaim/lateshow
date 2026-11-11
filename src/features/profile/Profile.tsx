@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Avatar } from "@/components/Avatar";
 import { redirect } from "next/navigation";
 import { PosterLink } from "@/components/PosterLink";
 import { buttonStyles } from "@/components/ui/button";
@@ -30,6 +31,7 @@ export type Owner = {
   username: string | null;
   createdAt: Date;
   shareActivity: boolean;
+  image?: string | null;
   friendsSince?: Date;
 };
 type Row = { mediaType: "movie" | "tv"; tmdbId: number; title: string; posterPath: string | null };
@@ -59,6 +61,7 @@ export async function Profile({
     username: session.user.username ?? null,
     createdAt: session.user.createdAt,
     shareActivity: true,
+    image: session.user.image,
   };
   // yours: the watchlist has its own page (/watchlist). A friend's: their watchlist is a tab here.
   const tabs = TABS.filter((t) => (self ? t !== "watchlist" : t !== "friends"));
@@ -106,9 +109,7 @@ export async function Profile({
     <div className="flex flex-col gap-section">
       <div className="flex flex-col gap-10">
         <div className="flex rise flex-wrap items-center gap-5">
-          <div className="flex size-16 items-center justify-center rounded-full text-section font-bold glass-accent">
-            {name.charAt(0).toUpperCase()}
-          </div>
+          <Avatar name={name} image={owner.image} size="lg" />
           <div className="min-w-0 flex-1">
             <div className="text-body font-semibold">{name}</div>
             <div className="text-small text-muted">
@@ -284,9 +285,7 @@ export async function Profile({
                   href={`/u/${f.username}`}
                   className="-mx-3 flex items-center gap-4 rounded-thumb px-3 py-3.5 transition-colors duration-200 hover:bg-fg/5"
                 >
-                  <div className="flex size-12 shrink-0 items-center justify-center rounded-full text-body font-bold glass-accent">
-                    {(f.username ?? "?").charAt(0).toUpperCase()}
-                  </div>
+                  <Avatar name={f.username ?? "?"} image={f.image} size="md" />
                   <div className="min-w-0 flex-1">
                     <div className="truncate text-body font-semibold">{f.username}</div>
                     <div className="truncate text-small text-muted">

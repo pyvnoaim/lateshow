@@ -3,9 +3,11 @@ import { buttonStyles } from "@/components/ui/button";
 import { Section } from "@/components/ui/Section";
 import { getSession } from "@/lib/auth";
 import { LANGUAGES } from "@/lib/languages";
+import { shownName } from "@/lib/username";
 import { getRegion } from "@/lib/region";
 import {
   deleteAccount,
+  setAvatar,
   setLanguage,
   setMyService,
   setShareActivity,
@@ -13,8 +15,9 @@ import {
   setUsername,
   removePasskey,
 } from "@/lib/settings/actions";
-import { getMyPasskeys, getMyServiceIds, getSpoilerGuard } from "@/lib/settings/queries";
+import { getAvatarFaces, getMyPasskeys, getMyServiceIds, getSpoilerGuard } from "@/lib/settings/queries";
 import { getServiceChoices, img } from "@/lib/tmdb";
+import { AvatarPicker } from "./components/AvatarPicker";
 import { ChoicePicker } from "./components/ChoicePicker";
 import { DeleteAccount } from "./components/DeleteAccount";
 import { TextSetting } from "./components/TextSetting";
@@ -25,11 +28,12 @@ export async function Settings() {
   const session = await getSession();
   if (!session) redirect(`/login?next=${encodeURIComponent("/settings")}`);
   const region = await getRegion();
-  const [choices, mine, guard, passkeys] = await Promise.all([
+  const [choices, mine, guard, passkeys, faces] = await Promise.all([
     getServiceChoices(region.code).catch(() => []),
     getMyServiceIds(),
     getSpoilerGuard(),
     getMyPasskeys(),
+    getAvatarFaces(session.user.id, region.lang),
   ]);
 
   return (
@@ -44,6 +48,14 @@ export async function Settings() {
           initial={session.user.username ?? ""}
           save={setUsername}
           maxLength={21}
+        />
+      </Section>
+      <Section title="Profile picture">
+        <AvatarPicker
+          name={shownName(session.user)}
+          current={session.user.image ?? null}
+          faces={faces}
+          save={setAvatar}
         />
       </Section>
       <Section title="Friends" description="What friends see on your profile. Off, they only see your name.">
