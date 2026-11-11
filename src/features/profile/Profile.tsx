@@ -11,9 +11,12 @@ import { getSession } from "@/lib/auth";
 import { ago } from "@/lib/ago";
 import { getInviteLink, removeFriend } from "@/lib/friends/actions";
 import { getFriendCount, getFriends } from "@/lib/friends/queries";
+import { MIN_TITLES } from "@/lib/friends/match";
+import { getMatch } from "@/lib/friends/taste";
 import { shownName } from "@/lib/username";
 import { getHistory, getStats, getWatchlist, getWatchTimes } from "@/lib/library/queries";
-import type { Card } from "@/lib/tmdb";
+import { getLanguage } from "@/lib/region";
+import { getTitle, titleToCard, type Card } from "@/lib/tmdb";
 import { SignOutButton } from "./components/SignOutButton";
 import { YearHeatmap } from "./components/YearHeatmap";
 import { yearGrid } from "./yearGrid";
@@ -71,8 +74,28 @@ export async function Profile({
     getWatchlist(uid),
     getWatchTimes(uid, new Date(now.getTime() - 380 * 24 * 60 * 60 * 1000)),
     self ? getFriendCount(uid) : 0,
-    self && tab === "friends" ? getFriends(uid) : [],
+    self && tab === "friends"
+      ? getFriends(uid).then((list) =>
+          Promise.all(
+            list.map(async (f) => ({
+              ...f,
+              match: f.shareActivity ? (await getMatch(uid, f.id)).percent : null,
+            })),
+          ),
+        )
+      : [],
   ]);
+  // a friend's profile leads with how alike your taste is, and the titles you both watched
+  const match = !self && !hidden ? await getMatch(session.user.id, uid) : null;
+  // full TMDB cards (poster, year, genre) for the shared titles, the stored rows only have a title
+  const lang = await getLanguage();
+  const both = await Promise.all(
+    (match?.both ?? []).slice(0, 12).map((r) =>
+      getTitle(r.mediaType, String(r.tmdbId), lang)
+        .then((t) => titleToCard(t, r.mediaType))
+        .catch(() => toCard(r)),
+    ),
+  );
   const month = (d: Date) => d.toLocaleDateString("en", { month: "long", year: "numeric" });
   const empty = stats.movies + stats.episodes === 0;
 
@@ -129,14 +152,36 @@ export async function Profile({
             )}
           </div>
         ) : (
-          <h1 className="rise text-page leading-none font-bold">
-            {stats.minutes >= 60 ? plural(Math.round(stats.minutes / 60), "hour") : plural(stats.minutes, "minute")}{" "}
-            watched.
-            <br />
-            <span className="text-muted">
-              {plural(stats.movies, "movie")}, {plural(stats.episodes, "episode")}.
-            </span>
-          </h1>
+          <div className="flex rise flex-col gap-4">
+            <h1 className="text-page leading-none font-bold">
+              {match?.percent != null ? (
+                <>
+                  {match.percent}% taste match.
+                  <br />
+                  <span className="text-muted">
+                    {stats.minutes >= 60
+                      ? plural(Math.round(stats.minutes / 60), "hour")
+                      : plural(stats.minutes, "minute")}{" "}
+                    watched.
+                  </span>
+                </>
+              ) : (
+                <>
+                  {stats.minutes >= 60
+                    ? plural(Math.round(stats.minutes / 60), "hour")
+                    : plural(stats.minutes, "minute")}{" "}
+                  watched.
+                  <br />
+                  <span className="text-muted">
+                    {plural(stats.movies, "movie")}, {plural(stats.episodes, "episode")}.
+                  </span>
+                </>
+              )}
+            </h1>
+            {match && match.percent === null && (
+              <p className="text-small text-muted">Your taste match shows once you both watched {MIN_TITLES} titles.</p>
+            )}
+          </div>
         )}
 
         {!hidden && (
@@ -154,6 +199,18 @@ export async function Profile({
 
       {!hidden && tab === "overview" && (
         <>
+          {match && match.both.length > 0 && (
+            <Section
+              title="You both watched"
+              aside={<p className="text-small text-muted">{plural(match.both.length, "title")}</p>}
+            >
+              <PosterGrid>
+                {both.map((c, i) => (
+                  <PosterLink key={`${c.media_type}-${c.id}`} card={c} index={i} morph={false} />
+                ))}
+              </PosterGrid>
+            </Section>
+          )}
           <Section
             title={self ? "Your year" : "Their year"}
             aside={<p className="text-small text-muted">Each square is a day.</p>}
@@ -237,6 +294,12 @@ export async function Profile({
                           : "Nothing watched yet"}
                     </div>
                   </div>
+                  {f.match !== null && (
+                    <div className="shrink-0 text-right">
+                      <div className="text-section leading-none font-bold nums">{f.match}%</div>
+                      <div className="text-caption text-muted">match</div>
+                    </div>
+                  )}
                 </Link>
               </li>
             ))}
