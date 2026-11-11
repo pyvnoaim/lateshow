@@ -300,6 +300,33 @@ export async function getOnMyServices(
   return (kind === "all" ? alternate(movies, shows) : [...movies, ...shows]).filter((c) => c.poster_path);
 }
 
+/** TMDB keyword ids for a word ("heist", "time loop"), for moods the genre list doesn't know. */
+export async function searchKeywordIds(query: string) {
+  "use cache";
+  cacheLife("days");
+  const data = await tmdb<{ results: { id: number }[] }>("/search/keyword", { query });
+  return data.results.slice(0, 3).map((k) => k.id);
+}
+
+/** Popular, decently rated titles matching discover filters, on a subscription (any of `services`) in the country. */
+export async function discoverPicks(
+  type: MediaType,
+  params: Record<string, string>,
+  country: string,
+  services: number[] = [],
+  lang: string = DEFAULT_LANGUAGE,
+) {
+  "use cache";
+  cacheLife("hours");
+  const cards = await discover(
+    type,
+    { sort_by: "popularity.desc", "vote_count.gte": "100", ...providerFilter(services), ...params },
+    country,
+    lang,
+  );
+  return cards.filter((c) => c.poster_path);
+}
+
 /** Movie, series, movie... so neither type takes over a row. Leftovers of the longer list go at the end. Pure. */
 export function alternate(movies: Card[], shows: Card[]): Card[] {
   const out: Card[] = [];

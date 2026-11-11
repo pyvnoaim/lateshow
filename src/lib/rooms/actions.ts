@@ -1,6 +1,6 @@
 "use server";
 
-import { randomBytes } from "node:crypto";
+import { randomBytes, randomInt } from "node:crypto";
 import { and, eq, sql } from "drizzle-orm";
 import { cookies } from "next/headers";
 import { refresh } from "next/cache";
@@ -8,11 +8,12 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { getSession } from "@/lib/auth";
 import { db } from "@/lib/db/client";
-import { room, roomMember, roomPick, roomVote } from "@/lib/db/schema";
+import { room, roomMember, roomMood, roomPick, roomVote } from "@/lib/db/schema";
 import { getFriends } from "@/lib/friends/queries";
 import { getRegion } from "@/lib/region";
 import { BRACKET_SIZE, bracketState } from "./bracket";
 import { buildDeck } from "./deck";
+import { pickForMood } from "./reel";
 import { findMatch } from "./swipe";
 import { safeNext } from "@/lib/safeNext";
 import { redeemHandoff } from "./handoff";
@@ -230,6 +231,58 @@ export async function pickInBracket(raw: string, input: z.input<typeof pick>) {
       .where(eq(room.code, code))
       .run();
   });
+}
+
+const moodText = z.string().trim().min(1).max(40);
+
+/** Reel: your mood for tonight. One each, a new one replaces yours. */
+export async function addMood(raw: string, text: string): Promise<string | null> {
+  const code = cleanCode(raw);
+  const me = await getRoomIdentity();
+  const mood = moodText.safeParse(text.replace(/\s+/g, " "));
+  if (!code || !me) return "You're not in this room.";
+  if (!mood.success) return "Use 1 to 40 characters.";
+  const [member] = await db
+    .select({ name: roomMember.name })
+    .from(roomMember)
+    .where(and(eq(roomMember.roomCode, code), eq(roomMember.memberId, me.id), eq(roomMember.joined, true)));
+  if (!member) return "You're not in this room.";
+  await db
+    .insert(roomMood)
+    .values({ roomCode: code, memberId: me.id, name: member.name, mood: mood.data })
+    .onConflictDoUpdate({ target: [roomMood.roomCode, roomMood.memberId], set: { mood: mood.data } });
+  await bump(code);
+  return null;
+}
+
+/** Host: spin. The server picks the mood (so every screen lands on the same one) and its 3 picks. */
+export async function spinReel(raw: string) {
+  const r = await hostedRoom(raw);
+  if (!r || r.status !== "playing" || r.game !== "reel" || r.mood) return;
+  const moods = await db.select().from(roomMood).where(eq(roomMood.roomCode, r.code));
+  if (moods.length === 0) return;
+  const landed = moods[randomInt(moods.length)].mood;
+  const members = await db
+    .select({ id: roomMember.memberId })
+    .from(roomMember)
+    .where(and(eq(roomMember.roomCode, r.code), eq(roomMember.joined, true)));
+  const country = r.country ?? (await getRegion()).code;
+  const people = members.map((m) => m.id).filter((id) => !id.startsWith("guest:"));
+  const picked = await pickForMood(r.code, r.kind, landed, people, country);
+  await db
+    .update(room)
+    .set({ mood: landed, country, ...picked, version: sql`${room.version} + 1` })
+    .where(eq(room.code, r.code));
+}
+
+/** Host: back to the moods (they stay), ready for another spin. */
+export async function spinAgain(raw: string) {
+  const r = await hostedRoom(raw);
+  if (!r || r.game !== "reel") return;
+  await db
+    .update(room)
+    .set({ mood: null, deck: null, version: sql`${room.version} + 1` })
+    .where(eq(room.code, r.code));
 }
 
 /** Leaves a room. When the host leaves, the room closes for everyone. */

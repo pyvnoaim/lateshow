@@ -12,6 +12,7 @@ import { cleanCode } from "@/lib/rooms/rules";
 import { AutoJoin, CopyRoomLink, GuestJoin, LeaveRoom, StartRoom } from "./components/RoomButtons";
 import { LiveRoom } from "./components/LiveRoom";
 import { BracketGame } from "./BracketGame";
+import { ReelGame } from "./ReelGame";
 import { SwipeGame } from "./SwipeGame";
 
 function Heading({ top, muted, detail }: { top: ReactNode; muted: ReactNode; detail?: ReactNode }) {
@@ -72,7 +73,7 @@ export async function RoomLobby({ code: raw }: { code: string }) {
 
   const host = r.hostId === me!.id;
 
-  if (r.status === "playing" && r.game !== "reel") {
+  if (r.status === "playing") {
     return (
       <div className="flex flex-col gap-10">
         <LiveRoom code={code} />
@@ -82,7 +83,13 @@ export async function RoomLobby({ code: raw }: { code: string }) {
           </span>
           <LeaveRoom code={code} leave={leaveRoom} host={host} />
         </div>
-        {r.game === "swipe" ? <SwipeGame r={r} meId={me!.id} /> : <BracketGame r={r} meId={me!.id} />}
+        {r.game === "swipe" ? (
+          <SwipeGame r={r} meId={me!.id} />
+        ) : r.game === "bracket" ? (
+          <BracketGame r={r} meId={me!.id} />
+        ) : (
+          <ReelGame r={r} meId={me!.id} />
+        )}
       </div>
     );
   }
@@ -94,11 +101,7 @@ export async function RoomLobby({ code: raw }: { code: string }) {
   return (
     <div className="flex flex-col gap-section">
       <LiveRoom code={code} every={qr ? 90_000 : undefined} />
-      {r.status === "playing" ? (
-        <Heading detail={what} top={`${game.name} is on.`} muted="The game screen comes next." />
-      ) : (
-        <Heading detail={what} top="Waiting for" muted="everyone." />
-      )}
+      <Heading detail={what} top="Waiting for" muted="everyone." />
 
       <div className="flex flex-wrap items-end gap-10">
         <div className="flex flex-col gap-2">

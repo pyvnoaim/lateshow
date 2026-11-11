@@ -108,6 +108,8 @@ export const room = sqliteTable("room", {
   deck: text("deck", { mode: "json" }).$type<number[]>(),
   // the title everyone picked (swipe: the first one all of you liked)
   winner: integer("winner"),
+  // reel: the mood the spin landed on (its 3 picks are in `deck`)
+  mood: text("mood"),
   createdAt: integer("created_at", { mode: "timestamp_ms" }).default(now).notNull(),
   expiresAt: integer("expires_at", { mode: "timestamp_ms" }).notNull(),
 });
@@ -156,4 +158,18 @@ export const roomPick = sqliteTable(
     choice: integer("choice").notNull(),
   },
   (t) => [primaryKey({ columns: [t.roomCode, t.memberId, t.match] })],
+);
+
+/** Reel: each member's mood for tonight ("Mind-bending", "under 100 min"). One each, the latest counts. */
+export const roomMood = sqliteTable(
+  "room_mood",
+  {
+    roomCode: text("room_code")
+      .notNull()
+      .references(() => room.code, { onDelete: "cascade" }),
+    memberId: text("member_id").notNull(),
+    name: text("name").notNull(),
+    mood: text("mood").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.roomCode, t.memberId] })],
 );

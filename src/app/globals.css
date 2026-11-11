@@ -167,6 +167,14 @@
 @utility swipe-card {
   width: min(100%, calc((100dvh - var(--spacing-swipe-chrome)) * 2 / 3));
 }
+/* Reel: moods roll past in a column that fades out at the top and bottom, the middle row sits on a glass band */
+/* The roll itself: long and easing out hard, like a slot reel settling (ReelSpin's SPIN_MS matches) */
+@utility reel-roll {
+  transition: transform 3200ms cubic-bezier(0.12, 0.8, 0.12, 1);
+}
+@utility reel-fade {
+  mask-image: linear-gradient(to bottom, transparent, black 30%, black 70%, transparent);
+}
 @utility no-scrollbar {
   scrollbar-width: none;
 }
