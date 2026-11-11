@@ -1,14 +1,16 @@
 # On the VPS: put the production .env next to this file, then `docker compose pull && docker compose up -d`.
+# No published port: Nginx Proxy Manager reaches it as http://lateshow:3000 over the shared `websites` network.
 services:
   lateshow:
     image: ghcr.io/pyvnoaim/lateshow:latest
+    container_name: lateshow
     build: .
     env_file: .env
     volumes:
       - data:/data
       - cache:/app/.next/cache
-    ports:
-      - "127.0.0.1:3000:3000"
+    networks:
+      - websites
     init: true
     restart: unless-stopped
     # Next finishes requests in flight on SIGTERM. Rooms keep connections open, so give it time.
@@ -17,3 +19,7 @@ services:
 volumes:
   data:
   cache:
+
+networks:
+  websites:
+    external: true
