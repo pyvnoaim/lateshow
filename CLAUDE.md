@@ -11,8 +11,9 @@ Read `node_modules/next/dist/docs/` before using Next APIs (see AGENTS.md).
 - DB: `data/lateshow.db` (gitignored). `pnpm db:generate` writes a migration, the server applies pending ones on start
   (`src/instrumentation.ts`, skipped during build). Auth schema via `npx @better-auth/cli generate`.
 - Deploy: `Dockerfile` (standalone, volumes `/data` + `/app/.next/cache`), `docker-compose.yml` for the VPS,
-  `/api/health` for checks. CI (`.github/workflows/ci.yml`): `pnpm check` on every push/PR, main also pushes
-  `ghcr.io/pyvnoaim/lateshow:latest` + `:<sha>`. Build needs no secrets (placeholder auth secret in the Dockerfile).
+  `/api/health` for checks. CI (`.github/workflows/ci.yml`): `pnpm check` on every push/PR, main then SSHes into the VPS
+  (key with a forced command: git pull + `scripts/deploy.sh`), which builds, restarts and rolls back if unhealthy.
+  No GHCR: Packages budget is $0 (500 MB free). Build needs no secrets (placeholder auth secret in the Dockerfile).
 - Sign in = 6 digit email code (Better Auth emailOTP, 10 min, 5 tries, hashed) + passkeys (@better-auth/passkey).
   Dev prints the code in the terminal (`Sign in code for <email>: 123456`). Prod sends through Resend
   (`RESEND_API_KEY`, `MAIL_FROM`, `MAIL_REPLY_TO`, see .env.example). Passkey table is hand-written in auth-schema.ts.

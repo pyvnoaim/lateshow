@@ -1,8 +1,8 @@
-# On the VPS: put the production .env next to this file, then `docker compose pull && docker compose up -d`.
+# Built and started on the VPS by scripts/deploy.sh. The production .env sits next to this file.
 # No published port: Nginx Proxy Manager reaches it as http://lateshow:3000 over the shared `websites` network.
 services:
   lateshow:
-    image: ghcr.io/pyvnoaim/lateshow:latest
+    image: lateshow:latest
     container_name: lateshow
     build: .
     env_file: .env

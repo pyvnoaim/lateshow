@@ -34,12 +34,9 @@ Run `pnpm check` before every commit (format, types, lint, tests). CI runs it to
 
 ## Deploy
 
-```sh
-docker compose pull && docker compose up -d   # needs a .env next to docker-compose.yml
-```
-
-Every push to main builds `ghcr.io/pyvnoaim/lateshow`. The database lives in a Docker volume,
-migrations run on start and `/api/health` reports if it is up.
+Every push to main runs the checks, then the VPS pulls, builds and restarts (`scripts/deploy.sh`).
+If the new version isn't healthy within 2 minutes, the previous one comes back.
+The database lives in a Docker volume and migrations run on start.
 
 ## Built with
 
