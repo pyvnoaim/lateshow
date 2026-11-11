@@ -16,8 +16,9 @@ export const OPERATOR = {
 
 /** Where the site runs and how long the web server keeps access logs. Fill in with the VPS deploy. */
 export const HOSTING = {
-  provider: "[HOSTING PROVIDER, NAME AND ADDRESS]",
-  logDays: "[NUMBER OF DAYS]",
+  provider: "IONOS SE, Elgendorfer Str. 57, 56410 Montabaur, Germany",
+  // the deploy must make the proxy really delete access logs after this many days (Nginx Proxy Manager keeps more)
+  logDays: "7",
 };
 
 /** The date the privacy page last changed. */
