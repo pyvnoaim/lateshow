@@ -68,27 +68,29 @@ export async function Profile({
   const now = new Date();
   const name = owner.username || shownName(session.user);
   const hidden = !self && !owner.shareActivity;
+  const lang = await getLanguage();
+  // A friend who keeps their activity private: nothing of theirs is even read, not just hidden.
+  const none = Promise.resolve([] as never[]);
   const [stats, history, watchlist, times, friendCount, friends] = await Promise.all([
-    getStats(uid),
-    getHistory(uid, 60),
-    getWatchlist(uid),
-    getWatchTimes(uid, new Date(now.getTime() - 380 * 24 * 60 * 60 * 1000)),
+    hidden ? { movies: 0, episodes: 0, minutes: 0 } : getStats(uid),
+    hidden ? none : getHistory(uid, 60),
+    hidden ? none : getWatchlist(uid),
+    hidden ? none : getWatchTimes(uid, new Date(now.getTime() - 380 * 24 * 60 * 60 * 1000)),
     self ? getFriendCount(uid) : 0,
     self && tab === "friends"
       ? getFriends(uid).then((list) =>
           Promise.all(
             list.map(async (f) => ({
               ...f,
-              match: f.shareActivity ? (await getMatch(uid, f.id)).percent : null,
+              match: f.shareActivity ? (await getMatch(uid, f.id, lang)).percent : null,
             })),
           ),
         )
       : [],
   ]);
   // a friend's profile leads with how alike your taste is, and the titles you both watched
-  const match = !self && !hidden ? await getMatch(session.user.id, uid) : null;
+  const match = !self && !hidden ? await getMatch(session.user.id, uid, lang) : null;
   // full TMDB cards (poster, year, genre) for the shared titles, the stored rows only have a title
-  const lang = await getLanguage();
   const both = await Promise.all(
     (match?.both ?? []).slice(0, 12).map((r) =>
       getTitle(r.mediaType, String(r.tmdbId), lang)

@@ -15,7 +15,8 @@ export type InviteLink = { code: string; expiresAt: Date; usesLeft: number } | {
  * Your invite link. Reuses the one that still works, or makes one. `fresh` makes a new one and retires the old ones
  * (for a link that was shared too widely). Needs a username: invites show it, never your email.
  */
-export async function getInviteLink(fresh = false): Promise<InviteLink> {
+export async function getInviteLink(raw = false): Promise<InviteLink> {
+  const fresh = z.boolean().parse(raw);
   const session = await getSession();
   if (!session) return { error: "signin" };
   if (!session.user.username) return { error: "username" };
@@ -31,7 +32,8 @@ export async function getInviteLink(fresh = false): Promise<InviteLink> {
     usesLeft: INVITE_USES,
   };
   db.transaction((tx) => {
-    if (fresh) tx.update(invite).set({ usesLeft: 0 }).where(eq(invite.userId, userId)).run();
+    // a new link replaces your old ones (deleted, so repeated clicks can't pile up rows)
+    if (fresh) tx.delete(invite).where(eq(invite.userId, userId)).run();
     tx.insert(invite).values(created).run();
   });
   return { code: created.code, expiresAt: created.expiresAt, usesLeft: created.usesLeft };
@@ -46,23 +48,33 @@ export async function acceptInvite(raw: string): Promise<AcceptResult> {
   const session = await getSession();
   if (!session) return "signin";
   if (!session.user.username) return "username";
-  const parsed = code.safeParse(raw);
+  const parsed = code.safeParse(raw.trim().toLowerCase()); // codes are case-insensitive, like on the invite page
   if (!parsed.success) return "missing";
   const me = session.user.id;
-  const result = db.transaction((tx): AcceptResult => {
-    const inv = tx.select().from(invite).where(eq(invite.code, parsed.data)).get();
-    if (!inv) return "missing";
-    const state = inviteState(inv, me, new Date());
-    if (state !== "ok") return state;
-    const added = tx.insert(friendship).values(pair(me, inv.userId)).onConflictDoNothing().run();
-    if (added.changes === 0) return "already";
-    // only a new friendship uses up the invite, and never below 0 (two people accepting at once)
-    tx.update(invite)
-      .set({ usesLeft: sql`${invite.usesLeft} - 1` })
-      .where(and(eq(invite.code, inv.code), gt(invite.usesLeft, 0)))
-      .run();
-    return "friends";
-  });
+  const usedUp = new Error("used");
+  let result: AcceptResult;
+  try {
+    result = db.transaction((tx): AcceptResult => {
+      const inv = tx.select().from(invite).where(eq(invite.code, parsed.data)).get();
+      if (!inv) return "missing";
+      const state = inviteState(inv, me, new Date());
+      if (state !== "ok") return state;
+      const added = tx.insert(friendship).values(pair(me, inv.userId)).onConflictDoNothing().run();
+      if (added.changes === 0) return "already";
+      // Only a new friendship uses up the invite. If someone else just took the last use (another server process),
+      // throwing rolls the friendship back too.
+      const spent = tx
+        .update(invite)
+        .set({ usesLeft: sql`${invite.usesLeft} - 1` })
+        .where(and(eq(invite.code, inv.code), gt(invite.usesLeft, 0)))
+        .run();
+      if (spent.changes === 0) throw usedUp;
+      return "friends";
+    });
+  } catch (e) {
+    if (e === usedUp) return "used";
+    throw e;
+  }
   if (result === "friends") refresh();
   return result;
 }

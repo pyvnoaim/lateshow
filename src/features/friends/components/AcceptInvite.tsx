@@ -5,6 +5,15 @@ import { useState, useTransition, type ReactNode } from "react";
 import { buttonStyles } from "@/components/ui/button";
 import type { AcceptResult } from "@/lib/friends/actions";
 
+const PROBLEMS: Record<Exclude<AcceptResult, "friends" | "already">, string> = {
+  signin: "You were signed out. Reload the page and sign in again.",
+  username: "Pick a username in Settings first, then open this link again.",
+  own: "This is your own invite. Send it to a friend.",
+  expired: "This invite just ran out. Ask for a new link.",
+  used: "This invite was just used up. Ask for a new link.",
+  missing: "This invite doesn't exist anymore. Ask for a new link.",
+};
+
 /** Accept / Not now. On success the page turns into "You're friends." right away. */
 export function AcceptInvite({
   code,
@@ -53,7 +62,7 @@ export function AcceptInvite({
         </div>
         {result && (
           <p role="alert" className="text-caption text-muted">
-            That didn&apos;t work. The invite may have just run out. Reload to check.
+            {PROBLEMS[result]}
           </p>
         )}
       </div>

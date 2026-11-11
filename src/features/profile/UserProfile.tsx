@@ -5,7 +5,8 @@ import { Profile } from "./Profile";
 
 /**
  * /u/[username]: your own profile, or a friend's. Anyone else (or anyone signed out) gets a 404, the same as a
- * name that doesn't exist, so usernames can't be probed.
+ * name that doesn't exist, so the page never tells strangers whose profile it is. (Whether a name is taken still
+ * shows in Settings, as with any unique username.)
  */
 export async function UserProfile({
   params,
