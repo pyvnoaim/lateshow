@@ -2,9 +2,9 @@ import { describe, expect, it } from "vitest";
 import { inviteState, newInviteCode, pair } from "./rules";
 
 describe("friends rules", () => {
-  it("makes unambiguous 10 letter codes", () => {
+  it("makes unambiguous 20 letter codes", () => {
     const code = newInviteCode();
-    expect(code).toMatch(/^[a-hjkmnp-z2-9]{10}$/);
+    expect(code).toMatch(/^[a-hjkmnp-z2-9]{20}$/);
     expect(newInviteCode()).not.toBe(code);
   });
   it("stores a pair the same way round", () => {

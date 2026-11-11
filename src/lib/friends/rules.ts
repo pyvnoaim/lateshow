@@ -6,8 +6,11 @@ export const INVITE_USES = 5;
 // No 0/o, 1/l/i: codes get read aloud and typed from screenshots.
 const ALPHABET = "abcdefghjkmnpqrstuvwxyz23456789";
 
-/** A fresh invite code: 10 characters, about 49 bits, so links can't be guessed. */
-export function newInviteCode(length = 10) {
+/**
+ * A fresh invite code: 20 characters from 31, about 99 bits. A guessed code would make someone your friend,
+ * so it must be out of reach for brute force even without rate limits. Case-insensitive, so it survives retyping.
+ */
+export function newInviteCode(length = 20) {
   return Array.from({ length }, () => ALPHABET[randomInt(ALPHABET.length)]).join("");
 }
 
