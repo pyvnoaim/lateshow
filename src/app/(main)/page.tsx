@@ -6,6 +6,7 @@ import { BecauseYouWatched } from "@/features/discover/BecauseYouWatched";
 import { ContinueRow } from "@/features/discover/ContinueRow";
 import { Decide } from "@/features/discover/Decide";
 import { HiddenGems } from "@/features/discover/HiddenGems";
+import { FriendsWeek } from "@/features/discover/FriendsWeek";
 import { HomeHero } from "@/features/discover/HomeHero";
 import { NewEpisodes } from "@/features/discover/NewEpisodes";
 import { NewOnStreaming } from "@/features/discover/NewOnStreaming";
@@ -31,6 +32,9 @@ export default function HomePage({ searchParams }: PageProps<"/">) {
         </Row>
         <Row>
           <NewEpisodes />
+        </Row>
+        <Row>
+          <FriendsWeek />
         </Row>
         <Row>
           <Decide searchParams={searchParams} />

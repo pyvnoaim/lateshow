@@ -32,6 +32,7 @@ import { Trailer } from "@/components/Trailer";
 import { getLanguage, getRegion } from "@/lib/region";
 import { getMyServiceIds, getSpoilerGuard } from "@/lib/settings/queries";
 import { Suspense } from "react";
+import { FriendsOnTitle } from "./components/FriendsOnTitle";
 
 type Library = { signedIn: boolean; onWatchlist: boolean; watched: string[]; ref: TitleRef };
 
@@ -90,6 +91,11 @@ export async function TitleView({ type, id }: { type: string; id: string }) {
         inCinemasFrom={inCinemasFrom}
       />
       <WhereToWatch links={links} fallback={t["watch/providers"].results[region.code]?.link} country={region.name} />
+      {session && (
+        <Suspense>
+          <FriendsOnTitle userId={session.user.id} type={type} tmdbId={t.id} />
+        </Suspense>
+      )}
       <Container as="main" className="flex flex-col gap-section pt-section">
         {type === "tv" && (
           <Suspense fallback={<div className="h-80 sk rounded-banner" />}>

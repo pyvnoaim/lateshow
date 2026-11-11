@@ -54,17 +54,20 @@ export async function getWatchLinks(
   }
 }
 
-/** One link per service. A subscription offer beats rent or buy. Subscription services come first. */
+/**
+ * One link per service. A subscription offer beats rent or buy. Subscription services come first.
+ * Keyed by the cleaned name: "Netflix" and "Netflix Standard with Ads" are two packages but one service to you.
+ */
 export function pickLinks(offers: Offer[]): WatchLink[] {
-  const byService = new Map<number, WatchLink>();
+  const byService = new Map<string, WatchLink>();
   for (const o of offers) {
     const link = {
       service: serviceName(o.package.clearName),
       url: o.standardWebURL,
       included: INCLUDED.has(o.monetizationType),
     };
-    const prev = byService.get(o.package.packageId);
-    if (!prev || (link.included && !prev.included)) byService.set(o.package.packageId, link);
+    const prev = byService.get(link.service);
+    if (!prev || (link.included && !prev.included)) byService.set(link.service, link);
   }
   return [...byService.values()].sort((a, b) => Number(b.included) - Number(a.included));
 }

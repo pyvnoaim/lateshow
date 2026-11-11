@@ -1,8 +1,9 @@
 import "server-only";
-import { and, count, desc, eq, gt, inArray, or } from "drizzle-orm";
+import { and, count, desc, eq, gt, gte, inArray, or } from "drizzle-orm";
 import { user } from "@/lib/db/auth-schema";
 import { db } from "@/lib/db/client";
-import { friendship, invite, watched } from "@/lib/db/schema";
+import { friendship, invite, watched, watchlist } from "@/lib/db/schema";
+import { groupByTitle } from "./activity";
 import { pair } from "./rules";
 
 export async function getFriendCount(userId: string) {
@@ -89,4 +90,52 @@ export async function getOpenInvite(userId: string, now = new Date()) {
     .orderBy(desc(invite.createdAt))
     .limit(1);
   return row ?? null;
+}
+
+/** Your friends who share their activity, as id -> username. */
+async function sharingFriends(userId: string) {
+  const pairs = await db
+    .select()
+    .from(friendship)
+    .where(or(eq(friendship.a, userId), eq(friendship.b, userId)));
+  const ids = pairs.map((p) => (p.a === userId ? p.b : p.a));
+  if (ids.length === 0) return new Map<string, string>();
+  const people = await db
+    .select({ id: user.id, username: user.username })
+    .from(user)
+    .where(and(inArray(user.id, ids), eq(user.shareActivity, true)));
+  return new Map(people.filter((p) => p.username).map((p) => [p.id, p.username!]));
+}
+
+/** What your friends watched in the last `days`, one entry per title, most recent first. */
+export async function getFriendsWatched(userId: string, days = 7) {
+  const since = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+  const friends = await sharingFriends(userId);
+  if (friends.size === 0) return [];
+  const rows = await db
+    .select({ userId: watched.userId, mediaType: watched.mediaType, tmdbId: watched.tmdbId, at: watched.watchedAt })
+    .from(watched)
+    .where(and(inArray(watched.userId, [...friends.keys()]), gte(watched.watchedAt, since)));
+  return groupByTitle(rows.map((r) => ({ ...r, name: friends.get(r.userId)! })));
+}
+
+/** Which friends watched this title (any episode) and which have it on their watchlist. */
+export async function getFriendsOnTitle(userId: string, type: "movie" | "tv", tmdbId: number) {
+  const friends = await sharingFriends(userId);
+  if (friends.size === 0) return { watched: [], listed: [] };
+  const ids = [...friends.keys()];
+  const [seen, listed] = await Promise.all([
+    db
+      .select({ userId: watched.userId, at: watched.watchedAt })
+      .from(watched)
+      .where(and(inArray(watched.userId, ids), eq(watched.mediaType, type), eq(watched.tmdbId, tmdbId)))
+      .orderBy(desc(watched.watchedAt)),
+    db
+      .select({ userId: watchlist.userId })
+      .from(watchlist)
+      .where(and(inArray(watchlist.userId, ids), eq(watchlist.mediaType, type), eq(watchlist.tmdbId, tmdbId))),
+  ]);
+  const names = (rows: { userId: string }[]) => [...new Set(rows.map((r) => friends.get(r.userId)!))];
+  const watchedNames = names(seen);
+  return { watched: watchedNames, listed: names(listed).filter((n) => !watchedNames.includes(n)) };
 }

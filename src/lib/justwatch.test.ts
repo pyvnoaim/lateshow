@@ -21,4 +21,8 @@ describe("pickLinks", () => {
   it("writes Plus as + (Disney Plus -> Disney+)", () => {
     expect(pickLinks([offer(2, "Disney Plus", "FLATRATE")])[0].service).toBe("Disney+");
   });
+  it("treats a service's ad tier as the same service", () => {
+    const links = pickLinks([offer(8, "Netflix", "FLATRATE"), offer(1796, "Netflix Standard with Ads", "FLATRATE")]);
+    expect(links.map((l) => l.service)).toEqual(["Netflix"]);
+  });
 });

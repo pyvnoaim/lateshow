@@ -42,6 +42,7 @@
   --text-label: 15px;
   --text-small: 14px;
   --text-caption: 13px;
+  --text-badge: 11px; /* letters in tiny avatars (friends who watched) */
   --tracking-tight: -0.035em;
   --tracking-display: -0.05em;
   --leading-display: 0.92;
