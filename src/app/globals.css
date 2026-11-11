@@ -196,6 +196,45 @@
 @utility reel-roll {
   transition: transform 3200ms cubic-bezier(0.12, 0.8, 0.12, 1);
 }
+/* Rooms start page, Reel tile: posters tick up one at a time and settle, like a slot reel. Runs while you point
+   at the tile or it's chosen. One step = poster height + gap (--reel-step), 5 steps loop back seamlessly. */
+@keyframes reel-tick {
+  0%,
+  14% {
+    transform: translateY(0);
+  }
+  20%,
+  34% {
+    transform: translateY(calc(var(--reel-step) * -1));
+  }
+  40%,
+  54% {
+    transform: translateY(calc(var(--reel-step) * -2));
+  }
+  60%,
+  74% {
+    transform: translateY(calc(var(--reel-step) * -3));
+  }
+  80%,
+  94% {
+    transform: translateY(calc(var(--reel-step) * -4));
+  }
+  100% {
+    transform: translateY(calc(var(--reel-step) * -5));
+  }
+}
+@utility reel-tick {
+  --reel-step: 132px; /* w-20 poster (120px tall) + gap-3 */
+  animation: reel-tick 7s cubic-bezier(0.5, 0, 0.15, 1.15) infinite;
+  animation-play-state: paused;
+  .group:hover &,
+  .group[aria-pressed="true"] & {
+    animation-play-state: running;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
 @utility reel-fade {
   mask-image: linear-gradient(to bottom, transparent, black 30%, black 70%, transparent);
 }

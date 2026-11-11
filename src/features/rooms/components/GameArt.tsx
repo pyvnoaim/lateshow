@@ -50,13 +50,20 @@ export function GameArt({ game, posters }: { game: Game; posters: string[] }) {
       </span>
     );
   }
+  // a slot reel: e above, a in the glass band, b below. Five ticks later the copy of a sits in the band, so it loops.
+  const reel = [e, a, b, c, d, e, a, b];
   return (
-    <span className="relative flex h-full items-center justify-center">
+    <span className="relative block h-full overflow-hidden">
       <span aria-hidden className="absolute top-1/2 left-1/2 h-36 w-28 -translate-1/2 rounded-thumb glass-cell" />
-      <span className="flex flex-col items-center gap-3 reel-fade transition-transform duration-500 group-hover:-translate-y-6">
-        <P src={b} className="relative w-20 opacity-60" />
-        <P src={c} className="relative w-20" />
-        <P src={a} className="relative w-20 opacity-60" />
+      <span className="absolute inset-0 reel-fade">
+        {/* the second poster (a) starts centred: half a poster up from the middle, plus one step for e above it */}
+        <span className="absolute top-1/2 left-1/2 -mt-48 -translate-x-1/2">
+          <span className="flex reel-tick flex-col gap-3">
+            {reel.map((src, i) => (
+              <P key={i} src={src} className="relative w-20" />
+            ))}
+          </span>
+        </span>
       </span>
     </span>
   );
