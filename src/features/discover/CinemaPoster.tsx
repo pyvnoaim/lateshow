@@ -39,22 +39,21 @@ export async function CinemaPoster({
         <span className="truncate">{parts.join(" · ")}</span>
         {trailer && <span aria-hidden>·</span>}
         {trailer && <Trailer youtubeKey={trailer} title={card.title ?? ""} variant="text" />}
+        {/* the same small + as every poster caption: on your watchlist it shows under Coming up */}
+        {listed && (
+          <span className="ml-auto flex pl-1">
+            <WatchlistPlus
+              titleRef={{
+                type: "movie",
+                tmdbId: card.id,
+                title: card.title ?? card.name ?? "",
+                posterPath: card.poster_path,
+              }}
+              initial={listed.has(`movie-${card.id}`)}
+            />
+          </span>
+        )}
       </div>
-      {/* on your watchlist it shows under Coming up, and on Home the week it comes out */}
-      {listed && (
-        <div className="pt-1.5">
-          <WatchlistPlus
-            titleRef={{
-              type: "movie",
-              tmdbId: card.id,
-              title: card.title ?? card.name ?? "",
-              posterPath: card.poster_path,
-            }}
-            initial={listed.has(`movie-${card.id}`)}
-            label={["Remind me", "On your list"]}
-          />
-        </div>
-      )}
     </div>
   );
 }

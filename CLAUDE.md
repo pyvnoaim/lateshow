@@ -81,8 +81,8 @@ pure logic extracted with a `*.test.ts` beside it, no barrel files, move code to
 Top bar (search with live results, account, phone menu), footer, home (hero carousel or continue watching, rows:
 continue, new episodes, Can't decide?, watchlist, Top 10, trending, because you watched, new on streaming, cinemas, hidden gems),
 /cinemas calendar, /watchlist (shelves: Watch now with leaving dates from JustWatch, Coming up, On other services,
-Not streaming here; type/genre/sort in the URL, Add a title, Pick one; a + on every poster caption, Remind me on cinema
-posters, Out this week from your list on Home), /search (type + genre filters in the URL, browse a genre without a query), title page (where to watch, trailer, episodes + ratings grid, cast, more like), sign in with `?next=`,
+Not streaming here; type/genre/sort in the URL, Add a title, Pick one; a + on every poster caption (cinema posters
+too), Out this week from your list on Home), /search (type + genre filters in the URL, browse a genre without a query), title page (where to watch, trailer, episodes + ratings grid, cast, more like), sign in with `?next=`,
 profile /u/me (stats, heatmap, history, watchlist), /settings (your services: My services tab on Trending,
 picks only from them, your service first in captions and Watch on, language for TMDB data in a cookie, else the browser's, name, spoiler guard cookie, CSV export at /api/export,
 delete account), /watchlist + /u/me redirects in `next.config.ts`, 404, errors, /about.

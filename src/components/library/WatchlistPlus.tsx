@@ -6,17 +6,9 @@ import { setOnWatchlist, type TitleRef } from "@/lib/library/actions";
 
 /**
  * The quiet + at the end of a poster's caption line (posters stay clean, actions live in the caption). Flips at once
- * to an accent ✓ and saves in the background. `label` shows text instead ("Remind me" on cinema posters).
+ * to an accent ✓ and saves in the background.
  */
-export function WatchlistPlus({
-  titleRef,
-  initial,
-  label,
-}: {
-  titleRef: TitleRef;
-  initial: boolean;
-  label?: [string, string];
-}) {
+export function WatchlistPlus({ titleRef, initial }: { titleRef: TitleRef; initial: boolean }) {
   const [saved, setSaved] = useState(initial);
   const [seen, setSeen] = useState(initial);
   if (seen !== initial) {
@@ -32,7 +24,7 @@ export function WatchlistPlus({
       type="button"
       aria-pressed={on}
       aria-label={on ? `${name} is on your watchlist, remove` : `Add ${name} to your watchlist`}
-      data-tip={label ? undefined : on ? "On your watchlist" : "Add to watchlist"}
+      data-tip={on ? "On your watchlist" : "Add to watchlist"}
       onClick={(e) => {
         e.preventDefault(); // it may sit next to a link
         const next = !on;
@@ -53,7 +45,6 @@ export function WatchlistPlus({
       ) : (
         <Plus size={14} strokeWidth={2.25} aria-hidden />
       )}
-      {label && <span className="text-caption">{on ? label[1] : label[0]}</span>}
     </button>
   );
 }
