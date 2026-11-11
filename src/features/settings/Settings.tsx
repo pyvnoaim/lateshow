@@ -68,13 +68,12 @@ export async function Settings() {
         />
       </Section>
       <Section title="Your data" description="Everything you track, as a spreadsheet. Or remove it all.">
-        <div className="flex flex-col items-start gap-6">
+        <DeleteAccount remove={deleteAccount}>
           {/* a plain link: the browser downloads the file */}
           <a href="/api/export" download className={buttonStyles("glass", "sm")}>
             Download CSV
           </a>
-          <DeleteAccount remove={deleteAccount} />
-        </div>
+        </DeleteAccount>
       </Section>
     </div>
   );

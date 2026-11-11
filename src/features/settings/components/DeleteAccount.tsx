@@ -1,18 +1,24 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useTransition, type ReactNode } from "react";
 import { buttonStyles } from "@/components/ui/button";
 
-/** Two steps, all on the page (no browser dialog): "Delete account", then a plain warning and "Delete for good". */
-export function DeleteAccount({ remove }: { remove: () => Promise<void> }) {
+/**
+ * Two steps, all on the page (no browser dialog): "Delete account" sits next to the other data action (`children`),
+ * clicking it swaps the row for a plain warning with "Delete for good".
+ */
+export function DeleteAccount({ remove, children }: { remove: () => Promise<void>; children: ReactNode }) {
   const [asking, setAsking] = useState(false);
   const [pending, startTransition] = useTransition();
 
   if (!asking) {
     return (
-      <button type="button" onClick={() => setAsking(true)} className={buttonStyles("text", "text")}>
-        Delete account
-      </button>
+      <div className="flex flex-wrap gap-3">
+        {children}
+        <button type="button" onClick={() => setAsking(true)} className={buttonStyles("danger", "sm")}>
+          Delete account
+        </button>
+      </div>
     );
   }
   return (
@@ -27,7 +33,7 @@ export function DeleteAccount({ remove }: { remove: () => Promise<void> }) {
           type="button"
           disabled={pending}
           onClick={() => startTransition(() => remove())}
-          className={buttonStyles("primary", "sm")}
+          className={buttonStyles("dangerConfirm", "sm")}
         >
           {pending ? "Deleting" : "Delete for good"}
         </button>
