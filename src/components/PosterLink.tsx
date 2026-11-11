@@ -14,6 +14,7 @@ export function PosterLink({
   morph = true,
   caption = true,
   plus = true,
+  eager = false,
 }: {
   card: Card;
   index?: number;
@@ -22,6 +23,8 @@ export function PosterLink({
   caption?: boolean;
   /** `false` drops the watchlist + from the caption (the watchlist page has its own actions). */
   plus?: boolean;
+  /** The first row on screen: loads right away, no fade. Only for grids at the top of a page. */
+  eager?: boolean;
 }) {
   const name = card.title ?? card.name ?? "";
   const poster = img(card.poster_path, "w500");
@@ -33,6 +36,7 @@ export function PosterLink({
           lowSrc={img(card.poster_path, "w92")!}
           alt={name}
           sizes="(max-width: 640px) 45vw, 200px"
+          eager={eager}
         />
       ) : (
         <span className="absolute inset-0 flex items-end p-3.5 text-lg font-bold tracking-tight">{name}</span>

@@ -121,7 +121,7 @@ export function SwipeDeck({
           }}
           className="absolute inset-0 cursor-grab touch-none overflow-hidden rounded-banner bg-raised shadow-2xl outline-1 -outline-offset-1 outline-hairline will-change-transform select-none active:cursor-grabbing"
         >
-          <Image src={top.poster} alt="" fill sizes="384px" priority className="pointer-events-none object-cover" />
+          <Image src={top.poster} alt="" fill sizes="384px" preload className="pointer-events-none object-cover" />
           <div className="absolute inset-0 bg-linear-to-t from-bg via-bg/30 to-transparent" />
           <div className="absolute inset-x-5 bottom-5 flex flex-col gap-2">
             <span className="text-caption text-fg/80">{top.meta}</span>

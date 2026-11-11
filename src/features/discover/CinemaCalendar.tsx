@@ -17,11 +17,19 @@ export async function CinemaCalendar() {
   const days = Map.groupBy(movies, (m) => m.date!);
   return (
     <div className="flex flex-col gap-section">
-      {[...days].map(([date, list]) => (
+      {[...days].map(([date, list], d) => (
         <Section key={date} title={longDate(date)}>
           <PosterGrid>
             {list.map((m, i) => (
-              <CinemaPoster key={m.card.id} card={m.card} date={date} trailer={m.trailer} index={i} showDate={false} />
+              <CinemaPoster
+                key={m.card.id}
+                card={m.card}
+                date={date}
+                trailer={m.trailer}
+                index={i}
+                showDate={false}
+                eager={d === 0 && i < 6}
+              />
             ))}
           </PosterGrid>
         </Section>

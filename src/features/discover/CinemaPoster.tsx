@@ -15,12 +15,14 @@ export async function CinemaPoster({
   trailer,
   index,
   showDate = true,
+  eager,
 }: {
   card: Card;
   date: string;
   trailer?: string;
   index: number;
   showDate?: boolean;
+  eager?: boolean;
 }) {
   const [genres, listed] = await Promise.all([
     getGenreNames(await getLanguage()).catch(() => ({}) as Record<number, string>),
@@ -31,7 +33,7 @@ export async function CinemaPoster({
   const parts = ["Movie", showDate ? shortDate(date) : null, genre].filter(Boolean);
   return (
     <div className="flex flex-col gap-0.5">
-      <PosterLink card={card} index={index} morph={false} caption={false} />
+      <PosterLink card={card} index={index} morph={false} caption={false} eager={eager} />
       {/* date and trailer live outside the link: a button inside a link is invalid */}
       <div className="flex items-center gap-1.5 text-caption text-muted nums">
         <span className="truncate">{parts.join(" · ")}</span>

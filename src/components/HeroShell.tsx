@@ -28,7 +28,7 @@ export function HeroLogo({ src, aspectRatio, name }: { src: string; aspectRatio:
         alt={name}
         width={Math.round(120 * aspectRatio)}
         height={120}
-        priority
+        preload
         className="h-auto max-h-28 w-auto max-w-md object-contain object-left drop-shadow-lg max-sm:max-h-20 max-sm:max-w-full"
       />
     </h1>

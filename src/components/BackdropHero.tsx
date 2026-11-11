@@ -20,7 +20,7 @@ export function BackdropHero({
   const src = img(backdropPath, "original");
   const image = (
     <div className="absolute inset-0">
-      {src && <TmdbImage src={src} lowSrc={img(backdropPath, "w300")!} alt="" sizes="100vw" priority />}
+      {src && <TmdbImage src={src} lowSrc={img(backdropPath, "w300")!} alt="" sizes="100vw" preload />}
     </div>
   );
   return (

@@ -45,7 +45,7 @@ export function HeroCarousel({ slides }: { slides: HeroSlide[] }) {
             // the incoming backdrop fades in while settling from a slight zoom, like a slow camera move
             className={`absolute inset-0 transition-all duration-1400 ease-spring ${i === index ? "scale-100 opacity-100" : "scale-106 opacity-0"}`}
           >
-            <Image src={s.backdrop} alt="" fill sizes="100vw" priority={i === 0} className="object-cover" />
+            <Image src={s.backdrop} alt="" fill sizes="100vw" preload={i === 0} className="object-cover" />
           </div>
         ))}
         footer={
