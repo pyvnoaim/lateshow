@@ -1,6 +1,7 @@
 import { ArrowUpRight } from "lucide-react";
 import Image from "next/image";
 import type { ReactNode } from "react";
+import { Scramble } from "@/components/Scramble";
 import { buttonStyles } from "@/components/ui/button";
 import { getWatchLinks } from "@/lib/justwatch";
 import { getLanguage } from "@/lib/region";
@@ -28,7 +29,11 @@ export async function Winner({
   const english = await getEnglishName(r.kind, t.id).catch(() => t.title ?? t.name ?? "");
   const links = await getWatchLinks(r.kind, t.id, english, r.country ?? "DE");
   const link = links.find((l) => l.included) ?? links[0];
-  const [top, muted] = headline(t.title ?? t.name ?? "");
+  const name = t.title ?? t.name ?? "";
+  // the line with the title's name arrives letter by letter, the rest is there at once
+  const reveal = (line: ReactNode) =>
+    typeof line === "string" && name && line.includes(name) ? <Scramble text={line} /> : line;
+  const [top, muted] = headline(name).map(reveal);
   return (
     <div className="flex flex-col gap-10 sm:flex-row sm:items-center sm:gap-14">
       <div className="relative aspect-poster w-40 shrink-0 pop overflow-hidden rounded-banner bg-raised shadow-2xl sm:w-72">

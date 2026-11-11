@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import { useState, useTransition } from "react";
+import { Spinner } from "@/components/Spinner";
 
 export type Contender = { id: number; title: string; meta: string; poster: string };
 
@@ -59,7 +60,8 @@ export function BracketVote({
           </div>
         ))}
       </div>
-      <p aria-live="polite" className="text-center text-small text-muted">
+      <p aria-live="polite" className="flex items-center justify-center gap-2 text-center text-small text-muted">
+        {mine !== null && waitingFor.length > 0 && <Spinner />}
         {mine === null
           ? "Tap the one you'd rather watch."
           : waitingFor.length > 0

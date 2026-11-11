@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Avatar } from "@/components/Avatar";
+import { Spinner } from "@/components/Spinner";
 import { connection } from "next/server";
 import type { ReactNode } from "react";
 import { buttonStyles } from "@/components/ui/button";
@@ -128,7 +129,8 @@ export async function RoomLobby({ code: raw }: { code: string }) {
             <li key={m.memberId} className="flex w-22 pop flex-col items-center gap-2.5 text-center">
               <Avatar name={m.name} image={m.image} size="lg" muted={!m.joined} />
               <span className="w-full truncate text-small">{m.name}</span>
-              <span className="text-caption text-muted">
+              <span className="flex items-center gap-1.5 text-caption text-muted">
+                {!m.joined && <Spinner />}
                 {m.memberId === r.hostId
                   ? "Host"
                   : m.joined
@@ -144,7 +146,12 @@ export async function RoomLobby({ code: raw }: { code: string }) {
 
       <div className="flex flex-wrap items-center gap-6">
         {host && r.status === "lobby" && <StartRoom code={code} start={startRoom} />}
-        {!host && r.status === "lobby" && <span className="text-body text-muted">Waiting for {r.host} to start.</span>}
+        {!host && r.status === "lobby" && (
+          <span className="flex items-center gap-2.5 text-body text-muted">
+            <Spinner />
+            Waiting for {r.host} to start.
+          </span>
+        )}
         <LeaveRoom code={code} leave={leaveRoom} host={host} />
         {host && r.status === "lobby" && (
           <span className="text-small text-muted">You can start without everyone. Late joiners jump in.</span>
