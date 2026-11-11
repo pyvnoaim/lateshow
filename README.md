@@ -34,9 +34,9 @@ Run `pnpm check` before every commit (format, types, lint, tests). CI runs it to
 
 ## Deploy
 
-Every push to main runs the checks, then the VPS pulls, builds and restarts (`scripts/deploy.sh`).
-If the new version isn't healthy within 2 minutes, the previous one comes back.
-The database lives in a Docker volume and migrations run on start.
+Runs as a Portainer stack on the VPS (Stacks > Add stack > Repository, compose path `docker-compose.yml`,
+environment variables as in `.env.example`). Every push to main runs the checks, then calls the stack's
+webhook so Portainer pulls and rebuilds. The database lives in a Docker volume and migrations run on start.
 
 ## Built with
 

@@ -10,10 +10,11 @@ Read `node_modules/next/dist/docs/` before using Next APIs (see AGENTS.md).
 - `.env.local`: `TMDB_TOKEN` (Read Access Token), `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`. See `.env.example`.
 - DB: `data/lateshow.db` (gitignored). `pnpm db:generate` writes a migration, the server applies pending ones on start
   (`src/instrumentation.ts`, skipped during build). Auth schema via `npx @better-auth/cli generate`.
-- Deploy: `Dockerfile` (standalone, volumes `/data` + `/app/.next/cache`), `docker-compose.yml` for the VPS,
-  `/api/health` for checks. CI (`.github/workflows/ci.yml`): `pnpm check` on every push/PR, main then SSHes into the VPS
-  (key with a forced command: git pull + `scripts/deploy.sh`), which builds, restarts and rolls back if unhealthy.
-  No GHCR: Packages budget is $0 (500 MB free). Build needs no secrets (placeholder auth secret in the Dockerfile).
+- Deploy: Portainer stack from this repo (like quorum), `build: .` + `pull_policy: build`, env vars in Portainer
+  (stack.env), network `websites` (NPM proxies `lateshow:3000`), volumes `/data` + `/app/.next/cache`, `/api/health`.
+  CI (`.github/workflows/ci.yml`): `pnpm check` on every push/PR, main then POSTs the stack webhook (secret
+  `PORTAINER_WEBHOOK`). No GHCR: Packages budget is $0. Build needs no secrets (placeholder auth secret in the Dockerfile).
+  URL for now: https://lateshow.pyvno.xyz (Cloudflare wildcard DNS).
 - Sign in = 6 digit email code (Better Auth emailOTP, 10 min, 5 tries, hashed) + passkeys (@better-auth/passkey).
   Dev prints the code in the terminal (`Sign in code for <email>: 123456`). Prod sends through Resend
   (`RESEND_API_KEY`, `MAIL_FROM`, `MAIL_REPLY_TO`, see .env.example). Passkey table is hand-written in auth-schema.ts.
@@ -95,8 +96,8 @@ delete account), /watchlist + /u/me redirects in `next.config.ts`, 404, errors, 
 
 ## Todo (in order)
 
-- [ ] Before public: Resend account + DNS records for the sending domain, SQLite backup off the VPS (Litestream to R2 planned), deploy on the VPS (image + CI done 2026-11-11, next: NPM host with
-      buffering off for `/api/rooms/*/events`, auto deploy on push), buy lateshow.app.
+- [ ] Before public: Resend account + DNS records for the sending domain, SQLite backup off the VPS (Litestream to R2 planned), deploy on the VPS (Docker + CI done 2026-11-11, next: Portainer stack,
+      NPM host with buffering off for `/api/rooms/*/events`, webhook secret), buy lateshow.app.
       /privacy and /impressum exist (2026-11-11): fill the placeholders in `src/lib/legal.ts` and the email provider
       line on /privacy. Keep /privacy true to the code: no browser request may go to TMDB/JustWatch (images go
       through next/image), cookies listed there are the only ones.

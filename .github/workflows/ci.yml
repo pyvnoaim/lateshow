@@ -23,24 +23,15 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm check
 
-  # The VPS builds and starts it (scripts/deploy.sh). The key can only run that one command (forced command).
+  # Tells Portainer to pull and rebuild the stack, only after the checks passed. The webhook URL is the secret.
   deploy:
     needs: check
     if: github.event_name == 'push'
     runs-on: ubuntu-latest
-    concurrency:
-      group: deploy
-      cancel-in-progress: false
     steps:
-      - name: Deploy on the VPS
+      - name: Redeploy the Portainer stack
         env:
-          SSH_KEY: ${{ secrets.DEPLOY_SSH_KEY }}
-          KNOWN_HOSTS: ${{ secrets.DEPLOY_KNOWN_HOSTS }}
-          HOST: ${{ secrets.DEPLOY_HOST }}
-          PORT: ${{ secrets.DEPLOY_PORT }}
+          WEBHOOK: ${{ secrets.PORTAINER_WEBHOOK }}
         run: |
-          if [ -z "$HOST" ]; then echo "::notice::Deploy secrets not set yet, skipping"; exit 0; fi
-          mkdir -p ~/.ssh
-          printf '%s\n' "$SSH_KEY" > ~/.ssh/deploy && chmod 600 ~/.ssh/deploy
-          printf '%s\n' "$KNOWN_HOSTS" > ~/.ssh/known_hosts
-          ssh -i ~/.ssh/deploy -p "$PORT" "$HOST"
+          if [ -z "$WEBHOOK" ]; then echo "::notice::PORTAINER_WEBHOOK not set yet, skipping"; exit 0; fi
+          curl -fsS -X POST "$WEBHOOK"

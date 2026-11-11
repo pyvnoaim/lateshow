@@ -1,11 +1,15 @@
-# Built and started on the VPS by scripts/deploy.sh. The production .env sits next to this file.
+# Portainer stack (Stacks > Add stack > Repository, see README). Portainer clones the repo and builds it here.
 # No published port: Nginx Proxy Manager reaches it as http://lateshow:3000 over the shared `websites` network.
 services:
   lateshow:
-    image: lateshow:latest
-    container_name: lateshow
     build: .
-    env_file: .env
+    # Without this a redeploy reuses the image already on the host and ships the old code.
+    pull_policy: build
+    container_name: lateshow
+    # Portainer writes the stack's environment variables to stack.env.
+    env_file:
+      - path: stack.env
+        required: false
     volumes:
       - data:/data
       - cache:/app/.next/cache
