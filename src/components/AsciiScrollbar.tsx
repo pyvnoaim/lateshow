@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type RefObject } from "react";
 import { thumb } from "@/lib/scrollThumb";
 
 const CELL = 14; // px per character row (matches leading-cell)
@@ -11,11 +11,12 @@ const LIFE = 900;
 const HEAD = 220;
 
 /**
- * The page scrollbar, lettered like Resona's ASCII skin: a `:` rail with a `#` thumb down the right edge.
- * Only with a mouse or trackpad (globals.css hides the native one there), never when the page fits.
- * Drag the thumb or click the rail to jump. Decoration for pointers: keys and wheels scroll as always.
+ * A scrollbar lettered like Resona's ASCII skin: a `:` rail with a `#` thumb down the right edge. The page's own
+ * (fixed to the window), or with `box` the one of a scroll area (ScrollBox, inside its relative wrapper).
+ * Only with a mouse or trackpad, never when nothing scrolls. Drag the thumb or click the rail to jump.
+ * Decoration for pointers: keys and wheels scroll as always.
  */
-export function AsciiScrollbar() {
+export function AsciiScrollbar({ box }: { box?: RefObject<HTMLElement | null> }) {
   const [bar, setBar] = useState<{ n: number; top: number; len: number } | null>(null);
   const drag = useRef<{ y: number; scroll: number } | null>(null);
   // when each cell was last under the thumb, and a clock that only ticks while some cell is still fading
@@ -28,6 +29,12 @@ export function AsciiScrollbar() {
 
   useEffect(() => {
     if (!matchMedia("(pointer: fine)").matches) return;
+    const el = box?.current ?? null;
+    if (box && !el) return;
+    const metrics = () =>
+      el
+        ? { seen: el.clientHeight, all: el.scrollHeight, offset: el.scrollTop }
+        : { seen: innerHeight, all: document.documentElement.scrollHeight, offset: scrollY };
     const trail = !matchMedia("(prefers-reduced-motion: reduce)").matches;
     let frame = 0;
     let clock = 0;
@@ -44,11 +51,10 @@ export function AsciiScrollbar() {
     const measure = () => {
       cancelAnimationFrame(frame);
       frame = requestAnimationFrame(() => {
-        const seen = innerHeight;
-        const all = document.documentElement.scrollHeight;
+        const { seen, all, offset } = metrics();
         if (all <= seen + 1) return setBar(null);
         const n = Math.floor(seen / CELL);
-        const [top, len] = thumb(n, seen, all, scrollY);
+        const [top, len] = thumb(n, seen, all, offset);
         const p = prev.current;
         if (p && trail && (p.top !== top || p.len !== len)) {
           const t = performance.now();
@@ -63,21 +69,30 @@ export function AsciiScrollbar() {
       });
     };
     measure();
-    addEventListener("scroll", measure, { passive: true });
+    const scroller: HTMLElement | Window = el ?? window;
+    scroller.addEventListener("scroll", measure, { passive: true });
     addEventListener("resize", measure);
-    const ro = new ResizeObserver(measure); // content that streams in or grows changes the page height
-    ro.observe(document.body);
+    const ro = new ResizeObserver(measure); // content that streams in or grows changes the height
+    ro.observe(el ?? document.body);
+    // a box keeps its height while its rows change (another season): watch the rows too
+    const mo = el ? new MutationObserver(measure) : null;
+    if (el) mo?.observe(el, { childList: true, subtree: true });
     return () => {
       cancelAnimationFrame(frame);
       cancelAnimationFrame(clock);
-      removeEventListener("scroll", measure);
+      scroller.removeEventListener("scroll", measure);
       removeEventListener("resize", measure);
       ro.disconnect();
+      mo?.disconnect();
     };
-  }, []);
+  }, [box]);
 
   if (!bar) return null;
-  const ratio = () => document.documentElement.scrollHeight / innerHeight;
+  const el = () => box?.current ?? null;
+  const all = () => el()?.scrollHeight ?? document.documentElement.scrollHeight;
+  const ratio = () => all() / (el()?.clientHeight ?? innerHeight);
+  const scrollTop = () => el()?.scrollTop ?? scrollY;
+  const go = (top: number) => (el() ?? window).scrollTo({ top });
 
   return (
     <div
@@ -86,17 +101,17 @@ export function AsciiScrollbar() {
         const cell = Math.floor((e.clientY - e.currentTarget.getBoundingClientRect().top) / CELL);
         // on the rail: jump so the thumb centres there; on the thumb: just start dragging
         if (cell < bar.top || cell >= bar.top + bar.len) {
-          scrollTo({ top: ((cell - bar.len / 2) / bar.n) * document.documentElement.scrollHeight });
+          go(((cell - bar.len / 2) / bar.n) * all());
         }
-        drag.current = { y: e.clientY, scroll: scrollY };
+        drag.current = { y: e.clientY, scroll: scrollTop() };
         e.currentTarget.setPointerCapture(e.pointerId);
       }}
       onPointerMove={(e) => {
-        if (drag.current) scrollTo({ top: drag.current.scroll + (e.clientY - drag.current.y) * ratio() });
+        if (drag.current) go(drag.current.scroll + (e.clientY - drag.current.y) * ratio());
       }}
       onPointerUp={() => (drag.current = null)}
       onPointerCancel={() => (drag.current = null)}
-      className="group fixed top-0 right-0 z-30 flex w-4 cursor-default flex-col items-center font-mono text-scroll leading-cell font-bold select-none"
+      className={`group ${box ? "absolute h-full" : "fixed z-30"} top-0 right-0 flex w-4 cursor-default flex-col items-center font-mono text-scroll leading-cell font-bold select-none`}
     >
       {Array.from({ length: bar.n }, (_, i) =>
         i >= bar.top && i < bar.top + bar.len ? (

@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
+import { ScrollBox } from "@/components/ScrollBox";
 import { LibraryToggle } from "@/components/library/LibraryToggle";
 import { TmdbImage } from "@/components/TmdbImage";
 import { Section } from "@/components/ui/Section";
@@ -30,7 +31,7 @@ export type EpisodeLibrary = {
 
 export function Episodes({ seasons, library }: { seasons: SeasonData[]; library: EpisodeLibrary }) {
   const [active, setActive] = useState(library.startSeason ?? seasons[0]?.number);
-  const list = useRef<HTMLOListElement>(null);
+  const list = useRef<HTMLDivElement>(null);
 
   // Open on your next episode instead of episode 1 (only inside the list, the page itself doesn't move).
   useEffect(() => {
@@ -56,32 +57,34 @@ export function Episodes({ seasons, library }: { seasons: SeasonData[]; library:
         />
       }
     >
-      <ol ref={list} className="relative flex max-h-list scroll-box flex-col pr-2">
-        {season.episodes.map((e, i) => (
-          <li
-            key={`${season.number}-${e.n}`}
-            data-next={season.number === library.startSeason && e.n === library.nextEpisode ? "" : undefined}
-            className="flex rise items-center gap-4 py-2"
-            style={{ animationDelay: `${Math.min(i, 10) * 40}ms` }}
-          >
-            <div className="relative aspect-video w-24 shrink-0 overflow-hidden rounded-thumb bg-raised">
-              {e.still && e.lowStill && <TmdbImage src={e.still} lowSrc={e.lowStill} alt="" sizes="96px" />}
-            </div>
-            <span className="w-6 text-small text-muted nums">{e.n}</span>
-            <span className="min-w-0 flex-1 truncate text-label font-medium">{e.name}</span>
-            {e.runtime ? <span className="text-caption text-muted nums">{e.runtime} min</span> : null}
-            <LibraryToggle
-              kind="watched"
-              size="iconSm"
-              signedIn={library.signedIn}
-              initial={watched.has(`${season.number}-${e.n}`)}
-              toggle={(on) =>
-                setWatched({ ...library.ref, season: season.number, episode: e.n, minutes: e.runtime ?? 0 }, on)
-              }
-            />
-          </li>
-        ))}
-      </ol>
+      <ScrollBox boxRef={list} className="max-h-list">
+        <ol className="flex flex-col">
+          {season.episodes.map((e, i) => (
+            <li
+              key={`${season.number}-${e.n}`}
+              data-next={season.number === library.startSeason && e.n === library.nextEpisode ? "" : undefined}
+              className="flex rise items-center gap-4 py-2"
+              style={{ animationDelay: `${Math.min(i, 10) * 40}ms` }}
+            >
+              <div className="relative aspect-video w-24 shrink-0 overflow-hidden rounded-thumb bg-raised">
+                {e.still && e.lowStill && <TmdbImage src={e.still} lowSrc={e.lowStill} alt="" sizes="96px" />}
+              </div>
+              <span className="w-6 text-small text-muted nums">{e.n}</span>
+              <span className="min-w-0 flex-1 truncate text-label font-medium">{e.name}</span>
+              {e.runtime ? <span className="text-caption text-muted nums">{e.runtime} min</span> : null}
+              <LibraryToggle
+                kind="watched"
+                size="iconSm"
+                signedIn={library.signedIn}
+                initial={watched.has(`${season.number}-${e.n}`)}
+                toggle={(on) =>
+                  setWatched({ ...library.ref, season: season.number, episode: e.n, minutes: e.runtime ?? 0 }, on)
+                }
+              />
+            </li>
+          ))}
+        </ol>
+      </ScrollBox>
     </Section>
   );
 }

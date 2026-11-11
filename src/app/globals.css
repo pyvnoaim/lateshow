@@ -98,6 +98,17 @@
 }
 
 /* Element defaults. In the base layer so any utility class can override them. */
+/* animatable fade lengths for scroll-box (a plain custom property can't transition) */
+@property --fade-top {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
+@property --fade-bottom {
+  syntax: "<length>";
+  inherits: false;
+  initial-value: 0px;
+}
 @layer base {
   /* collapsible sections draw their own arrow */
   summary::-webkit-details-marker {
@@ -277,11 +288,18 @@
 @utility scroll-box {
   overflow: auto;
   overscroll-behavior: contain;
-  scrollbar-width: thin;
-  scrollbar-color: rgb(255 255 255 / 0.18) transparent;
-  mask-image: linear-gradient(to bottom, transparent, black 16px, black calc(100% - 24px), transparent);
-  /* content starts and ends inside the faded strips, so nothing looks dimmed until it actually scrolls under them */
-  padding-block: 16px 24px;
+  scrollbar-width: none; /* ScrollBox draws the ASCII bar */
+  /* ScrollBox sets the fades only where there's more to scroll (0 at the top until you scroll, 0 at the end) */
+  mask-image: linear-gradient(
+    to bottom,
+    transparent,
+    black var(--fade-top),
+    black calc(100% - var(--fade-bottom)),
+    transparent
+  );
+  transition:
+    --fade-top 250ms ease-out,
+    --fade-bottom 250ms ease-out;
 }
 /* Clear until hovered, then the glass fades in behind it (for quiet links like where-to-watch). The glass is a
    layer under the content, so only its opacity animates. */

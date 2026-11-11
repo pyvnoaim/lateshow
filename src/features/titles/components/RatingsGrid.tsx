@@ -1,4 +1,5 @@
 import { Star } from "lucide-react";
+import { ScrollBox } from "@/components/ScrollBox";
 import { Section } from "@/components/ui/Section";
 import type { SeasonData } from "./Episodes";
 
@@ -20,7 +21,7 @@ export function RatingsGrid({ seasons, watched }: { seasons: SeasonData[]; watch
   return (
     <Section title="Ratings">
       <div className="flex flex-col gap-4">
-        <div className="max-h-list scroll-box">
+        <ScrollBox className="max-h-list">
           <div className="flex flex-col gap-1">
             {seasons.map((s) => (
               <div key={s.number} className="flex items-center gap-2">
@@ -50,7 +51,7 @@ export function RatingsGrid({ seasons, watched }: { seasons: SeasonData[]; watch
               </div>
             ))}
           </div>
-        </div>
+        </ScrollBox>
         <div className="flex gap-4 pl-8 text-caption text-muted">
           <span>Brighter is better</span>
           <span className="flex items-center gap-1.5">
