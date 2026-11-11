@@ -6,7 +6,7 @@ import { useState, useTransition } from "react";
 export type Contender = { id: number; title: string; meta: string; poster: string };
 
 /**
- * Two posters, tap the one you'd rather watch. Your pick gets the blue ring and the other fades at once; the next
+ * Two posters, tap the one you'd rather watch. Your pick gets the accent ring and the other fades at once; the next
  * match comes when everyone voted (the page refreshes live). Keyed by match, so each match starts fresh.
  */
 export function BracketVote({

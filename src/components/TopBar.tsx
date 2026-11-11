@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { AccountButton } from "./AccountButton";
+import { Logo } from "./Logo";
 import { MobileMenu } from "./MobileMenu";
 import { NavLinks, NavLinksView } from "./NavLinks";
 import { NavSearch } from "./NavSearch";
@@ -15,8 +16,8 @@ export function TopBar() {
   return (
     <header className="absolute inset-x-0 top-0 z-20">
       <Container className="flex h-bar items-center gap-8">
-        <Link href="/" className="text-logo font-bold tracking-tight">
-          Lateshow
+        <Link href="/" aria-label="Lateshow, home" className="rounded-thumb">
+          <Logo />
         </Link>
         <Suspense fallback={<NavLinksView path={null} />}>
           <NavLinks />

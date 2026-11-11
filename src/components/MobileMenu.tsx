@@ -5,6 +5,7 @@ import { Menu, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState } from "react";
+import { Logo } from "./Logo";
 import { buttonStyles } from "./ui/button";
 
 const PAGES = [
@@ -36,7 +37,7 @@ export function MobileMenu({ signedIn }: { signedIn: boolean }) {
           <Dialog.Title className="sr-only">Menu</Dialog.Title>
           <Dialog.Description className="sr-only">Pages of Lateshow</Dialog.Description>
           <div className="flex items-center justify-between pb-2 pl-4">
-            <span className="text-logo font-bold tracking-tight">Lateshow</span>
+            <Logo />
             <Dialog.Close aria-label="Close menu" className={buttonStyles("ghost", "icon")}>
               <X size={20} strokeWidth={1.75} aria-hidden />
             </Dialog.Close>

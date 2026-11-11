@@ -6,7 +6,7 @@ import { setOnWatchlist, type TitleRef } from "@/lib/library/actions";
 
 /**
  * The quiet + at the end of a poster's caption line (posters stay clean, actions live in the caption). Flips at once
- * to a blue ✓ and saves in the background. `label` shows text instead ("Remind me" on cinema posters).
+ * to an accent ✓ and saves in the background. `label` shows text instead ("Remind me" on cinema posters).
  */
 export function WatchlistPlus({
   titleRef,

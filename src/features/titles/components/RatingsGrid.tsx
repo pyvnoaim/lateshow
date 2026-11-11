@@ -6,7 +6,7 @@ import type { SeasonData } from "./Episodes";
 const UNSEEN = ["bg-fg/10", "bg-fg/25", "bg-fg/45", "bg-fg/70", "bg-fg"];
 const SEEN = ["bg-accent/30", "bg-accent/45", "bg-accent/60", "bg-accent/80", "bg-accent"];
 
-/** One square per episode, a row per season. Brighter is better, blue is seen. Rating on hover. */
+/** One square per episode, a row per season. Brighter is better, icy is seen. Rating on hover. */
 export function RatingsGrid({ seasons, watched }: { seasons: SeasonData[]; watched: string[] }) {
   const rated = seasons.flatMap((s) => s.episodes.map((e) => ({ s: s.number, ...e }))).filter((e) => e.rating > 0);
   if (rated.length === 0) return null;

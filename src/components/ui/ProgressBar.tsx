@@ -1,4 +1,4 @@
-/** Thin blue progress line. `className` sets the width (w-40, w-full). */
+/** Thin accent progress line. `className` sets the width (w-40, w-full). */
 export function ProgressBar({
   percent,
   label,

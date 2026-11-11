@@ -10,7 +10,7 @@ const tones = {
   ghost: "glass-hover",
   /** Quiet text action (Sign out, Send again): grey, turns white on hover, nothing else moves or fills. */
   text: "text-muted transition-colors hover:text-fg",
-  /** Blue tinted glass, for something that is on (watched, on the watchlist). */
+  /** Accent tinted glass (icy), for something that is on (watched, on the watchlist). */
   accent: "glass-accent",
   /** Frosted glass with a red label: an action that deletes something. */
   danger: "glass text-danger",
