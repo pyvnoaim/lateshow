@@ -1,6 +1,5 @@
 import "server-only";
 import { env, isProduction } from "@/lib/env";
-import { OPERATOR } from "@/lib/legal";
 
 export const CODE_MINUTES = 10;
 
@@ -9,22 +8,19 @@ const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&l
 /** "482913" -> "482 913", easier to read and type. Pure. */
 export const spaced = (code: string) => `${code.slice(0, 3)} ${code.slice(3)}`;
 
-/** The sign-in code email, as on the canvas: dark card, the code big, the Impressum line at the bottom. */
+/** The sign-in code email, as on the canvas: dark card, the code big. No address footer (transactional mail). */
 export function codeEmail(code: string) {
   const c = esc(spaced(code));
-  const address = esc(`${OPERATOR.name} · ${OPERATOR.co}, ${OPERATOR.street}, ${OPERATOR.city}`);
   return {
     // the code in the subject, so the notification alone is enough
     subject: `${spaced(code)} is your Lateshow code`,
-    text: `Your Lateshow sign-in code: ${spaced(code)}\n\nType it where you asked for it. It works for ${CODE_MINUTES} minutes, once.\nDidn't ask? Ignore this email. Nobody can sign in without the code.\n\n${OPERATOR.name}, ${OPERATOR.co}, ${OPERATOR.street}, ${OPERATOR.city}`,
+    text: `Your Lateshow sign-in code: ${spaced(code)}\n\nType it where you asked for it. It works for ${CODE_MINUTES} minutes, once.\nDidn't ask? Ignore this email. Nobody can sign in without the code.`,
     html: `<!doctype html><html><body style="margin:0;background:#1c1c1e;padding:32px 16px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,sans-serif">
 <div style="max-width:440px;margin:0 auto;background:#000;color:#f5f5f7;border-radius:28px;padding:44px 36px">
 <div style="font-size:22px;font-weight:700;letter-spacing:-0.035em">Lateshow</div>
 <div style="padding-top:28px;font-size:15px;color:#86868b">Your sign-in code</div>
 <div style="padding-top:8px;font-size:52px;font-weight:700;letter-spacing:0.06em">${c}</div>
 <p style="margin:24px 0 0;font-size:15px;line-height:1.55;color:#86868b">Type it where you asked for it. It works for ${CODE_MINUTES} minutes, once.<br>Didn't ask? Ignore this email. Nobody can sign in without the code.</p>
-<div style="height:1px;background:#222;margin:28px 0"></div>
-<p style="margin:0;font-size:12px;line-height:1.6;color:#6e6e73">${address}</p>
 </div></body></html>`,
   };
 }
