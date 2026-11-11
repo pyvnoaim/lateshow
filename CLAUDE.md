@@ -112,10 +112,14 @@ delete account), /watchlist + /u/me redirects in `next.config.ts`, 404, errors, 
       player for everyone in a room, on a laptop. Rejected: a manual 3-2-1 countdown flow without the extension.
       Plan, v1 = Netflix + Chrome (MV3): 1 room gets a playback state (playing/paused, position, at) on the existing
       live updates · 2 extension popup (room, who's watching, in sync) using the Lateshow sign-in of that browser ·
-      3 content script with a Netflix adapter (play/pause via the video element, seeking only through Netflix's own
-      player API, a raw currentTime seek errors) · 4 drift fix past ~2 s ("You're 4 s behind", Catch up / Wait for me) ·
-      5 test with friends as "load unpacked". Later: Chrome Web Store ($5 once) or Firefox add-ons (free), one adapter
-      per further service (Disney+, Prime).
+      3 content script: one generic adapter (the largest `<video>`, searched through shadow roots and frames) plus small
+      per-site fixes. Sites (decided 2026-11-11): Netflix (seek only through its own player API, a raw currentTime seek
+      errors), Prime Video (Paramount+ plays inside it as a channel, skip trailer/ad videos), Apple TV+ and Disney+
+      (player in shadow DOM), Crunchyroll (player is a cross-origin iframe on static.crunchyroll.com, `all_frames`),
+      YouTube (`#movie_player` API, pause sync while `.ad-showing` so non-Premium ads don't drag everyone) ·
+      4 drift fix past ~2 s ("You're 4 s behind", Catch up / Wait for me) · 5 test with friends as "load unpacked".
+      Everyone needs their own subscription, nothing is streamed between people. Later: Chrome Web Store ($5 once)
+      or Firefox add-ons (free).
 - [ ] Friends (decided 2026-11-11): mutual, by invite link only (7 days, few uses), no people search.
       Friends see everything by default, one Settings switch hides it. Tables: `user.username`, `friendship`
       (one row per pair, lower id first), `invite`. Access checked in one helper. Build order:
