@@ -3,6 +3,7 @@ import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { nextCookies } from "better-auth/next-js";
 import { magicLink } from "better-auth/plugins/magic-link";
+import { oneTimeToken } from "better-auth/plugins/one-time-token";
 import { headers } from "next/headers";
 import { connection } from "next/server";
 import { cache } from "react";
@@ -27,6 +28,9 @@ export const auth = betterAuth({
   },
   plugins: [
     magicLink({ expiresIn: LOGIN_LINK_MINUTES * 60, storeToken: "hashed", sendMagicLink: sendLoginLink }),
+    // "Continue on your phone": a QR with a token that signs the phone into your session. Made only by the server,
+    // works once, gone after 2 minutes, stored hashed.
+    oneTimeToken({ expiresIn: 2, storeToken: "hashed", disableClientRequest: true }),
     nextCookies(), // must stay last
   ],
 });

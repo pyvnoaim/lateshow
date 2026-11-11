@@ -86,3 +86,40 @@ export const invite = sqliteTable(
   },
   (t) => [index("invite_by_user").on(t.userId)],
 );
+
+/**
+ * A watch-together room, joined by its 4 letter code. `version` goes up on every change so the live lobby
+ * (server-sent events) only refreshes when something happened.
+ */
+export const room = sqliteTable("room", {
+  code: text("code").primaryKey(),
+  hostId: text("host_id")
+    .notNull()
+    .references(() => user.id, { onDelete: "cascade" }),
+  kind: text("kind", { enum: ["movie", "tv"] }).notNull(),
+  game: text("game", { enum: ["swipe", "bracket", "reel"] }).notNull(),
+  status: text("status", { enum: ["lobby", "playing", "done"] })
+    .notNull()
+    .default("lobby"),
+  version: integer("version").notNull().default(0),
+  createdAt: integer("created_at", { mode: "timestamp_ms" }).default(now).notNull(),
+  expiresAt: integer("expires_at", { mode: "timestamp_ms" }).notNull(),
+});
+
+/**
+ * Who is in a room. `memberId` is a user id, or "guest:<random>" for someone who joined by code without an account
+ * (that id lives in their browser's cookie). Invited friends have a row with `joined` false until they come in.
+ */
+export const roomMember = sqliteTable(
+  "room_member",
+  {
+    roomCode: text("room_code")
+      .notNull()
+      .references(() => room.code, { onDelete: "cascade" }),
+    memberId: text("member_id").notNull(),
+    name: text("name").notNull(),
+    joined: integer("joined", { mode: "boolean" }).notNull().default(true),
+    joinedAt: integer("joined_at", { mode: "timestamp_ms" }).default(now).notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.roomCode, t.memberId] }), index("room_member_by_member").on(t.memberId)],
+);

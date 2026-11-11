@@ -3,10 +3,10 @@
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
 
-// ponytail: "Rooms" comes back when watch together rooms exist.
 const links = [
   { href: "/", label: "Home" },
   { href: "/watchlist", label: "Watchlist" },
+  { href: "/rooms", label: "Rooms" },
 ] as const;
 
 export function NavLinks() {
