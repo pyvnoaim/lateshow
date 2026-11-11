@@ -11,10 +11,16 @@ export function LiveRoom({ code, every }: { code: string; every?: number }) {
   const router = useRouter();
   useEffect(() => {
     const events = new EventSource(`/api/rooms/${code}/events`);
-    events.onmessage = () => router.refresh();
+    // swipes come in bursts (your own included): one refresh per burst, not one per vote
+    let pending: ReturnType<typeof setTimeout> | undefined;
+    events.onmessage = () => {
+      clearTimeout(pending);
+      pending = setTimeout(() => router.refresh(), 400);
+    };
     events.addEventListener("gone", () => router.refresh());
     const timer = every ? setInterval(() => router.refresh(), every) : undefined;
     return () => {
+      clearTimeout(pending);
       events.close();
       clearInterval(timer);
     };

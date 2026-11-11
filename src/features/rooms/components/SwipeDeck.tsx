@@ -32,27 +32,42 @@ export function SwipeDeck({
   swipe: (code: string, vote: { tmdbId: number; like: boolean }) => Promise<void>;
 }) {
   const [gone, setGone] = useState<number[]>([]);
-  const [dx, setDx] = useState(0);
-  const [flying, setFlying] = useState<"L" | "R" | null>(null);
-  const start = useRef<number | null>(null);
-  const [dragging, setDragging] = useState(false);
+  const [leaving, setLeaving] = useState(false);
+  const card = useRef<HTMLDivElement>(null);
+  const drag = useRef<{ x0: number; dx: number; frame: number } | null>(null);
   const [, startTransition] = useTransition();
   const left = cards.filter((c) => !gone.includes(c.id));
   const top = left[0];
 
+  // The card moves by writing its transform straight to the element (no React render per pointer move).
+  const place = (dx: number, transition = "") => {
+    const el = card.current;
+    if (!el) return;
+    el.style.transition = transition;
+    el.style.transform = dx ? `translate3d(${dx}px,0,0) rotate(${dx / 22}deg)` : "";
+  };
+
   const commit = useCallback(
     (like: boolean) => {
-      if (!top || flying) return;
-      setFlying(like ? "R" : "L");
-      setTimeout(() => {
-        setGone((g) => [...g, top.id]);
-        setFlying(null);
-        setDx(0);
-        startTransition(() => swipe(code, { tmdbId: top.id, like }));
-      }, 260);
+      const el = card.current;
+      if (!top || !el || leaving) return;
+      setLeaving(true);
+      place(like ? window.innerWidth : -window.innerWidth, "transform 280ms cubic-bezier(.4,0,1,1)");
+      el.addEventListener(
+        "transitionend",
+        () => {
+          setGone((g) => [...g, top.id]);
+          setLeaving(false);
+          startTransition(() => swipe(code, { tmdbId: top.id, like }));
+        },
+        { once: true },
+      );
     },
-    [top, flying, swipe, code],
+    [top, leaving, swipe, code],
   );
+
+  // a new top card starts centred, without animating back from where the last one flew
+  useEffect(() => place(0), [top?.id]);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -64,34 +79,47 @@ export function SwipeDeck({
   }, [commit]);
 
   if (!top) return null;
-  const x = flying === "R" ? 700 : flying === "L" ? -700 : dx;
   const next = left[1];
 
   return (
     <div className="flex swipe-card flex-col gap-5">
       <div className="relative aspect-poster w-full">
         {next && (
-          <div className="absolute inset-0 scale-95 overflow-hidden rounded-banner bg-raised opacity-50">
+          <div
+            className={`absolute inset-0 overflow-hidden rounded-banner bg-raised transition duration-300 ease-out ${leaving ? "scale-100 opacity-100" : "scale-95 opacity-50"}`}
+          >
             <Image src={next.poster} alt="" fill sizes="384px" className="object-cover" />
           </div>
         )}
         <div
+          key={top.id}
+          ref={card}
           role="group"
           aria-label={top.title}
           onPointerDown={(e) => {
-            start.current = e.clientX;
-            setDragging(true);
+            if (leaving) return;
+            drag.current = { x0: e.clientX, dx: 0, frame: 0 };
             e.currentTarget.setPointerCapture(e.pointerId);
           }}
-          onPointerMove={(e) => start.current !== null && setDx(e.clientX - start.current)}
-          onPointerUp={() => {
-            start.current = null;
-            setDragging(false);
-            if (Math.abs(dx) > FLICK) commit(dx > 0);
-            else setDx(0);
+          onPointerMove={(e) => {
+            const d = drag.current;
+            if (!d) return;
+            d.dx = e.clientX - d.x0;
+            cancelAnimationFrame(d.frame);
+            d.frame = requestAnimationFrame(() => place(d.dx));
           }}
-          style={{ transform: `translateX(${x}px) rotate(${x / 22}deg)` }}
-          className={`absolute inset-0 cursor-grab touch-none overflow-hidden rounded-banner bg-raised shadow-2xl outline-1 -outline-offset-1 outline-hairline select-none active:cursor-grabbing ${dragging ? "" : "transition-transform duration-300 ease-out"}`}
+          onPointerUp={() => {
+            const d = drag.current;
+            drag.current = null;
+            if (!d) return;
+            if (Math.abs(d.dx) > FLICK) commit(d.dx > 0);
+            else place(0, "transform 300ms cubic-bezier(.2,.8,.2,1)");
+          }}
+          onPointerCancel={() => {
+            drag.current = null;
+            place(0, "transform 300ms cubic-bezier(.2,.8,.2,1)");
+          }}
+          className="absolute inset-0 cursor-grab touch-none overflow-hidden rounded-banner bg-raised shadow-2xl outline-1 -outline-offset-1 outline-hairline will-change-transform select-none active:cursor-grabbing"
         >
           <Image src={top.poster} alt="" fill sizes="384px" priority className="pointer-events-none object-cover" />
           <div className="absolute inset-0 bg-linear-to-t from-bg via-bg/30 to-transparent" />
