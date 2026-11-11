@@ -1,24 +1,25 @@
 "use client";
 
-import { Check, Mail, ScanFace } from "lucide-react";
+import { Check, Fingerprint, Mail, ScanFace } from "lucide-react";
 import { useEffect, useRef, useState, useSyncExternalStore, type FormEvent, type ReactNode } from "react";
 import { buttonStyles } from "@/components/ui/button";
 import { fieldInputStyles, fieldStyles } from "@/components/ui/field";
 import { authClient } from "@/lib/authClient";
 import { mailApp } from "@/features/auth/mailApp";
+import { passkeyLabel } from "@/features/auth/passkeyLabel";
 import { HAS_PASSKEY, NO_PASSKEY, recall, remember } from "@/lib/passkeyHint";
 
 const RESEND_SECONDS = 30;
 const TOO_MANY_FOR_ADDRESS = "Too many codes for this address"; // auth.ts sends exactly this
-/** "Face ID" on Apple devices, the honest generic name elsewhere. */
-const passkeyLabel = () => (/Mac|iPhone|iPad/.test(navigator.userAgent) ? "Face ID" : "your passkey");
 
 // What this browser can do, read once in the browser (the server renders the plain email step).
 // A string, so React sees the same snapshot every time.
 const browserSnapshot = () =>
-  [typeof window.PublicKeyCredential !== "undefined" ? "1" : "", recall(HAS_PASSKEY) ? "1" : "", passkeyLabel()].join(
-    "|",
-  );
+  [
+    typeof window.PublicKeyCredential !== "undefined" ? "1" : "",
+    recall(HAS_PASSKEY) ? "1" : "",
+    passkeyLabel(navigator.userAgent, navigator.maxTouchPoints),
+  ].join("|");
 const noSubscribe = () => () => {};
 
 /**
@@ -51,6 +52,9 @@ export function SignInForm({
   const canPasskey = canFlag === "1";
   const returning = canPasskey && hasFlag === "1";
   const label = browserLabel || "your passkey";
+  // Touch ID / Face ID get their own name and icon, anything else is "a passkey"
+  const named = label !== "your passkey";
+  const PasskeyIcon = label === "Touch ID" ? Fingerprint : ScanFace;
   const emailInput = useRef<HTMLInputElement>(null);
   const codeInput = useRef<HTMLInputElement>(null);
 
@@ -170,7 +174,7 @@ export function SignInForm({
             You&apos;re in.
             <br />
             <span className="text-muted">
-              {phase === "offer" ? `${label === "Face ID" ? "Face ID" : "A passkey"} next time?` : "Taking you back."}
+              {phase === "offer" ? `${named ? label : "A passkey"} next time?` : "Taking you back."}
             </span>
           </h1>
           {phase === "offer" && (
@@ -189,8 +193,8 @@ export function SignInForm({
               onClick={() => void addPasskey()}
               className={buttonStyles("primary", "sm")}
             >
-              <ScanFace size={18} strokeWidth={1.75} aria-hidden />
-              {label === "Face ID" ? "Use Face ID" : "Save a passkey"}
+              <PasskeyIcon size={18} strokeWidth={1.75} aria-hidden />
+              {named ? `Use ${label}` : "Save a passkey"}
             </button>
             <button
               type="button"
@@ -223,6 +227,9 @@ export function SignInForm({
             Type the 6 digits we sent to <span className="text-fg">{sentTo}</span>.
             <br />
             The code works for {minutes} minutes.
+            <br />
+            {/* a young sending domain lands in Gmail's spam at first */}
+            Nothing there? Check your spam folder.
           </p>
         </div>
         <div className="flex flex-col gap-4">
@@ -350,7 +357,7 @@ export function SignInForm({
               onClick={() => void passkeySignIn()}
               className={buttonStyles("primary", "md", "w-full")}
             >
-              <ScanFace size={20} strokeWidth={1.75} aria-hidden />
+              <PasskeyIcon size={20} strokeWidth={1.75} aria-hidden />
               Sign in with {label}
             </button>
             <span className="flex items-center gap-4 text-caption text-muted">
