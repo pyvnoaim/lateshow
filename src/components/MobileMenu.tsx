@@ -7,16 +7,18 @@ import { usePathname, useSearchParams } from "next/navigation";
 import { useState } from "react";
 import { buttonStyles } from "./ui/button";
 
-const LINKS = [
+const PAGES = [
   { href: "/", label: "Home" },
   { href: "/watchlist", label: "Watchlist" },
   { href: "/cinemas", label: "Coming to cinemas" },
+];
+const YOU = [
   { href: "/u/me", label: "Profile" },
   { href: "/settings", label: "Settings" },
-] as const;
+];
 
 /** Phones only: the top bar links don't fit, so a menu button opens them in a glass sheet below the bar. */
-export function MobileMenu() {
+export function MobileMenu({ signedIn }: { signedIn: boolean }) {
   const [open, setOpen] = useState(false);
   const path = usePathname();
   const tab = useSearchParams().get("tab");
@@ -40,7 +42,7 @@ export function MobileMenu() {
             </Dialog.Close>
           </div>
           <nav aria-label="Main" className="flex flex-col">
-            {LINKS.map((l) => (
+            {[...PAGES, ...(signedIn ? YOU : [{ href: "/login", label: "Sign in" }])].map((l) => (
               <Link
                 key={l.href}
                 href={l.href}

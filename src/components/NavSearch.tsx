@@ -41,6 +41,15 @@ export function NavSearch() {
     }
   }
 
+  /** The results URL for a query. On /search it keeps the type and genre filters. */
+  function searchUrl(q: string) {
+    const params = new URLSearchParams(window.location.pathname === "/search" ? window.location.search : "");
+    if (q) params.set("q", q);
+    else params.delete("q");
+    const query = params.toString();
+    return query ? `/search?${query}` : "/search";
+  }
+
   /** Back to the page before the search (or Home if you opened /search directly). */
   const leaveSearch = useCallback(() => {
     setTyping(false);
@@ -61,8 +70,9 @@ export function NavSearch() {
     if (q.length > 0 && q.length < MIN_LETTERS) return;
     if (!q && !onSearchPage) return;
     const timer = setTimeout(() => {
-      if (!q) return leaveSearch();
-      const url = `/search?q=${encodeURIComponent(q)}`;
+      const url = searchUrl(q);
+      // Emptied the field while browsing a genre: stay and browse, otherwise go back to where you were.
+      if (!q && url === "/search") return leaveSearch();
       // Check the real URL now: a push from a moment ago may not have reached `onSearchPage` yet.
       // One history entry per search session, so Back returns to where you came from.
       if (window.location.pathname === "/search") {
@@ -92,14 +102,14 @@ export function NavSearch() {
   function close() {
     setTyping(false);
     if (value.trim() !== "") return;
-    if (onSearchPage) leaveSearch();
-    else setOpen(false);
+    if (!onSearchPage) setOpen(false);
+    else if (searchUrl("") === "/search") leaveSearch(); // browsing a genre with filters: stay
   }
 
   function submit(e: FormEvent) {
     e.preventDefault();
     const q = value.trim();
-    if (q) router.push(`/search?q=${encodeURIComponent(q)}`);
+    if (q) router.push(searchUrl(q));
   }
 
   return (
@@ -107,7 +117,7 @@ export function NavSearch() {
       role="search"
       onSubmit={submit}
       className={`flex items-center overflow-hidden rounded-full transition-all duration-300 ease-spring ${
-        expanded ? `${fieldStyles("bar")} w-64 sm:w-96` : "h-11 w-11"
+        expanded ? `${fieldStyles("bar")} w-full max-w-96 min-w-0` : "h-11 w-11 shrink-0"
       }`}
     >
       <button

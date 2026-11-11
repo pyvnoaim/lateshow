@@ -156,6 +156,10 @@
 }
 /* A box that scrolls inside a fixed height: the content fades out at the top and bottom edge instead of being cut,
    with a thin quiet scrollbar. */
+/* Sideways strips you swipe (genre row on phones): no scrollbar track under the text */
+@utility no-scrollbar {
+  scrollbar-width: none;
+}
 @utility scroll-box {
   overflow: auto;
   overscroll-behavior: contain;

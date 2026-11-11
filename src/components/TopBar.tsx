@@ -5,6 +5,7 @@ import { MobileMenu } from "./MobileMenu";
 import { NavLinks, NavLinksView } from "./NavLinks";
 import { NavSearch } from "./NavSearch";
 import { Container } from "./ui/Container";
+import { getSession } from "@/lib/auth";
 
 /**
  * Navbar C: name + links left, search + you right. Sits over the page so backdrops run underneath, scrolls away.
@@ -20,18 +21,25 @@ export function TopBar() {
         <Suspense fallback={<NavLinksView path={null} />}>
           <NavLinks />
         </Suspense>
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ml-auto flex min-w-0 flex-1 items-center justify-end gap-2">
           <Suspense fallback={<div aria-hidden className="size-11" />}>
             <NavSearch />
           </Suspense>
-          <Suspense fallback={<div aria-hidden className="size-8" />}>
-            <AccountButton />
-          </Suspense>
+          {/* phones reach the profile (or sign in) from the menu, so search gets the room */}
+          <div className="hidden sm:flex">
+            <Suspense fallback={<div aria-hidden className="size-8" />}>
+              <AccountButton />
+            </Suspense>
+          </div>
           <Suspense fallback={<div aria-hidden className="size-11 sm:hidden" />}>
-            <MobileMenu />
+            <PhoneMenu />
           </Suspense>
         </div>
       </Container>
     </header>
   );
+}
+
+async function PhoneMenu() {
+  return <MobileMenu signedIn={(await getSession()) !== null} />;
 }

@@ -10,9 +10,25 @@ const on = "text-fg";
 const off = "text-muted hover:text-fg";
 
 /** Text switcher. Links when the choice lives in the URL (profile tabs), buttons when it's local state (season tabs). */
-export function SegmentedTabs({ label, items }: { label: string; items: Segment[] }) {
+export function SegmentedTabs({
+  label,
+  items,
+  swipe = false,
+}: {
+  label: string;
+  items: Segment[];
+  /** Long lists: one row you swipe sideways on phones, wrapping from tablet width up. */
+  swipe?: boolean;
+}) {
   return (
-    <nav aria-label={label} className="flex w-fit flex-wrap gap-x-6">
+    <nav
+      aria-label={label}
+      className={`flex gap-x-6 ${
+        swipe
+          ? "-mx-4 no-scrollbar overflow-x-auto px-4 whitespace-nowrap sm:mx-0 sm:w-fit sm:flex-wrap sm:overflow-visible sm:px-0"
+          : "w-fit flex-wrap"
+      }`}
+    >
       {items.map((s) =>
         s.href !== undefined ? (
           <Link

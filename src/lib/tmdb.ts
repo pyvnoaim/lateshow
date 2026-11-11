@@ -324,6 +324,24 @@ export async function getNewOnStreaming(country: string) {
   return movies.flatMap((m, i) => (shows[i] ? [m, shows[i]] : [m])).filter((c) => c.poster_path);
 }
 
+/**
+ * Popular titles in a genre that stream on a subscription in the country. Feeds browsing on /search.
+ * Ids per type because TMDB's movie and series genres differ, null skips that type. `all` alternates movie and series.
+ */
+export async function getGenreTitles(kind: Kind, ids: { movie: number | null; tv: number | null }, country: string) {
+  "use cache";
+  cacheLife("hours");
+  const params = (id: number) => ({ with_genres: String(id), sort_by: "popularity.desc", "vote_count.gte": "100" });
+  const [movies, shows] = await Promise.all([
+    kind === "tv" || ids.movie === null ? [] : discover("movie", params(ids.movie), country),
+    kind === "movie" || ids.tv === null ? [] : discover("tv", params(ids.tv), country),
+  ]);
+  const mixed = kind === "all" ? movies.flatMap((m, i) => (shows[i] ? [m, shows[i]] : [m])) : [...movies, ...shows];
+  // alternating stops when movies run out, so leftover series go at the end
+  const rest = kind === "all" ? shows.slice(movies.length) : [];
+  return [...mixed, ...rest].filter((c) => c.poster_path);
+}
+
 /** Very well rated titles with few votes, on a subscription in the country. A different page each day. */
 export async function getHiddenGems(country: string) {
   "use cache";
