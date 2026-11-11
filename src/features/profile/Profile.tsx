@@ -115,7 +115,8 @@ export async function Profile({
   return (
     <div className="flex flex-col gap-section">
       <div className="flex flex-col gap-10">
-        <div className="flex rise flex-wrap items-center gap-5">
+        {/* relative z-10: the invite card hangs from here over the page, above the sections' own layers */}
+        <div className="relative z-10 flex rise flex-wrap items-center gap-5">
           <Avatar name={name} image={owner.image} size="lg" />
           <div className="min-w-0 flex-1">
             <div className="text-body font-semibold">{name}</div>
