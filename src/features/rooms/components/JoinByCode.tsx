@@ -15,7 +15,7 @@ export function JoinByCode() {
     if (/^[A-Z0-9]{4}$/.test(clean)) router.push(`/rooms/${clean}`);
   }
   return (
-    <form onSubmit={submit} className={`${fieldStyles("lg")} max-w-form`}>
+    <form onSubmit={submit} className={`${fieldStyles("lg")} w-full max-w-form sm:w-96`}>
       <label htmlFor="room-code" className="sr-only">
         Room code
       </label>
