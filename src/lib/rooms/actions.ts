@@ -1,7 +1,7 @@
 "use server";
 
 import { randomBytes, randomInt } from "node:crypto";
-import { and, eq, gt, isNull, ne, sql } from "drizzle-orm";
+import { and, eq, gt, isNull, lt, ne, sql } from "drizzle-orm";
 import { cookies } from "next/headers";
 import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
@@ -95,6 +95,8 @@ export async function createRoom(input: z.input<typeof startInput>): Promise<{ c
   if (!session) return { error: "Sign in to start a room." };
   if (!session.user.username) return { error: "Pick a username in Settings first. Everyone in the room sees it." };
   const { kind, game, friends } = startInput.parse(input);
+  // housekeeping: rooms (members, votes, moods with them) are deleted a day after they close (see the privacy page)
+  await db.delete(room).where(lt(room.expiresAt, new Date(Date.now() - 24 * 3600_000)));
   const mine = (await getFriends(session.user.id)).filter((f) => friends.includes(f.id) && f.username);
   for (let attempt = 0; attempt < 5; attempt++) {
     const code = newRoomCode();

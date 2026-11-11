@@ -20,8 +20,8 @@ export function TmdbImage({
   const [loaded, setLoaded] = useState(false);
   return (
     <>
-      {/* eslint-disable-next-line @next/next/no-img-element -- 92px placeholder, not worth optimizing */}
-      <img src={lowSrc} alt="" aria-hidden className="absolute inset-0 size-full scale-110 object-cover blur-xl" />
+      {/* through our image server too, so no visitor's browser ever talks to TMDB (see the privacy page) */}
+      <Image src={lowSrc} alt="" aria-hidden fill sizes="64px" className="scale-110 object-cover blur-xl" />
       <Image
         src={src}
         alt={alt}

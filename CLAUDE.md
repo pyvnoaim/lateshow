@@ -83,7 +83,10 @@ delete account), /watchlist + /u/me redirects in `next.config.ts`, 404, errors, 
 
 ## Todo (in order)
 
-- [ ] Before public: privacy page + Impressum, Resend, nightly SQLite backup off the VPS, Docker deploy, buy lateshow.app.
+- [ ] Before public: Resend (or passkeys), nightly SQLite backup off the VPS, Docker deploy, buy lateshow.app.
+      /privacy and /impressum exist (2026-11-11): fill the placeholders in `src/lib/legal.ts` and the email provider
+      line on /privacy. Keep /privacy true to the code: no browser request may go to TMDB/JustWatch (images go
+      through next/image), cookies listed there are the only ones.
 - [ ] Later: genre/mood row, TMDB account import, imports (Netflix CSV, Letterboxd, Trakt).
 - [ ] Friends (decided 2026-11-11): mutual, by invite link only (7 days, few uses), no people search.
       Friends see everything by default, one Settings switch hides it. Tables: `user.username`, `friendship`

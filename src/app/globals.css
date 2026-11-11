@@ -91,6 +91,11 @@
 
 /* Element defaults. In the base layer so any utility class can override them. */
 @layer base {
+  /* bold in running text (legal pages): the key words in white, the rest stays muted */
+  strong {
+    font-weight: 500;
+    color: var(--color-fg);
+  }
   html {
     background: var(--color-bg);
     color: var(--color-fg);

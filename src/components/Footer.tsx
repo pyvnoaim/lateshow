@@ -21,8 +21,14 @@ const COLUMNS = [
       { href: "/settings", label: "Settings" },
     ],
   },
-  // ponytail: Privacy and Impressum join this column once those pages exist (see Todo in CLAUDE.md).
-  { title: "Lateshow", links: [{ href: "/about", label: "About" }] },
+  {
+    title: "Lateshow",
+    links: [
+      { href: "/about", label: "About" },
+      { href: "/privacy", label: "Privacy" },
+      { href: "/impressum", label: "Impressum" },
+    ],
+  },
 ];
 
 /** Quiet footer on every main page: name and tagline, three link columns, data credit and the detected country. */
