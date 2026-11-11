@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 
 const links = [
   { href: "/", label: "Home" },
+  { href: "/search", label: "Browse" },
   { href: "/watchlist", label: "Watchlist" },
   { href: "/rooms", label: "Rooms" },
 ] as const;
@@ -17,7 +18,7 @@ export function NavLinks() {
 /** The links themselves. Rendered with path null as the Suspense fallback, so nothing moves while the URL is read. */
 export function NavLinksView({ path }: { path: string | null }) {
   return (
-    <nav aria-label="Main" className="hidden gap-6 text-label sm:flex">
+    <nav aria-label="Main" className="hidden gap-6 text-label text-legible sm:flex">
       {links.map(({ href, label }) => {
         const on = path !== null && (href === "/" ? path === "/" : path.startsWith(href));
         return (
@@ -25,7 +26,7 @@ export function NavLinksView({ path }: { path: string | null }) {
             key={href}
             href={href}
             aria-current={on ? "page" : undefined}
-            className={on ? "text-fg" : "text-muted transition-colors hover:text-fg"}
+            className={on ? "text-fg" : "text-fg/65 transition-colors hover:text-fg"}
           >
             {label}
           </Link>

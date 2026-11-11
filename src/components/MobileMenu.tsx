@@ -10,6 +10,7 @@ import { buttonStyles } from "./ui/button";
 
 const PAGES = [
   { href: "/", label: "Home" },
+  { href: "/search", label: "Browse" },
   { href: "/watchlist", label: "Watchlist" },
   { href: "/rooms", label: "Rooms" },
   { href: "/cinemas", label: "Coming to cinemas" },

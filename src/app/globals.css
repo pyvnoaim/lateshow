@@ -217,6 +217,12 @@
     inset 0 1px 0 rgb(255 255 255 / 0.35),
     inset 0 0 0 1px rgb(255 255 255 / 0.08);
 }
+/* text over pictures (the top bar on a hero): a soft dark halo, invisible on black, readable on bright artwork */
+@utility text-legible {
+  text-shadow:
+    0 1px 14px rgb(0 0 0 / 0.75),
+    0 0 2px rgb(0 0 0 / 0.35);
+}
 @utility swipe-card {
   width: min(100%, calc((100dvh - var(--spacing-swipe-chrome)) * 2 / 3));
 }
