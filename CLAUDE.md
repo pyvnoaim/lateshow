@@ -100,7 +100,7 @@ delete account), /watchlist + /u/me redirects in `next.config.ts`, 404, errors, 
 - [x] Hosting (2026-11-11): Portainer stack `lateshow` from this repo, NPM host lateshow.pyvno.xyz (custom `*.pyvno.xyz`
       cert, like quorum), Cloudflare A record proxied, CI webhook deploys. Resend: pyvno.xyz verified (eu-west-1,
       return path `send`, tracking off), `RESEND_API_KEY` + `MAIL_FROM` in Portainer.
-- [ ] Next: the privacy/impressum placeholders. Backups skipped for now (decided 2026-11-11), Litestream to R2 when it matters.
+- [x] Privacy/impressum filled and checked against the server (2026-11-11). Impressum name is still the nickname. Backups skipped for now (decided 2026-11-11), Litestream to R2 when it matters.
       /privacy and /impressum exist (2026-11-11): fill the placeholders in `src/lib/legal.ts` and the email provider
       line on /privacy. Keep /privacy true to the code: no browser request may go to TMDB/JustWatch (images go
       through next/image), cookies listed there are the only ones.
