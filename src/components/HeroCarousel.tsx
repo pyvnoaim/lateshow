@@ -76,29 +76,33 @@ export function HeroCarousel({ slides }: { slides: HeroSlide[] }) {
           )
         }
       >
-        <div key={slide.key} className="flex stagger flex-col gap-5">
-          {slide.logo ? (
-            <HeroLogo src={slide.logo.src} aspectRatio={slide.logo.aspectRatio} name={slide.name} />
-          ) : (
-            <h1 className={heroTitle}>{slide.name}</h1>
-          )}
-          <div className="flex flex-wrap items-center gap-x-2 text-label text-fg/80 nums">
-            <span>{slide.meta}</span>
-            {slide.rating > 0 && (
-              <span className="inline-flex items-center gap-1">
-                · <Star size={13} strokeWidth={2} aria-hidden /> {slide.rating.toFixed(1)}
-              </span>
+        {/* only the text settles in on each slide: the buttons stay put, so they don't blink on every change */}
+        <div className="flex flex-col gap-5">
+          <div key={slide.key} className="flex stagger flex-col gap-5">
+            {slide.logo ? (
+              <HeroLogo src={slide.logo.src} aspectRatio={slide.logo.aspectRatio} name={slide.name} />
+            ) : (
+              <h1 className={heroTitle}>{slide.name}</h1>
+            )}
+            <div className="flex flex-wrap items-center gap-x-2 text-label text-fg/80 nums">
+              <span>{slide.meta}</span>
+              {slide.rating > 0 && (
+                <span className="inline-flex items-center gap-1">
+                  · <Star size={13} strokeWidth={2} aria-hidden /> {slide.rating.toFixed(1)}
+                </span>
+              )}
+            </div>
+            {slide.overview && (
+              <p className="line-clamp-2 max-w-search text-body leading-normal text-fg/80">{slide.overview}</p>
             )}
           </div>
-          {slide.overview && (
-            <p className="line-clamp-2 max-w-search text-body leading-normal text-fg/80">{slide.overview}</p>
-          )}
           <div className="flex flex-wrap items-center gap-3 pt-2">
             {slide.trailerKey && <Trailer youtubeKey={slide.trailerKey} title={slide.name} variant="primary" />}
             <Link href={slide.href} className={buttonStyles("glass")}>
               Details
             </Link>
             <LibraryToggle
+              key={slide.key} // fresh on/off state per title
               kind="watchlist"
               signedIn={slide.watchlist.signedIn}
               initial={slide.watchlist.initial}
