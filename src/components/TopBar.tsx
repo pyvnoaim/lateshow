@@ -4,6 +4,7 @@ import { AccountButton } from "./AccountButton";
 import { Logo } from "./Logo";
 import { MobileMenu } from "./MobileMenu";
 import { NavLinks, NavLinksView } from "./NavLinks";
+import { NavIsland } from "./NavIsland";
 import { NavSearch } from "./NavSearch";
 import { UpNext } from "./UpNext";
 import { Container } from "./ui/Container";
@@ -41,6 +42,19 @@ export function TopBar() {
           </Suspense>
         </div>
       </Container>
+      {/* scrolled away: the same places as a small glass island that comes back when you scroll up */}
+      <NavIsland
+        upNext={
+          <Suspense>
+            <UpNext compact />
+          </Suspense>
+        }
+        account={
+          <Suspense fallback={<div aria-hidden className="size-8" />}>
+            <AccountButton />
+          </Suspense>
+        }
+      />
     </header>
   );
 }

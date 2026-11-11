@@ -67,8 +67,9 @@ pure logic extracted with a `*.test.ts` beside it, no barrel files, move code to
   used by `Logo`, apple-icon.png rendered from it.
 - Premium comes from states, glass, motion and type, never decoration motifs.
 - Switchers are plain text (active white, rest grey). Posters stay clean, extra actions go in the caption line.
-- Top bar scrolls away (absolute). Inputs are glass pills like search.
-- Rejected, don't bring back: white pill switchers, dock nav, frosted fixed bar on scroll, poster glow, cinema motifs,
+- Top bar scrolls away (absolute). Scrolled down, scrolling up brings a compact glass island (`NavIsland`, chosen
+  2026-11-11 over a fixed bar). Inputs are glass pills like search.
+- Rejected, don't bring back: white pill switchers, a dock nav at the bottom, a full-width frosted bar fixed on scroll, poster glow, cinema motifs,
   serif accents, play button on posters, moving hover arrows.
 - Every poster caption is the same everywhere (`PosterCaption`): Type · Year · Genre + small service icon.
 - Every page: press feel, shaped skeletons (no spinners), reserved image space + blur-up, optimistic toggles, tabular nums,

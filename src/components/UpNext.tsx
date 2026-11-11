@@ -8,7 +8,8 @@ import { getRegion } from "@/lib/region";
  * "Up next" in the top bar: the show you're in the middle of, as one small glass pill. Opens the next episode on
  * your service (or the title page when no service has it). Nothing when you're signed out or caught up.
  */
-export async function UpNext() {
+/** `compact` (the scroll island): just ▶ and the episode, the title is in the tooltip. */
+export async function UpNext({ compact = false }: { compact?: boolean }) {
   const session = await getSession();
   if (!session) return null;
   const [show] = await getShowsInProgress(session.user.id, 1, (await getRegion()).code);
@@ -17,11 +18,13 @@ export async function UpNext() {
   const inner = (
     <>
       <Play size={11} fill="currentColor" strokeWidth={0} aria-hidden className="shrink-0" />
-      <span className="max-w-40 truncate">{show.name}</span>
+      {!compact && <span className="max-w-40 truncate">{show.name}</span>}
       <span className="text-muted nums">{ep}</span>
     </>
   );
-  const pill = "hidden h-9 press items-center gap-2 rounded-full pr-4 pl-3.5 text-small font-medium glass md:flex";
+  const pill = compact
+    ? "hidden h-9 press items-center gap-2 rounded-full bg-fg/8 pr-3.5 pl-3 text-small font-medium transition-colors hover:bg-fg/14 md:flex"
+    : "hidden h-9 press items-center gap-2 rounded-full pr-4 pl-3.5 text-small font-medium glass md:flex";
   return show.link ? (
     <a
       href={show.link.url}
