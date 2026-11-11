@@ -4,7 +4,14 @@ import { Section } from "@/components/ui/Section";
 import { getSession } from "@/lib/auth";
 import { LANGUAGES } from "@/lib/languages";
 import { getRegion } from "@/lib/region";
-import { deleteAccount, setLanguage, setMyService, setSpoilerGuard, setUsername } from "@/lib/settings/actions";
+import {
+  deleteAccount,
+  setLanguage,
+  setMyService,
+  setShareActivity,
+  setSpoilerGuard,
+  setUsername,
+} from "@/lib/settings/actions";
 import { getMyServiceIds, getSpoilerGuard } from "@/lib/settings/queries";
 import { getServiceChoices, img } from "@/lib/tmdb";
 import { ChoicePicker } from "./components/ChoicePicker";
@@ -34,6 +41,17 @@ export async function Settings() {
           initial={session.user.username ?? ""}
           save={setUsername}
           maxLength={21}
+        />
+      </Section>
+      <Section title="Friends" description="What friends see on your profile. Off, they only see your name.">
+        <ChoicePicker
+          label="Share with friends"
+          choices={[
+            { value: "share", label: "Share my activity" },
+            { value: "private", label: "Keep it private" },
+          ]}
+          current={session.user.shareActivity === false ? "private" : "share"}
+          save={setShareActivity}
         />
       </Section>
       <Section

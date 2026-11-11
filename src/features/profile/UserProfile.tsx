@@ -1,10 +1,11 @@
 import { notFound } from "next/navigation";
 import { getSession } from "@/lib/auth";
+import { getFriendship, getUserByUsername } from "@/lib/friends/queries";
 import { Profile } from "./Profile";
 
 /**
- * /u/[username]. For now only your own: anyone else's is a 404, so usernames can't be probed.
- * ponytail: friends' profiles come with friendships (step 3 of the friends plan in CLAUDE.md).
+ * /u/[username]: your own profile, or a friend's. Anyone else (or anyone signed out) gets a 404, the same as a
+ * name that doesn't exist, so usernames can't be probed.
  */
 export async function UserProfile({
   params,
@@ -14,6 +15,18 @@ export async function UserProfile({
   searchParams: Promise<{ tab?: string | string[] }>;
 }) {
   const [{ username }, session] = await Promise.all([params, getSession()]);
-  if (!session?.user.username || session.user.username !== username.toLowerCase()) notFound();
-  return <Profile searchParams={searchParams} base={`/u/${session.user.username}`} />;
+  if (!session) notFound();
+  if (session.user.username && session.user.username === username.toLowerCase()) {
+    return <Profile searchParams={searchParams} base={`/u/${session.user.username}`} />;
+  }
+  const owner = await getUserByUsername(username);
+  const friendship = owner ? await getFriendship(session.user.id, owner.id) : null;
+  if (!owner || !friendship) notFound();
+  return (
+    <Profile
+      searchParams={searchParams}
+      base={`/u/${owner.username}`}
+      owner={{ ...owner, friendsSince: friendship.since }}
+    />
+  );
 }

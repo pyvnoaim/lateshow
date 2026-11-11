@@ -66,3 +66,12 @@ export async function acceptInvite(raw: string): Promise<AcceptResult> {
   if (result === "friends") refresh();
   return result;
 }
+
+/** Ends a friendship, both ways. The other person isn't told. */
+export async function removeFriend(friendId: string) {
+  const session = await getSession();
+  if (!session) throw new Error("Sign in first.");
+  const { a, b } = pair(session.user.id, z.string().min(1).parse(friendId));
+  await db.delete(friendship).where(and(eq(friendship.a, a), eq(friendship.b, b)));
+  refresh();
+}

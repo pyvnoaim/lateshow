@@ -89,3 +89,12 @@ export async function deleteAccount() {
   }
   redirect("/");
 }
+
+/** Whether friends see your history, watchlist and stats. */
+export async function setShareActivity(value: "share" | "private") {
+  const session = await getSession();
+  if (!session) throw new Error("Sign in first.");
+  const share = z.enum(["share", "private"]).parse(value) === "share";
+  await db.update(user).set({ shareActivity: share, updatedAt: new Date() }).where(eq(user.id, session.user.id));
+  refresh();
+}

@@ -19,7 +19,12 @@ export const auth = betterAuth({
   baseURL: BETTER_AUTH_URL,
   database: drizzleAdapter(db, { provider: "sqlite", schema }),
   // set only through our own action (setUsername), never from sign up
-  user: { additionalFields: { username: { type: "string", required: false, input: false } } },
+  user: {
+    additionalFields: {
+      username: { type: "string", required: false, input: false },
+      shareActivity: { type: "boolean", required: false, defaultValue: true, input: false },
+    },
+  },
   plugins: [
     magicLink({ expiresIn: LOGIN_LINK_MINUTES * 60, storeToken: "hashed", sendMagicLink: sendLoginLink }),
     nextCookies(), // must stay last

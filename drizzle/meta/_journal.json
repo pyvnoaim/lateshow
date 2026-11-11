@@ -36,6 +36,13 @@
       "when": 1794389687208,
       "tag": "0004_warm_mongoose",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "6",
+      "when": 1794390163802,
+      "tag": "0005_fair_zaran",
+      "breakpoints": true
     }
   ]
 }

@@ -5,10 +5,12 @@ import { buttonStyles } from "@/components/ui/button";
 import { PosterGrid } from "@/components/ui/PosterGrid";
 import { Section } from "@/components/ui/Section";
 import { SegmentedTabs } from "@/components/ui/SegmentedTabs";
+import { FriendMenu } from "@/components/friends/FriendMenu";
 import { InviteButton } from "@/components/friends/InviteButton";
 import { getSession } from "@/lib/auth";
-import { getInviteLink } from "@/lib/friends/actions";
-import { getFriendCount } from "@/lib/friends/queries";
+import { ago } from "@/lib/ago";
+import { getInviteLink, removeFriend } from "@/lib/friends/actions";
+import { getFriendCount, getFriends } from "@/lib/friends/queries";
 import { shownName } from "@/lib/username";
 import { getHistory, getStats, getWatchlist, getWatchTimes } from "@/lib/library/queries";
 import type { Card } from "@/lib/tmdb";
@@ -16,38 +18,62 @@ import { SignOutButton } from "./components/SignOutButton";
 import { YearHeatmap } from "./components/YearHeatmap";
 import { yearGrid } from "./yearGrid";
 
-const TABS = ["overview", "history", "watchlist"] as const;
+const TABS = ["overview", "history", "watchlist", "friends"] as const;
 type Tab = (typeof TABS)[number];
+
+/** Whose profile this is. A friend's comes with when you became friends. */
+export type Owner = {
+  id: string;
+  username: string | null;
+  createdAt: Date;
+  shareActivity: boolean;
+  friendsSince?: Date;
+};
 type Row = { mediaType: "movie" | "tv"; tmdbId: number; title: string; posterPath: string | null };
 
 const toCard = (r: Row): Card => ({ id: r.tmdbId, media_type: r.mediaType, title: r.title, poster_path: r.posterPath });
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 const shortDate = (d: Date) => d.toLocaleDateString("en", { month: "short", day: "numeric" });
 
-/** Your profile. Lives at /u/me and, once you have a username, at /u/yourname (`base` keeps the tabs on that address). */
+/**
+ * A profile: yours (at /u/me, or /u/yourname once you have a username) or a friend's (`owner` given, their username
+ * address). `base` keeps the tabs on the address you came from. A friend who doesn't share shows only their name.
+ */
 export async function Profile({
   searchParams,
   base = "/u/me",
+  owner: friend,
 }: {
   searchParams: Promise<{ tab?: string | string[] }>;
   base?: string;
+  owner?: Owner;
 }) {
   const session = await getSession();
   if (!session) redirect("/login");
+  const self = !friend;
+  const owner: Owner = friend ?? {
+    id: session.user.id,
+    username: session.user.username ?? null,
+    createdAt: session.user.createdAt,
+    shareActivity: true,
+  };
+  const tabs = TABS.filter((t) => self || t !== "friends");
   const { tab: raw } = await searchParams;
-  const tab: Tab = TABS.find((t) => t === raw) ?? "overview";
+  const tab: Tab = tabs.find((t) => t === raw) ?? "overview";
 
-  const uid = session.user.id;
+  const uid = owner.id;
   const now = new Date();
-  const [stats, history, watchlist, times, friends] = await Promise.all([
+  const name = owner.username || shownName(session.user);
+  const hidden = !self && !owner.shareActivity;
+  const [stats, history, watchlist, times, friendCount, friends] = await Promise.all([
     getStats(uid),
     getHistory(uid, 60),
     getWatchlist(uid),
     getWatchTimes(uid, new Date(now.getTime() - 380 * 24 * 60 * 60 * 1000)),
-    getFriendCount(uid),
+    self ? getFriendCount(uid) : 0,
+    self && tab === "friends" ? getFriends(uid) : [],
   ]);
-  const name = shownName(session.user);
-  const since = session.user.createdAt.toLocaleDateString("en", { month: "long", year: "numeric" });
+  const month = (d: Date) => d.toLocaleDateString("en", { month: "long", year: "numeric" });
   const empty = stats.movies + stats.episodes === 0;
 
   return (
@@ -60,29 +86,47 @@ export async function Profile({
           <div className="min-w-0 flex-1">
             <div className="text-body font-semibold">{name}</div>
             <div className="text-small text-muted">
-              Since {since}
-              {friends > 0 && ` · ${plural(friends, "friend")}`}
+              {self
+                ? `Since ${month(owner.createdAt)}`
+                : `Friends since ${month(owner.friendsSince ?? owner.createdAt)}`}
+              {friendCount > 0 && ` · ${plural(friendCount, "friend")}`}
             </div>
           </div>
-          <InviteButton getLink={getInviteLink} />
-          <div className="flex gap-6">
-            <Link href="/settings" className={buttonStyles("text", "text")}>
-              Settings
-            </Link>
-            <SignOutButton />
-          </div>
+          {self ? (
+            <>
+              <InviteButton getLink={getInviteLink} />
+              <div className="flex gap-6">
+                <Link href="/settings" className={buttonStyles("text", "text")}>
+                  Settings
+                </Link>
+                <SignOutButton />
+              </div>
+            </>
+          ) : (
+            <FriendMenu friendId={owner.id} name={name} remove={removeFriend} />
+          )}
         </div>
 
-        {empty ? (
+        {hidden && (
+          <h1 className="rise text-page leading-none font-bold">
+            {name} keeps
+            <br />
+            <span className="text-muted">their activity private.</span>
+          </h1>
+        )}
+
+        {hidden ? null : empty ? (
           <div className="flex rise flex-col items-start gap-6">
             <h1 className="text-page leading-none font-bold">
               Nothing watched yet.
               <br />
-              <span className="text-muted">Your year starts here.</span>
+              <span className="text-muted">{self ? "Your" : "Their"} year starts here.</span>
             </h1>
-            <Link href="/search" className={buttonStyles("primary", "sm")}>
-              Find something to watch
-            </Link>
+            {self && (
+              <Link href="/search" className={buttonStyles("primary", "sm")}>
+                Find something to watch
+              </Link>
+            )}
           </div>
         ) : (
           <h1 className="rise text-page leading-none font-bold">
@@ -95,20 +139,25 @@ export async function Profile({
           </h1>
         )}
 
-        <SegmentedTabs
-          label="Profile"
-          items={TABS.map((t) => ({
-            key: t,
-            label: t.charAt(0).toUpperCase() + t.slice(1),
-            active: t === tab,
-            href: t === "overview" ? base : `${base}?tab=${t}`,
-          }))}
-        />
+        {!hidden && (
+          <SegmentedTabs
+            label="Profile"
+            items={tabs.map((t) => ({
+              key: t,
+              label: t.charAt(0).toUpperCase() + t.slice(1),
+              active: t === tab,
+              href: t === "overview" ? base : `${base}?tab=${t}`,
+            }))}
+          />
+        )}
       </div>
 
-      {tab === "overview" && (
+      {!hidden && tab === "overview" && (
         <>
-          <Section title="Your year" aside={<p className="text-small text-muted">Each square is a day.</p>}>
+          <Section
+            title={self ? "Your year" : "Their year"}
+            aside={<p className="text-small text-muted">Each square is a day.</p>}
+          >
             <YearHeatmap days={yearGrid(times, now)} />
           </Section>
           {history.length > 0 && (
@@ -125,9 +174,10 @@ export async function Profile({
         </>
       )}
 
-      {tab === "history" &&
+      {!hidden &&
+        tab === "history" &&
         (history.length === 0 ? (
-          <Empty text="Nothing watched yet." />
+          <Empty text="Nothing watched yet." action={self} />
         ) : (
           <ol className="flex max-w-reading flex-col">
             {history.map((r) => (
@@ -147,15 +197,50 @@ export async function Profile({
           </ol>
         ))}
 
-      {tab === "watchlist" &&
+      {!hidden &&
+        tab === "watchlist" &&
         (watchlist.length === 0 ? (
-          <Empty text="Your watchlist is empty." />
+          <Empty text={self ? "Your watchlist is empty." : "Their watchlist is empty."} action={self} />
         ) : (
           <PosterGrid>
             {watchlist.map((r, i) => (
               <PosterLink key={`${r.mediaType}-${r.tmdbId}`} card={toCard(r)} index={i} />
             ))}
           </PosterGrid>
+        ))}
+
+      {tab === "friends" &&
+        (friends.length === 0 ? (
+          <p className="text-body text-muted">
+            No friends yet.
+            <br />
+            Invite one with the button at the top.
+          </p>
+        ) : (
+          <ul className="flex max-w-reading flex-col">
+            {friends.map((f) => (
+              <li key={f.id}>
+                <Link
+                  href={`/u/${f.username}`}
+                  className="-mx-3 flex items-center gap-4 rounded-thumb px-3 py-3.5 transition-colors duration-200 hover:bg-fg/5"
+                >
+                  <div className="flex size-12 shrink-0 items-center justify-center rounded-full text-body font-bold glass-accent">
+                    {(f.username ?? "?").charAt(0).toUpperCase()}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="truncate text-body font-semibold">{f.username}</div>
+                    <div className="truncate text-small text-muted">
+                      {!f.shareActivity
+                        ? "Keeps their activity private"
+                        : f.last
+                          ? `Watched ${f.last.title}${f.last.mediaType === "tv" ? ` S${f.last.season} E${f.last.episode}` : ""} · ${ago(f.last.watchedAt, now)}`
+                          : "Nothing watched yet"}
+                    </div>
+                  </div>
+                </Link>
+              </li>
+            ))}
+          </ul>
         ))}
     </div>
   );
@@ -171,13 +256,15 @@ function uniqueTitles(rows: Row[]) {
   });
 }
 
-function Empty({ text }: { text: string }) {
+function Empty({ text, action }: { text: string; action: boolean }) {
   return (
     <div className="flex flex-col items-start gap-5">
       <p className="text-body text-muted">{text}</p>
-      <Link href="/search" className={buttonStyles("primary", "sm")}>
-        Find something to watch
-      </Link>
+      {action && (
+        <Link href="/search" className={buttonStyles("primary", "sm")}>
+          Find something to watch
+        </Link>
+      )}
     </div>
   );
 }

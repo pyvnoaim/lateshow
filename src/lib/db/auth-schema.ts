@@ -9,6 +9,8 @@ export const user = sqliteTable("user", {
   image: text("image"),
   // ours, declared to Better Auth as an additional field (src/lib/auth.ts) so `generate` keeps it
   username: text("username").unique(),
+  // friends see your history, watchlist and stats unless this is off (Settings)
+  shareActivity: integer("share_activity", { mode: "boolean" }).default(true).notNull(),
   createdAt: integer("created_at", { mode: "timestamp_ms" })
     .default(sql`(cast(unixepoch('subsecond') * 1000 as integer))`)
     .notNull(),
