@@ -12,6 +12,7 @@ const LINKS = [
   { href: "/watchlist", label: "Watchlist" },
   { href: "/cinemas", label: "Coming to cinemas" },
   { href: "/u/me", label: "Profile" },
+  { href: "/settings", label: "Settings" },
 ] as const;
 
 /** Phones only: the top bar links don't fit, so a menu button opens them in a glass sheet below the bar. */

@@ -230,7 +230,8 @@
 }
 /* Glass: light tint brighter at the top, strong blur that lets colors glow through, a bright top edge like light
    catching glass, a faint outline and a soft shadow so it floats. On hover it brightens and a soft highlight
-   follows the pointer (position from GlassSheen: --mx, --my). */
+   follows the pointer (position from GlassSheen: --mx, --my). Fields (glass holding an input) stay still:
+   on a wide pill the highlight reads as a grey smudge. */
 @utility glass {
   background:
     radial-gradient(
@@ -249,7 +250,7 @@
     box-shadow var(--duration-hover) ease-out,
     transform var(--duration-press) var(--ease-spring);
   @media (hover: hover) {
-    &:hover {
+    &:hover:not(:has(input)) {
       --sheen: 1;
       background:
         radial-gradient(

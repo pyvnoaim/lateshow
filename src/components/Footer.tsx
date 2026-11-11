@@ -18,6 +18,7 @@ const COLUMNS = [
     links: [
       { href: "/watchlist", label: "Watchlist" },
       { href: "/u/me", label: "Profile" },
+      { href: "/settings", label: "Settings" },
     ],
   },
   // ponytail: Privacy and Impressum join this column once those pages exist (see Todo in CLAUDE.md).

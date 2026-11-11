@@ -75,11 +75,12 @@ pure logic extracted with a `*.test.ts` beside it, no barrel files, move code to
 Top bar (search with live results, account, phone menu), footer, home (hero carousel or continue watching, rows:
 continue, new episodes, Can't decide?, watchlist, Top 10, trending, because you watched, new on streaming, cinemas, hidden gems),
 /cinemas calendar, title page (where to watch, trailer, episodes + ratings grid, cast, more like), sign in with `?next=`,
-profile /u/me (stats, heatmap, history, watchlist), /watchlist + /u/me redirects in `next.config.ts`, 404, errors, /about.
+profile /u/me (stats, heatmap, history, watchlist), /settings (your services: My services tab on Trending,
+picks only from them, your service first in captions and Watch on), /watchlist + /u/me redirects in `next.config.ts`, 404, errors, /about.
 
 ## Todo (in order)
 
-- [ ] Settings: your streaming services (My services filter, picks from your services, sort first) + language.
+- [ ] Settings: language (TMDB titles and descriptions). Services are done.
 - [ ] Search: genre and movie/series filters, browse a genre (`discover` + `with_genres`).
 - [ ] Before public: privacy page + Impressum, Resend, nightly SQLite backup off the VPS, Docker deploy, buy lateshow.app.
 - [ ] Later: genre/mood row, TMDB account import, imports (Netflix CSV, Letterboxd, Trakt).

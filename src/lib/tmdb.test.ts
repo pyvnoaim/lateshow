@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cinemaDate, pickLogo, pickTrailer, serviceName, toCards, type Card, type Video } from "./tmdb";
+import { cinemaDate, mergeProviders, pickLogo, pickTrailer, serviceName, toCards, type Card, type Video } from "./tmdb";
 
 const movie = (id: number): Card => ({ id, media_type: "movie", title: `M${id}`, poster_path: null });
 
@@ -79,5 +79,39 @@ describe("serviceName", () => {
     expect(serviceName("Amazon Prime Video")).toBe("Prime Video");
     expect(serviceName("Netflix Standard with Ads")).toBe("Netflix");
     expect(serviceName("Netflix")).toBe("Netflix");
+  });
+});
+
+describe("mergeProviders", () => {
+  const p = (id: number, name: string, de?: number) => ({
+    provider_id: id,
+    provider_name: name,
+    logo_path: `/${id}.png`,
+    display_priorities: (de === undefined ? {} : { DE: de }) as Record<string, number>,
+  });
+  it("lists each service once, the country's most important first", () => {
+    const merged = mergeProviders(
+      [
+        [p(8, "Netflix", 1), p(9, "Amazon Prime Video", 2)],
+        [p(8, "Netflix", 1), p(337, "Disney Plus", 0), p(5, "Niche")],
+      ],
+      "DE",
+    );
+    expect(merged.map((s) => s.name)).toEqual(["Disney+", "Netflix", "Prime Video", "Niche"]);
+  });
+  it("drops stores, free and ad tiers, and add-on channels", () => {
+    const merged = mergeProviders(
+      [
+        [
+          p(1, "Amazon Video"),
+          p(2, "Apple TV Store"),
+          p(3, "MUBI Amazon Channel"),
+          p(4, "Amazon Prime Video with Ads"),
+          p(5, "WOW"),
+        ],
+      ],
+      "DE",
+    );
+    expect(merged.map((s) => s.name)).toEqual(["WOW"]);
   });
 });

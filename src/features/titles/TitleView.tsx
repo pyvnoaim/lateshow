@@ -13,11 +13,23 @@ import { getWatchLinks, type WatchLink } from "@/lib/justwatch";
 import { setOnWatchlist, setWatched, type TitleRef } from "@/lib/library/actions";
 import { nextEpisode, parseEpisodeKeys, type EpisodeRef } from "@/lib/library/progress";
 import { getTitleLibrary } from "@/lib/library/queries";
-import { cinemaDate, getSeasons, getTitle, img, pickTrailer, type MediaType, type Title, titleMeta } from "@/lib/tmdb";
+import {
+  cinemaDate,
+  getSeasons,
+  getTitle,
+  img,
+  pickTrailer,
+  type MediaType,
+  type Title,
+  titleMeta,
+  serviceName,
+  subscriptionServices,
+} from "@/lib/tmdb";
 import { Episodes, type SeasonData } from "./components/Episodes";
 import { RatingsGrid } from "./components/RatingsGrid";
 import { Trailer } from "@/components/Trailer";
 import { getRegion } from "@/lib/region";
+import { getMyServiceIds } from "@/lib/settings/queries";
 import { Suspense } from "react";
 
 type Library = { signedIn: boolean; onWatchlist: boolean; watched: string[]; ref: TitleRef };
@@ -27,7 +39,20 @@ export async function TitleView({ type, id }: { type: string; id: string }) {
   const t = await getTitle(type, id).catch(() => notFound());
   const name = t.title ?? t.name ?? "";
   const region = await getRegion();
-  const [links, session] = await Promise.all([getWatchLinks(type, t.id, name, region.code), getSession()]);
+  const [allLinks, session, myIds] = await Promise.all([
+    getWatchLinks(type, t.id, name, region.code),
+    getSession(),
+    getMyServiceIds(),
+  ]);
+  // Your services first, so "Watch on" opens one you pay for.
+  const mine = new Set(
+    subscriptionServices(t, region.code)
+      .filter((s) => myIds.includes(s.id))
+      .map((s) => s.name),
+  );
+  const links = allLinks.toSorted(
+    (a, b) => Number(mine.has(serviceName(b.service))) - Number(mine.has(serviceName(a.service))),
+  );
   const lib = session ? await getTitleLibrary(session.user.id, type, t.id) : { onWatchlist: false, watched: [] };
   const library: Library = {
     signedIn: session !== null,

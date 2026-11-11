@@ -1,5 +1,6 @@
 import Image from "next/image";
 import { getCountry } from "@/lib/region";
+import { getMyServiceIds } from "@/lib/settings/queries";
 import { getGenreNames, getTitle, img, subscriptionServices, type Card } from "@/lib/tmdb";
 
 /**
@@ -11,8 +12,11 @@ export async function PosterCaption({ card }: { card: Card }) {
   const genres = await getGenreNames().catch(() => ({}) as Record<number, string>);
   const genre = card.genre_ids?.map((id) => genres[id]).find(Boolean);
   // ponytail: one cached title lookup per poster (days), the same data its title page uses.
-  const service = await Promise.all([getTitle(card.media_type, String(card.id)), getCountry()])
-    .then(([t, country]) => subscriptionServices(t, country)[0])
+  const service = await Promise.all([getTitle(card.media_type, String(card.id)), getCountry(), getMyServiceIds()])
+    .then(([t, country, mine]) => {
+      const all = subscriptionServices(t, country);
+      return all.find((s) => mine.includes(s.id)) ?? all[0];
+    })
     .catch(() => undefined);
   return (
     <span className="-mt-2 flex items-center gap-1.5 text-caption text-muted">

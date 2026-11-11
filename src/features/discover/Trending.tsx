@@ -2,20 +2,29 @@ import { PosterLink } from "@/components/PosterLink";
 import { PosterGrid } from "@/components/ui/PosterGrid";
 import { Section } from "@/components/ui/Section";
 import { SegmentedTabs } from "@/components/ui/SegmentedTabs";
-import { getTrending, type Kind } from "@/lib/tmdb";
+import { getRegion } from "@/lib/region";
+import { getMyServiceIds } from "@/lib/settings/queries";
+import { getOnMyServices, getTrending, type Kind } from "@/lib/tmdb";
 import { homeHref, readHome, type HomeSearch } from "./params";
 
-const TABS: { kind: Kind; label: string; param?: string }[] = [
+const TABS: { kind: Kind | "mine"; label: string; param?: string }[] = [
   { kind: "all", label: "All" },
   { kind: "movie", label: "Movies", param: "movie" },
   { kind: "tv", label: "Series", param: "series" },
+  { kind: "mine", label: "My services", param: "mine" },
 ];
 
-// ponytail: "My services" tab comes with the service picker in settings.
 export async function Trending({ searchParams }: { searchParams: Promise<HomeSearch> }) {
   const current = readHome(await searchParams);
-  const active = TABS.find((t) => t.param === current.trending) ?? TABS[0];
-  const cards = (await getTrending(active.kind)).slice(0, 12);
+  const mine = await getMyServiceIds();
+  // "My services" only shows once you picked some in settings.
+  const tabs = mine.length > 0 ? TABS : TABS.filter((t) => t.kind !== "mine");
+  const active = tabs.find((t) => t.param === current.trending) ?? tabs[0];
+  const cards = (
+    active.kind === "mine"
+      ? await getOnMyServices("all", mine, (await getRegion()).code)
+      : await getTrending(active.kind)
+  ).slice(0, 12);
 
   return (
     <Section
@@ -23,7 +32,7 @@ export async function Trending({ searchParams }: { searchParams: Promise<HomeSea
       aside={
         <SegmentedTabs
           label="Trending filter"
-          items={TABS.map((t) => ({
+          items={tabs.map((t) => ({
             key: t.kind,
             label: t.label,
             active: t === active,

@@ -9,6 +9,7 @@ import { discoverOnSubscription } from "@/lib/tmdb";
 import { homeHref, readHome, type HomeSearch } from "./params";
 import { pick } from "./pick";
 import { getRegion } from "@/lib/region";
+import { getMyServiceIds } from "@/lib/settings/queries";
 
 const PAGES = 5; // picks come from the 100 most popular well rated titles on subscription
 
@@ -17,13 +18,24 @@ export async function Decide({ searchParams }: { searchParams: Promise<HomeSearc
   const [current, region] = [readHome(await searchParams), await getRegion()];
   const type = current.decide === "series" ? "tv" : "movie";
   const roll = Number(current.roll) || 0;
-  const picks =
-    roll > 0 ? pick(await discoverOnSubscription(type, ((roll - 1) % PAGES) + 1, region.code), 3, roll) : [];
+  const mine = await getMyServiceIds();
+  // Fewer results with only your services, so the page wraps around what exists (page 1 always does).
+  const pool =
+    roll > 0
+      ? await discoverOnSubscription(type, ((roll - 1) % PAGES) + 1, region.code, mine).then((cards) =>
+          cards.length >= 3 ? cards : discoverOnSubscription(type, 1, region.code, mine),
+        )
+      : [];
+  const picks = pick(pool, 3, roll);
 
   return (
     <Section
       title="Can't decide?"
-      description={`Three picks that are on a subscription in ${region.name}.`}
+      description={
+        mine.length > 0
+          ? "Three picks from your services."
+          : `Three picks that are on a subscription in ${region.name}.`
+      }
       asideAt="end"
       aside={
         <div className="flex flex-wrap items-center gap-6">

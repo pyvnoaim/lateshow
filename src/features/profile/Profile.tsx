@@ -49,7 +49,10 @@ export async function Profile({ searchParams }: { searchParams: Promise<{ tab?: 
             <div className="text-body font-semibold">{name}</div>
             <div className="text-small text-muted">Since {since}</div>
           </div>
-          <div className="-mr-5 text-muted">
+          <div className="-mr-5 flex text-muted">
+            <Link href="/settings" className={buttonStyles("ghost", "sm")}>
+              Settings
+            </Link>
             <SignOutButton />
           </div>
         </div>

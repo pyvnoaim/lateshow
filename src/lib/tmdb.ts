@@ -99,12 +99,18 @@ export async function getTrending(kind: Kind = "all", page = 1) {
  * Well rated titles that are on a subscription service in the country, one page of results.
  * Feeds "Can't decide?". Discover results have no media_type, so it's added here.
  */
-export async function discoverOnSubscription(type: MediaType, page: number, country: string): Promise<Card[]> {
+export async function discoverOnSubscription(
+  type: MediaType,
+  page: number,
+  country: string,
+  services: number[] = [],
+): Promise<Card[]> {
   "use cache";
   cacheLife("days");
   const data = await tmdb<{ results: Omit<Card, "media_type">[] }>(`/discover/${type}`, {
     watch_region: country,
     with_watch_monetization_types: "flatrate",
+    ...providerFilter(services),
     "vote_average.gte": "7",
     "vote_count.gte": "300",
     sort_by: "popularity.desc",
@@ -193,7 +199,7 @@ export async function getUpcomingInCinemas(country: string) {
 export function serviceName(name: string): string {
   return name
     .replace(/\s+(Standard\s+)?with\s+Ads$/i, "")
-    .replace(/^Amazon\s+/, "")
+    .replace(/^Amazon Prime Video/, "Prime Video")
     .replace(/\s+Plus$/, "+");
 }
 
@@ -211,16 +217,70 @@ export function titleToCard(t: Title, type: MediaType): Card {
   };
 }
 
-export type Service = { name: string; logoPath: string };
+export type Service = { id: number; name: string; logoPath: string };
 
 /** Services in the country that include this title in a subscription (Netflix, Prime Video...), TMDB's order. */
 export function subscriptionServices(t: Pick<Title, "watch/providers">, country: string): Service[] {
   return (
     t["watch/providers"].results[country]?.flatrate?.map((p) => ({
+      id: p.provider_id,
       name: serviceName(p.provider_name),
       logoPath: p.logo_path,
     })) ?? []
   );
+}
+
+/** `with_watch_providers` for discover: any of these services ("8|337"). Nothing when there are none. */
+const providerFilter = (services: number[]): Record<string, string> =>
+  services.length > 0 ? { with_watch_providers: services.toSorted((a, b) => a - b).join("|") } : {};
+
+type Provider = {
+  provider_id: number;
+  provider_name: string;
+  logo_path: string;
+  display_priorities?: Record<string, number>;
+};
+
+// TMDB's list mixes in rent/buy stores, free tiers, ad tiers and Amazon add-on channels. Only subscriptions stay.
+const NOT_A_SUBSCRIPTION = /store|channel|free|with ads|^amazon video$|google play|rakuten|videobuster|^youtube$/i;
+
+/** Movie and series provider lists as one: subscriptions only, each service once, most important in the country first. Pure. */
+export function mergeProviders(lists: Provider[][], country: string): Service[] {
+  const byName = new Map<string, Service>();
+  for (const p of lists
+    .flat()
+    .filter((p) => !NOT_A_SUBSCRIPTION.test(p.provider_name))
+    .toSorted((a, b) => (a.display_priorities?.[country] ?? 999) - (b.display_priorities?.[country] ?? 999))) {
+    const name = serviceName(p.provider_name);
+    if (!byName.has(name)) byName.set(name, { id: p.provider_id, name, logoPath: p.logo_path });
+  }
+  return [...byName.values()];
+}
+
+/** Streaming services available in the country, for the settings picker. */
+export async function getServiceChoices(country: string) {
+  "use cache";
+  cacheLife("days");
+  const lists = await Promise.all(
+    (["movie", "tv"] as const).map((type) =>
+      tmdb<{ results: Provider[] }>(`/watch/providers/${type}`, { watch_region: country }).then((d) => d.results),
+    ),
+  );
+  // ponytail: TMDB lists 100+ in big countries, most are niche. The top 24 cover what people actually pay for.
+  return mergeProviders(lists, country).slice(0, 24);
+}
+
+/** Most popular titles on any of these services right now. `all` alternates movie and series. */
+export async function getOnMyServices(kind: Kind, services: number[], country: string) {
+  "use cache";
+  cacheLife("hours");
+  const params = { sort_by: "popularity.desc", "vote_count.gte": "50", ...providerFilter(services) };
+  const [movies, shows] = await Promise.all([
+    kind === "tv" ? [] : discover("movie", params, country),
+    kind === "movie" ? [] : discover("tv", params, country),
+  ]);
+  if (kind !== "all") return [...movies, ...shows];
+  return movies.flatMap((m, i) => (shows[i] ? [m, shows[i]] : [m]));
 }
 
 const daysAgo = (n: number) => new Date(Date.now() - n * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);

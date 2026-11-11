@@ -44,3 +44,15 @@ export const watchlist = sqliteTable(
   },
   (t) => [primaryKey({ columns: [t.userId, t.mediaType, t.tmdbId] })],
 );
+
+/** Streaming services a user pays for (TMDB provider ids). Powers "My services" and picks. */
+export const userServices = sqliteTable(
+  "user_services",
+  {
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    providerId: integer("provider_id").notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.providerId] })],
+);

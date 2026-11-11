@@ -18,12 +18,12 @@ const nextConfig: NextConfig = {
         permanent: false,
       })),
       { source: "/watchlist", destination: `/login?next=${encodeURIComponent(WATCHLIST)}`, permanent: false },
-      {
-        source: "/u/me",
+      ...["/u/me", "/settings"].map((source) => ({
+        source,
         missing: SESSION_COOKIES.map((key) => ({ type: "cookie" as const, key })),
-        destination: `/login?next=${encodeURIComponent("/u/me")}`,
+        destination: `/login?next=${encodeURIComponent(source)}`,
         permanent: false,
-      },
+      })),
     ];
   },
   partialPrefetching: true,
