@@ -13,7 +13,7 @@ import * as schema from "@/lib/db/auth-schema";
 import { db } from "@/lib/db/client";
 import { env } from "@/lib/env";
 import { CODE_MINUTES, sendCode } from "@/lib/mail";
-import { takeSendSlot } from "@/lib/sendLimit";
+import { refundSendSlot, takeSendSlot } from "@/lib/sendLimit";
 
 const { BETTER_AUTH_SECRET, BETTER_AUTH_URL } = env("auth");
 
@@ -23,11 +23,14 @@ const SEND_PATH = "/email-otp/send-verification-otp";
 const sendLog = new Map<string, number[]>();
 // Better Auth swallows errors from sendVerificationOTP and answers success, so a failed mail is noted here
 // and turned into an error after the route, or the sign-in screen would wait for a mail that never comes.
+// ponytail: keyed by address, not by request, so two overlapping sends to one address can swap their outcome.
+// Rare (both limits apply). Also relies on Better Auth awaiting the send: never set advanced.backgroundTasks.
 const failedSends = new Set<string>();
-const emailOf = (body: unknown) =>
-  String((body as { email?: unknown } | undefined)?.email ?? "")
-    .trim()
-    .toLowerCase();
+/** The address exactly as Better Auth keys it (lowercased, not trimmed), only for a real sign-in code request. */
+function signInEmail(body: unknown) {
+  const b = body as { email?: unknown; type?: unknown } | undefined;
+  return b?.type === "sign-in" && typeof b.email === "string" ? b.email.toLowerCase() : null;
+}
 
 export const auth = betterAuth({
   secret: BETTER_AUTH_SECRET,
@@ -46,11 +49,13 @@ export const auth = betterAuth({
   },
   hooks: {
     before: createAuthMiddleware(async (ctx) => {
-      if (ctx.path === SEND_PATH && !takeSendSlot(sendLog, emailOf(ctx.body), Date.now()))
+      const email = ctx.path === SEND_PATH ? signInEmail(ctx.body) : null;
+      if (email && !takeSendSlot(sendLog, email, Date.now()))
         throw new APIError("TOO_MANY_REQUESTS", { message: "Too many codes for this address" });
     }),
     after: createAuthMiddleware(async (ctx) => {
-      if (ctx.path === SEND_PATH && failedSends.delete(emailOf(ctx.body)))
+      const email = ctx.path === SEND_PATH ? signInEmail(ctx.body) : null;
+      if (email && failedSends.delete(email))
         throw new APIError("BAD_GATEWAY", { message: "The sign-in email didn't go out" });
     }),
   },
@@ -68,6 +73,7 @@ export const auth = betterAuth({
         if (type !== "sign-in") return;
         await sendCode(email, otp).catch((e: unknown) => {
           failedSends.add(email.toLowerCase());
+          refundSendSlot(sendLog, email);
           throw e; // still logged by Better Auth
         });
       },

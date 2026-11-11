@@ -9,6 +9,7 @@ import { mailApp } from "@/features/auth/mailApp";
 import { HAS_PASSKEY, NO_PASSKEY, recall, remember } from "@/lib/passkeyHint";
 
 const RESEND_SECONDS = 30;
+const TOO_MANY_FOR_ADDRESS = "Too many codes for this address"; // auth.ts sends exactly this
 /** "Face ID" on Apple devices, the honest generic name elsewhere. */
 const passkeyLabel = () => (/Mac|iPhone|iPad/.test(navigator.userAgent) ? "Face ID" : "your passkey");
 
@@ -82,10 +83,20 @@ export function SignInForm({
     setError("");
     const res = await authClient.emailOtp.sendVerificationOtp({ email: to, type: "sign-in" });
     setPending(false);
+    // Codes for this address went out recently (maybe not by you): the newest one in the inbox still works,
+    // so go to the code step instead of a dead end. A stranger asking for codes can't lock you out.
+    if (res.error?.message === TOO_MANY_FOR_ADDRESS) {
+      setSentTo(to);
+      setCode("");
+      setBad(false);
+      setWait(RESEND_SECONDS);
+      setError("Codes went to this address a moment ago. Use the newest one.");
+      return;
+    }
     if (res.error) {
       setError(
         res.error.status === 429
-          ? "Too many codes. Wait a few minutes and try again."
+          ? "Too many tries. Wait a minute and try again."
           : "That didn't go out. Check the address and try again.",
       );
       return;
@@ -216,12 +227,12 @@ export function SignInForm({
         </div>
         <div className="flex flex-col gap-4">
           {/* one real input under six boxes: one-time-code autofill, paste and screen readers all just work */}
-          <div className={`relative flex w-fit gap-2.5 ${bad ? "shake" : ""}`}>
+          <div className={`relative flex w-fit gap-2 sm:gap-2.5 ${bad ? "shake" : ""}`}>
             {boxes.map((d, i) => (
               <span
                 key={i}
                 aria-hidden
-                className={`flex h-17 w-14 items-center justify-center rounded-thumb glass-cell text-section font-bold nums ${i === 3 ? "ml-2.5" : ""} ${bad ? "ring-1 ring-danger ring-inset" : i === code.length ? "ring-1 ring-fg/45 ring-inset" : ""}`}
+                className={`flex h-14 w-11 items-center justify-center rounded-thumb glass-cell text-section font-bold nums sm:h-17 sm:w-14 ${i === 3 ? "ml-2 sm:ml-2.5" : ""} ${bad ? "ring-1 ring-danger ring-inset" : i === code.length ? "ring-1 ring-fg/45 ring-inset" : ""}`}
               >
                 {d}
               </span>
