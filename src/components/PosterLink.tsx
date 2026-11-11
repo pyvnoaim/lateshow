@@ -13,12 +13,15 @@ export function PosterLink({
   index = 0,
   morph = true,
   caption = true,
+  plus = true,
 }: {
   card: Card;
   index?: number;
   morph?: boolean;
   /** `false` hides the "Movie · 2026 · Crime" line (the caller renders its own under the link). */
   caption?: boolean;
+  /** `false` drops the watchlist + from the caption (the watchlist page has its own actions). */
+  plus?: boolean;
 }) {
   const name = card.title ?? card.name ?? "";
   const poster = img(card.poster_path, "w500");
@@ -36,22 +39,27 @@ export function PosterLink({
       )}
     </div>
   );
+  // The caption sits outside the link: it holds the watchlist + button, and a button inside a link is invalid.
   return (
-    <Link
-      href={`/title/${card.media_type}/${card.id}`}
-      prefetch
-      className="group flex rise flex-col gap-2.5 rounded-poster"
+    <div
+      className="flex rise flex-col gap-2.5"
       style={{ animationDelay: `${Math.min(index, 12) * 80}ms` } as CSSProperties}
     >
-      {morph ? (
-        <ViewTransition name={`title-${card.media_type}-${card.id}`} share="morph" default="none">
-          {artwork}
-        </ViewTransition>
-      ) : (
-        artwork
-      )}
-      <span className="text-label font-medium">{name}</span>
-      {caption && <PosterCaption card={card} />}
-    </Link>
+      <Link
+        href={`/title/${card.media_type}/${card.id}`}
+        prefetch
+        className="group flex flex-col gap-2.5 rounded-poster"
+      >
+        {morph ? (
+          <ViewTransition name={`title-${card.media_type}-${card.id}`} share="morph" default="none">
+            {artwork}
+          </ViewTransition>
+        ) : (
+          artwork
+        )}
+        <span className="text-label font-medium">{name}</span>
+      </Link>
+      {caption && <PosterCaption card={card} plus={plus} />}
+    </div>
   );
 }

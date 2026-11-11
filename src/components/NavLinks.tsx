@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname } from "next/navigation";
 
 const links = [
   { href: "/", label: "Home" },
@@ -11,9 +11,7 @@ const links = [
 
 export function NavLinks() {
   const path = usePathname();
-  const tab = useSearchParams().get("tab");
-  // the watchlist lives on the profile, so that tab counts as being on "Watchlist"
-  return <NavLinksView path={path === "/u/me" && tab === "watchlist" ? "/watchlist" : path} />;
+  return <NavLinksView path={path} />;
 }
 
 /** The links themselves. Rendered with path null as the Suspense fallback, so nothing moves while the URL is read. */

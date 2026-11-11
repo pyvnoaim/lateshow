@@ -139,3 +139,19 @@ export async function getFriendsOnTitle(userId: string, type: "movie" | "tv", tm
   const watchedNames = names(seen);
   return { watched: watchedNames, listed: names(listed).filter((n) => !watchedNames.includes(n)) };
 }
+
+/** Which friends (who share) also have each title on their watchlist, as "movie-27205" -> usernames. */
+export async function getFriendsWatchlisting(userId: string) {
+  const friends = await sharingFriends(userId);
+  const out = new Map<string, string[]>();
+  if (friends.size === 0) return out;
+  const rows = await db
+    .select({ userId: watchlist.userId, mediaType: watchlist.mediaType, tmdbId: watchlist.tmdbId })
+    .from(watchlist)
+    .where(inArray(watchlist.userId, [...friends.keys()]));
+  for (const r of rows) {
+    const key = `${r.mediaType}-${r.tmdbId}`;
+    out.set(key, [...(out.get(key) ?? []), friends.get(r.userId)!]);
+  }
+  return out;
+}

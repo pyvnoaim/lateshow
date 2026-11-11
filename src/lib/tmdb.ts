@@ -58,11 +58,18 @@ export type Title = {
   "watch/providers": {
     results: Record<
       string,
-      { link: string; flatrate?: { provider_id: number; provider_name: string; logo_path: string }[] } | undefined
+      | {
+          link: string;
+          flatrate?: { provider_id: number; provider_name: string; logo_path: string }[];
+          rent?: { provider_id: number; provider_name: string }[];
+          buy?: { provider_id: number; provider_name: string }[];
+        }
+      | undefined
     >;
   };
   images?: { logos: { file_path: string; iso_639_1: string | null; aspect_ratio: number }[] };
   next_episode_to_air?: { air_date: string; season_number: number; episode_number: number; name: string } | null;
+  episode_run_time?: number[];
   release_dates?: { results: { iso_3166_1: string; release_dates: { type: number; release_date: string }[] }[] };
 };
 

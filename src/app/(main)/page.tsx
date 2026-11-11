@@ -7,6 +7,7 @@ import { ContinueRow } from "@/features/discover/ContinueRow";
 import { Decide } from "@/features/discover/Decide";
 import { HiddenGems } from "@/features/discover/HiddenGems";
 import { FriendsWeek } from "@/features/discover/FriendsWeek";
+import { OutThisWeek } from "@/features/discover/OutThisWeek";
 import { RoomInvites } from "@/features/rooms/RoomInvites";
 import { HomeHero } from "@/features/discover/HomeHero";
 import { NewEpisodes } from "@/features/discover/NewEpisodes";
@@ -30,6 +31,9 @@ export default function HomePage({ searchParams }: PageProps<"/">) {
       <Container as="main" className="flex flex-col gap-section pt-section">
         <Row>
           <RoomInvites />
+        </Row>
+        <Row>
+          <OutThisWeek />
         </Row>
         <Row>
           <ContinueRow />

@@ -60,7 +60,8 @@ export async function Profile({
     createdAt: session.user.createdAt,
     shareActivity: true,
   };
-  const tabs = TABS.filter((t) => self || t !== "friends");
+  // yours: the watchlist has its own page (/watchlist). A friend's: their watchlist is a tab here.
+  const tabs = TABS.filter((t) => (self ? t !== "watchlist" : t !== "friends"));
   const { tab: raw } = await searchParams;
   const tab: Tab = tabs.find((t) => t === raw) ?? "overview";
 

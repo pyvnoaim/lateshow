@@ -1,4 +1,6 @@
 import "server-only";
+import { cache } from "react";
+import { getSession } from "@/lib/auth";
 import { and, count, desc, eq, gte, max, sum } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import { watched, watchlist } from "@/lib/db/schema";
@@ -80,3 +82,14 @@ export async function getLastWatched(userId: string) {
     .limit(1);
   return row ?? null;
 }
+
+/** Your watchlist as "movie-27205" keys, for the + on every poster. Null when signed out. Once per request. */
+export const getMyWatchlistKeys = cache(async () => {
+  const session = await getSession();
+  if (!session) return null;
+  const rows = await db
+    .select({ mediaType: watchlist.mediaType, tmdbId: watchlist.tmdbId })
+    .from(watchlist)
+    .where(eq(watchlist.userId, session.user.id));
+  return new Set(rows.map((r) => `${r.mediaType}-${r.tmdbId}`));
+});

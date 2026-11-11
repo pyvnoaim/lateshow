@@ -4,21 +4,13 @@ import type { NextConfig } from "next";
 // so signed-out visitors go straight to sign in instead of seeing an empty page first. The pages still check the
 // real session, so a stale cookie just lands on the page's own redirect.
 const SESSION_COOKIES = ["better-auth.session_token", "__Secure-better-auth.session_token"];
-const WATCHLIST = "/u/me?tab=watchlist";
 
 const nextConfig: NextConfig = {
   cacheComponents: true,
   async redirects() {
     return [
-      // "Watchlist" in the top bar: straight to it when signed in, sign in first (and come back) when not
-      ...SESSION_COOKIES.map((key) => ({
-        source: "/watchlist",
-        has: [{ type: "cookie" as const, key }],
-        destination: WATCHLIST,
-        permanent: false,
-      })),
-      { source: "/watchlist", destination: `/login?next=${encodeURIComponent(WATCHLIST)}`, permanent: false },
-      ...["/u/me", "/settings"].map((source) => ({
+      // signed out: straight to sign in (and back), no page that can only say "sign in"
+      ...["/u/me", "/settings", "/watchlist"].map((source) => ({
         source,
         missing: SESSION_COOKIES.map((key) => ({ type: "cookie" as const, key })),
         destination: `/login?next=${encodeURIComponent(source)}`,

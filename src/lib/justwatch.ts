@@ -8,17 +8,19 @@ const QUERY = `query Search($country: Country!, $language: Language!, $filter: T
     edges { node { objectType
       content(country: $country, language: $language) { externalIds { tmdbId } }
       offers(country: $country, platform: WEB) {
-        monetizationType standardWebURL package { packageId clearName }
+        monetizationType standardWebURL availableToTime package { packageId clearName }
       }
     } }
   }
 }`;
 
-export type WatchLink = { service: string; url: string; included: boolean };
+/** `leavesAt`: when the offer ends on that service (ISO time), when JustWatch knows it. */
+export type WatchLink = { service: string; url: string; included: boolean; leavesAt?: string | null };
 
 export type Offer = {
   monetizationType: string;
   standardWebURL: string;
+  availableToTime?: string | null;
   package: { packageId: number; clearName: string };
 };
 type Node = { objectType: string; content: { externalIds: { tmdbId: string | null } }; offers: Offer[] };
@@ -65,6 +67,7 @@ export function pickLinks(offers: Offer[]): WatchLink[] {
       service: serviceName(o.package.clearName),
       url: o.standardWebURL,
       included: INCLUDED.has(o.monetizationType),
+      leavesAt: o.availableToTime ?? null,
     };
     const prev = byService.get(link.service);
     if (!prev || (link.included && !prev.included)) byService.set(link.service, link);

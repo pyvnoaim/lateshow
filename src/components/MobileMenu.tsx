@@ -3,7 +3,7 @@
 import * as Dialog from "@radix-ui/react-dialog";
 import { Menu, X } from "lucide-react";
 import Link from "next/link";
-import { usePathname, useSearchParams } from "next/navigation";
+import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { buttonStyles } from "./ui/button";
 
@@ -22,8 +22,7 @@ const YOU = [
 export function MobileMenu({ signedIn }: { signedIn: boolean }) {
   const [open, setOpen] = useState(false);
   const path = usePathname();
-  const tab = useSearchParams().get("tab");
-  const current = path === "/u/me" && tab === "watchlist" ? "/watchlist" : path;
+  const current = path;
   const isOn = (href: string) => (href === "/" ? current === "/" : current.startsWith(href));
 
   return (

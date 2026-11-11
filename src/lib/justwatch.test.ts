@@ -10,7 +10,9 @@ const offer = (packageId: number, name: string, type: string): Offer => ({
 describe("pickLinks", () => {
   it("keeps one link per service and prefers the subscription offer", () => {
     const links = pickLinks([offer(1, "Prime", "RENT"), offer(1, "Prime", "FLATRATE"), offer(1, "Prime", "BUY")]);
-    expect(links).toEqual([{ service: "Prime", url: "https://example.com/Prime/FLATRATE", included: true }]);
+    expect(links).toEqual([
+      { service: "Prime", url: "https://example.com/Prime/FLATRATE", included: true, leavesAt: null },
+    ]);
   });
 
   it("lists subscription services before rent or buy", () => {

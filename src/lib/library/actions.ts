@@ -6,6 +6,8 @@ import { z } from "zod";
 import { getSession } from "@/lib/auth";
 import { db } from "@/lib/db/client";
 import { watched, watchlist } from "@/lib/db/schema";
+import { getLanguage } from "@/lib/region";
+import { img, searchTitles } from "@/lib/tmdb";
 
 // Title and poster come from our own server rendered page. Validated anyway, and they only ever show to the same user.
 const titleRef = z.object({
@@ -83,4 +85,40 @@ export async function setWatched(ref: WatchedRef, on: boolean) {
     await db.delete(watched).where(same);
   }
   refresh();
+}
+
+export type AddResult = {
+  type: "movie" | "tv";
+  id: number;
+  title: string;
+  meta: string;
+  /** a small image URL to show, and the TMDB path to store */
+  poster: string | null;
+  posterPath: string | null;
+  listed: boolean;
+};
+
+/** "Add a title" on the watchlist: search results with whether each one is already on your list. */
+export async function findToAdd(raw: string): Promise<AddResult[]> {
+  const query = z.string().trim().min(2).max(100).safeParse(raw);
+  const session = await getSession();
+  if (!query.success || !session) return [];
+  const [cards, listed] = await Promise.all([
+    searchTitles(query.data, await getLanguage()).catch(() => []),
+    db
+      .select({ mediaType: watchlist.mediaType, tmdbId: watchlist.tmdbId })
+      .from(watchlist)
+      .where(eq(watchlist.userId, session.user.id)),
+  ]);
+  return cards.slice(0, 5).map((c) => ({
+    type: c.media_type,
+    id: c.id,
+    title: c.title ?? c.name ?? "",
+    meta: [c.media_type === "tv" ? "Series" : "Movie", (c.release_date ?? c.first_air_date ?? "").slice(0, 4)]
+      .filter(Boolean)
+      .join(" · "),
+    poster: img(c.poster_path, "w92"),
+    posterPath: c.poster_path,
+    listed: listed.some((l) => l.mediaType === c.media_type && l.tmdbId === c.id),
+  }));
 }
