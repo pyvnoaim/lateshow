@@ -32,7 +32,7 @@ export async function WatchlistStreaming() {
       title="From your watchlist"
       description="Streaming now on a subscription."
       cards={streaming.map((x) => x.card)}
-      service={(c) => serviceOf.get(`${c.media_type}-${c.id}`)}
+      caption={(c) => serviceOf.get(`${c.media_type}-${c.id}`)}
     />
   );
 }

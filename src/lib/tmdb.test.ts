@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cinemaDate, pickLogo, pickTrailer, toCards, type Card, type Video } from "./tmdb";
+import { cinemaDate, pickLogo, pickTrailer, serviceName, toCards, type Card, type Video } from "./tmdb";
 
 const movie = (id: number): Card => ({ id, media_type: "movie", title: `M${id}`, poster_path: null });
 
@@ -69,5 +69,15 @@ describe("pickLogo", () => {
     expect(pickLogo({ images: { logos: [logo("de", "/de.png"), logo(null, "/x.png")] } })?.path).toBe("/x.png");
     expect(pickLogo({ images: { logos: [logo("de", "/de.png")] } })).toBeNull();
     expect(pickLogo({})).toBeNull();
+  });
+});
+
+describe("serviceName", () => {
+  it("writes service names the way people say them", () => {
+    expect(serviceName("Paramount Plus")).toBe("Paramount+");
+    expect(serviceName("Disney Plus")).toBe("Disney+");
+    expect(serviceName("Amazon Prime Video")).toBe("Prime Video");
+    expect(serviceName("Netflix Standard with Ads")).toBe("Netflix");
+    expect(serviceName("Netflix")).toBe("Netflix");
   });
 });

@@ -189,14 +189,17 @@ export async function getUpcomingInCinemas(country: string) {
     .toSorted((a, b) => a.date!.localeCompare(b.date!));
 }
 
-export type Service = { name: string; logoPath: string };
+/** TMDB's provider name as people say it: "Paramount Plus" -> "Paramount+", "Amazon Prime Video" -> "Prime Video". */
+export function serviceName(name: string): string {
+  return name
+    .replace(/\s+(Standard\s+)?with\s+Ads$/i, "")
+    .replace(/^Amazon\s+/, "")
+    .replace(/\s+Plus$/, "+");
+}
 
-/** Services in the country that include this title in a subscription (Netflix, Prime Video...), TMDB's order. */
-export function subscriptionServices(t: Pick<Title, "watch/providers">, country: string): Service[] {
-  return (
-    t["watch/providers"].results[country]?.flatrate?.map((p) => ({ name: p.provider_name, logoPath: p.logo_path })) ??
-    []
-  );
+/** Names of the services in the country that include this title in a subscription, TMDB's order. */
+export function subscriptionServices(t: Pick<Title, "watch/providers">, country: string): string[] {
+  return t["watch/providers"].results[country]?.flatrate?.map((p) => serviceName(p.provider_name)) ?? [];
 }
 
 const daysAgo = (n: number) => new Date(Date.now() - n * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
