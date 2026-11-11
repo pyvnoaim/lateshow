@@ -14,11 +14,11 @@ export const OPERATOR = {
   email: "pyvnovlr@gmail.com",
 };
 
-/** Where the site runs and how long the web server keeps access logs. Fill in with the VPS deploy. */
+/** Where the site runs (IONOS VPS in Berlin) and how long the web server keeps access logs. */
 export const HOSTING = {
   provider: "IONOS SE, Elgendorfer Str. 57, 56410 Montabaur, Germany",
-  // the deploy must make the proxy really delete access logs after this many days (Nginx Proxy Manager keeps more)
-  logDays: "7",
+  // Nginx Proxy Manager's logrotate: weekly, 4 old files kept, so up to 5 weeks. Change both together.
+  logDays: "35",
 };
 
 /** The date the privacy page last changed. */

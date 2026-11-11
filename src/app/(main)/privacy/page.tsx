@@ -123,8 +123,8 @@ export default function PrivacyPage() {
 
       <Part title="Other services">
         <p>
-          <strong>Hosting</strong>: {HOSTING.provider}. The web server keeps access logs (IP address, time, page) for{" "}
-          {HOSTING.logDays} days to keep the site safe (Art. 6 (1) (f) GDPR).
+          <strong>Hosting</strong>: {HOSTING.provider}. The web server keeps access logs (IP address, time, page) for up
+          to {HOSTING.logDays} days to keep the site safe (Art. 6 (1) (f) GDPR).
         </p>
         <p>
           <strong>Cloudflare</strong> (Cloudflare, Inc., USA) runs our domain and network. Every request passes through
@@ -139,8 +139,8 @@ export default function PrivacyPage() {
           youtube-nocookie.com (Google Ireland Ltd.), which sees your IP address.
         </p>
         <p>
-          <strong>Sign-in emails</strong> are sent through Resend (Resend, Inc., USA), which sees your email address and
-          the code.
+          <strong>Sign-in emails</strong> are sent through Resend (Resend, Inc., USA) from servers in the EU (Ireland).
+          Resend sees your email address and the code.
         </p>
         <p>Watch on links open the streaming service. What happens there is up to that service.</p>
       </Part>
