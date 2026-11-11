@@ -3,7 +3,6 @@ import Image from "next/image";
 import { notFound } from "next/navigation";
 import { LibraryToggle } from "@/components/library/LibraryToggle";
 import { PosterLink } from "@/components/PosterLink";
-import { Loading } from "@/components/Loading";
 import { BackdropHero, BackdropHeroSkeleton, heroTitle } from "@/components/BackdropHero";
 import { buttonStyles } from "@/components/ui/button";
 import { Container } from "@/components/ui/Container";
@@ -19,6 +18,7 @@ import { Episodes, type SeasonData } from "./components/Episodes";
 import { RatingsGrid } from "./components/RatingsGrid";
 import { Trailer } from "@/components/Trailer";
 import { getRegion } from "@/lib/region";
+import { Suspense } from "react";
 
 type Library = { signedIn: boolean; onWatchlist: boolean; watched: string[]; ref: TitleRef };
 
@@ -63,9 +63,9 @@ export async function TitleView({ type, id }: { type: string; id: string }) {
       <WhereToWatch links={links} fallback={t["watch/providers"].results[region.code]?.link} country={region.name} />
       <Container as="main" className="flex flex-col gap-section pt-section">
         {type === "tv" && (
-          <Loading fallback={<div className="h-80 sk rounded-banner" />}>
+          <Suspense fallback={<div className="h-80 sk rounded-banner" />}>
             <SeasonSections t={t} library={library} next={next} />
-          </Loading>
+          </Suspense>
         )}
         <Cast t={t} />
         {t.recommendations.results.length > 0 && (

@@ -1,7 +1,7 @@
-import { Loading } from "@/components/Loading";
 import { Container } from "@/components/ui/Container";
 import { PosterGridSkeleton } from "@/components/ui/PosterGrid";
 import { CinemaCalendar } from "@/features/discover/CinemaCalendar";
+import { Suspense } from "react";
 
 export const metadata = { title: "Coming to cinemas · Lateshow" };
 
@@ -12,9 +12,9 @@ export default function CinemasPage() {
         <h1 className="text-page leading-none font-bold">Coming to cinemas</h1>
         <p className="text-body text-muted">The next six months, by release day.</p>
       </div>
-      <Loading fallback={<PosterGridSkeleton />}>
+      <Suspense fallback={<PosterGridSkeleton />}>
         <CinemaCalendar />
-      </Loading>
+      </Suspense>
     </Container>
   );
 }

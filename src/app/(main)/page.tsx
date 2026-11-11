@@ -1,5 +1,4 @@
-import type { ReactNode } from "react";
-import { Loading } from "@/components/Loading";
+import { Suspense, type ReactNode } from "react";
 import { BackdropHeroSkeleton } from "@/components/BackdropHero";
 import { Container } from "@/components/ui/Container";
 import { PosterGridSkeleton } from "@/components/ui/PosterGrid";
@@ -17,15 +16,15 @@ import { WatchlistStreaming } from "@/features/discover/WatchlistStreaming";
 
 /** Every row loads on its own. Personal rows render nothing when you're signed out or have nothing there yet. */
 const Row = ({ children, skeleton = false }: { children: ReactNode; skeleton?: boolean }) => (
-  <Loading fallback={skeleton ? <PosterGridSkeleton count={6} heading /> : null}>{children}</Loading>
+  <Suspense fallback={skeleton ? <PosterGridSkeleton count={6} heading /> : null}>{children}</Suspense>
 );
 
 export default function HomePage({ searchParams }: PageProps<"/">) {
   return (
     <>
-      <Loading fallback={<BackdropHeroSkeleton />}>
+      <Suspense fallback={<BackdropHeroSkeleton />}>
         <HomeHero />
-      </Loading>
+      </Suspense>
       <Container as="main" className="flex flex-col gap-section pt-section">
         <Row>
           <ContinueRow />

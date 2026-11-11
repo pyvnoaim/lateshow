@@ -177,8 +177,6 @@ Rules:
   Small tiles on black (rating squares, heatmap days) use `glass-cell` (sheen + edge, no blur). They share the material:
   blur + saturation, bright top edge, hairline, soft shadow, pointer sheen (`GlassSheen` sets --mx/--my). Write only the
   standard `backdrop-filter` (the build adds -webkit-; writing both dropped the standard one and nothing blurred).
-- **Loading states:** use `<Loading fallback={<Skeleton/>}>` (components/Loading.tsx), not a bare Suspense, so the dev
-  "Skeletons on/off" pill in the top bar (dev only, cookie `ls-skeletons`) can pin skeletons on for design checks.
 - **Tooltips:** never the native `title` attribute. Put `data-tip="Text"` (+ optional `data-tip-meta="second line"`) on the
   element; the one global `Tooltips` component shows a glass tooltip on hover and keyboard focus, flips and stays in the window.
   Icon-only buttons always get one. Quiet text links get `glass-hover` (glass fades in on hover, nothing moves).

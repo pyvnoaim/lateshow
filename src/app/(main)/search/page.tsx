@@ -1,7 +1,7 @@
-import { Loading } from "@/components/Loading";
 import { Container } from "@/components/ui/Container";
 import { PosterGridSkeleton } from "@/components/ui/PosterGrid";
 import { SearchResults } from "@/features/search/SearchResults";
+import { Suspense } from "react";
 
 export const metadata = { title: "Search · Lateshow" };
 
@@ -9,9 +9,9 @@ export const metadata = { title: "Search · Lateshow" };
 export default function SearchPage({ searchParams }: PageProps<"/search">) {
   return (
     <Container as="main" className="flex flex-col gap-8 pt-page-top">
-      <Loading fallback={<PosterGridSkeleton />}>
+      <Suspense fallback={<PosterGridSkeleton />}>
         <SearchResults searchParams={searchParams} />
-      </Loading>
+      </Suspense>
     </Container>
   );
 }
