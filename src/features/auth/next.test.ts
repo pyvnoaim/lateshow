@@ -14,4 +14,11 @@ describe("safeNext", () => {
     expect(safeNext(undefined)).toBe("/");
     expect(safeNext("")).toBe("/");
   });
+
+  it("rejects tricks browsers would turn into another site", () => {
+    expect(safeNext("/\t/evil.com")).toBe("/");
+    expect(safeNext("/\n/evil.com")).toBe("/");
+    expect(safeNext("/\u0000evil")).toBe("/");
+    expect(safeNext("/x\\evil.com")).toBe("/");
+  });
 });
