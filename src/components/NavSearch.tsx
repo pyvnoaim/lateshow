@@ -3,7 +3,7 @@
 import { Search } from "lucide-react";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
-import { fieldInputStyles, fieldStyles } from "./ui/field";
+import { fieldInputStyles } from "./ui/field";
 
 /**
  * Search icon in the top bar that grows into a field. "/" anywhere opens it, Esc or leaving it empty closes it.
@@ -116,10 +116,15 @@ export function NavSearch() {
     <form
       role="search"
       onSubmit={submit}
-      className={`flex items-center overflow-hidden rounded-full transition-all duration-300 ease-spring ${
-        expanded ? `${fieldStyles("bar")} w-full max-w-72 min-w-0` : "h-9 w-9 shrink-0"
+      // fixed widths both ways (36 to 288 px) so the width animates smoothly, and the glass fades in on its own layer
+      className={`relative flex h-9 max-w-full min-w-0 items-center overflow-hidden rounded-full text-small text-muted transition-all duration-500 ease-spring focus-within:ring-1 focus-within:ring-fg/30 focus-within:ring-inset ${
+        expanded ? "w-72 gap-1 pr-3.5" : "w-9 shrink-0"
       }`}
     >
+      <span
+        aria-hidden
+        className={`pointer-events-none absolute inset-0 rounded-full glass transition-opacity duration-300 ${expanded ? "opacity-100" : "opacity-0"}`}
+      />
       <button
         type={expanded ? "submit" : "button"}
         aria-label={expanded ? "Search" : "Open search"}
@@ -130,7 +135,7 @@ export function NavSearch() {
           setOpen(true);
           input.current?.focus();
         }}
-        className="flex size-9 shrink-0 press items-center justify-center rounded-full text-fg"
+        className="relative flex size-9 shrink-0 press items-center justify-center rounded-full text-fg"
       >
         <Search size={18} strokeWidth={1.75} aria-hidden />
       </button>
@@ -158,7 +163,7 @@ export function NavSearch() {
           else setOpen(false);
           e.currentTarget.blur();
         }}
-        className={`${fieldInputStyles} transition-opacity duration-200 ${expanded ? "opacity-100" : "pointer-events-none opacity-0"}`}
+        className={`relative ${fieldInputStyles} transition-opacity duration-300 ${expanded ? "opacity-100" : "pointer-events-none opacity-0"}`}
       />
     </form>
   );

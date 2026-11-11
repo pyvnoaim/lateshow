@@ -3,8 +3,6 @@ const pill =
   "glass flex items-center gap-3 rounded-full text-muted focus-within:ring-1 focus-within:ring-fg/30 focus-within:ring-inset";
 
 const sizes = {
-  /** Top bar search: the icon button inside sits flush left, so no left padding. */
-  bar: "h-9 pr-3.5 text-small",
   /** Search and filters. */
   md: "h-12 pr-2 pl-4.5",
   /** Forms with a button inside the pill (sign in). */
