@@ -3,6 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition, type FormEvent } from "react";
 import { buttonStyles } from "@/components/ui/button";
+import { useCopy } from "@/components/useCopy";
 import { fieldInputStyles, fieldStyles } from "@/components/ui/field";
 
 /** Joins with your account as soon as you open the room (you opened its link, that's the intent). */
@@ -57,13 +58,11 @@ export function GuestJoin({
 }
 
 export function CopyRoomLink({ code }: { code: string }) {
-  const [copied, setCopied] = useState(false);
+  const { copied, copy } = useCopy();
   return (
     <button
       type="button"
-      onClick={() =>
-        void navigator.clipboard.writeText(`${window.location.origin}/rooms/${code}`).then(() => setCopied(true))
-      }
+      onClick={() => void copy(`${window.location.origin}/rooms/${code}`)}
       className={buttonStyles("glass", "sm")}
     >
       {copied ? "Copied" : "Copy link"}

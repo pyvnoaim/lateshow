@@ -4,6 +4,7 @@ import { UserPlus, X } from "lucide-react";
 import Link from "next/link";
 import { useState, useTransition } from "react";
 import { buttonStyles } from "@/components/ui/button";
+import { useCopy } from "@/components/useCopy";
 import type { InviteLink } from "@/lib/friends/actions";
 
 /**
@@ -13,12 +14,11 @@ import type { InviteLink } from "@/lib/friends/actions";
 export function InviteButton({ getLink }: { getLink: (fresh: boolean) => Promise<InviteLink> }) {
   const [open, setOpen] = useState(false);
   const [link, setLink] = useState<InviteLink | null>(null);
-  const [copied, setCopied] = useState(false);
+  const { copied, copy } = useCopy();
   const [pending, startTransition] = useTransition();
 
   const load = (fresh: boolean) =>
     startTransition(async () => {
-      setCopied(false);
       setLink(await getLink(fresh));
     });
   const url = link && "code" in link ? `${window.location.origin}/invite/${link.code}` : "";
@@ -82,9 +82,7 @@ export function InviteButton({ getLink }: { getLink: (fresh: boolean) => Promise
                   <button
                     type="button"
                     disabled={!url}
-                    onClick={() => {
-                      void navigator.clipboard.writeText(url).then(() => setCopied(true));
-                    }}
+                    onClick={() => void copy(url)}
                     className={buttonStyles("primary", "sm")}
                   >
                     {copied ? "Copied" : "Copy link"}
