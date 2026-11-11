@@ -385,6 +385,24 @@
     transform: translateY(-4px) scale(0.97);
   }
 }
+/* Phone menu sheet: drops in from just above, overlay fades */
+@utility sheet-in {
+  animation: sheet-in var(--duration-lift) var(--ease-spring) both;
+}
+@utility sheet-fade {
+  animation: sheet-fade var(--duration-hover) ease-out both;
+}
+@keyframes sheet-in {
+  from {
+    opacity: 0;
+    transform: translateY(-10px) scale(0.98);
+  }
+}
+@keyframes sheet-fade {
+  from {
+    opacity: 0;
+  }
+}
 @keyframes drift {
   to {
     transform: translateY(-50%);

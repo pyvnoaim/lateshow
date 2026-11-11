@@ -254,10 +254,10 @@ Rules:
 
 ## Todo (agreed 2026-11-11, in this order)
 
-- [x] Dead nav links (2026-11-11): "Watchlist" -> /watchlist (your profile's Watchlist tab, or sign in first and come
-      back), "Rooms" hidden until rooms exist. Sign in takes `?next=` (only paths on this site), sign-in buttons pass the
+- [x] Dead nav links (2026-11-11): "Watchlist" -> /watchlist, redirected in next.config by the login cookie (no page
+      flash): your profile's Watchlist tab, or sign in first and come back. /u/me signed out -> sign in the same way. "Rooms" hidden until rooms exist. Sign in takes `?next=` (only paths on this site), sign-in buttons pass the
       page you were on.
-- [ ] Phone navigation: Home / Watchlist / Rooms are hidden below `sm` with nothing replacing them. Needs a small menu.
+- [x] Phone navigation (2026-11-11): menu button on phones opens a glass sheet with Home, Watchlist, Coming to cinemas, Profile.
 - [ ] Settings page: language (TMDB titles and descriptions) and your streaming services (powers "My services" on
       Trending, picks only from your services, sorts them first). Country stays auto-detected.
 - [ ] Better search: filter by genre (and movie / series), browse a genre without typing a title. TMDB `discover`

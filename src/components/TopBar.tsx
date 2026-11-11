@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { AccountButton } from "./AccountButton";
+import { MobileMenu } from "./MobileMenu";
 import { NavLinks, NavLinksView } from "./NavLinks";
 import { NavSearch } from "./NavSearch";
 import { Container } from "./ui/Container";
@@ -8,7 +9,6 @@ import { Container } from "./ui/Container";
 /**
  * Navbar C: name + links left, search + you right. Sits over the page so backdrops run underneath, scrolls away.
  * ponytail: the "up next" chip comes with the library feature (needs watch progress). Watchlist, Rooms and the profile (/u/me) land with later layers.
- * ponytail: links are hidden on phones until there's a phone menu.
  */
 export function TopBar() {
   return (
@@ -26,6 +26,9 @@ export function TopBar() {
           </Suspense>
           <Suspense fallback={<div aria-hidden className="size-8" />}>
             <AccountButton />
+          </Suspense>
+          <Suspense fallback={<div aria-hidden className="size-11 sm:hidden" />}>
+            <MobileMenu />
           </Suspense>
         </div>
       </Container>
