@@ -37,6 +37,15 @@ export type Owner = {
 type Row = { mediaType: "movie" | "tv"; tmdbId: number; title: string; posterPath: string | null };
 
 const toCard = (r: Row): Card => ({ id: r.tmdbId, media_type: r.mediaType, title: r.title, poster_path: r.posterPath });
+/** Rows as full TMDB cards (current poster, year, genre, same as Home), the stored row when TMDB fails. */
+const fullCards = (rows: Row[], lang: string) =>
+  Promise.all(
+    rows.map((r) =>
+      getTitle(r.mediaType, String(r.tmdbId), lang)
+        .then((t) => titleToCard(t, r.mediaType))
+        .catch(() => toCard(r)),
+    ),
+  );
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 const shortDate = (d: Date) => d.toLocaleDateString("en", { month: "short", day: "numeric" });
 
@@ -102,6 +111,10 @@ export async function Profile({
         .catch(() => toCard(r)),
     ),
   );
+  const [recent, listCards] = await Promise.all([
+    fullCards(uniqueTitles(history).slice(0, 12), lang),
+    tab === "watchlist" ? fullCards(watchlist, lang) : [],
+  ]);
   const month = (d: Date) => d.toLocaleDateString("en", { month: "long", year: "numeric" });
   const empty = stats.movies + stats.episodes === 0;
 
@@ -224,11 +237,9 @@ export async function Profile({
           {history.length > 0 && (
             <Section title="Recently watched">
               <PosterGrid>
-                {uniqueTitles(history)
-                  .slice(0, 12)
-                  .map((r, i) => (
-                    <PosterLink key={`${r.mediaType}-${r.tmdbId}`} card={toCard(r)} index={i} />
-                  ))}
+                {recent.map((c, i) => (
+                  <PosterLink key={`${c.media_type}-${c.id}`} card={c} index={i} />
+                ))}
               </PosterGrid>
             </Section>
           )}
@@ -264,8 +275,8 @@ export async function Profile({
           <Empty text={self ? "Your watchlist is empty." : "Their watchlist is empty."} action={self} />
         ) : (
           <PosterGrid>
-            {watchlist.map((r, i) => (
-              <PosterLink key={`${r.mediaType}-${r.tmdbId}`} card={toCard(r)} index={i} />
+            {listCards.map((c, i) => (
+              <PosterLink key={`${c.media_type}-${c.id}`} card={c} index={i} />
             ))}
           </PosterGrid>
         ))}
