@@ -1,7 +1,6 @@
 "use client";
 
 import { Search } from "lucide-react";
-import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState, type ReactNode } from "react";
 import { NavLinks } from "./NavLinks";
@@ -32,7 +31,7 @@ export function NavIsland({ upNext, account }: { upNext: ReactNode; account: Rea
         aria-label="Lateshow, home"
         className="flex size-9 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-fg/8"
       >
-        <Image src="/icon.svg" alt="" width={32} height={32} unoptimized />
+        <span aria-hidden className="block size-8 mark-round" />
       </Link>
       <span className="px-1">
         <NavLinks />
