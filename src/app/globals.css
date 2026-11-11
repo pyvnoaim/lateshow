@@ -23,9 +23,11 @@
   --color-glass-lo-hover: rgb(255 255 255 / 0.09);
   --color-glass-edge: rgb(255 255 255 / 0.3);
   --color-tint-hi: rgb(238 241 246 / 0.94);
-  --color-tint-lo: rgb(238 241 246 / 0.76);
+  --color-tint-lo: rgb(218 228 244 / 0.8);
   --color-tint-hi-hover: rgb(246 248 251 / 0.98);
-  --color-tint-lo-hover: rgb(238 241 246 / 0.86);
+  --color-tint-lo-hover: rgb(224 233 247 / 0.9);
+  /* the logo's light, rising from the bottom edge of primary buttons */
+  --color-tint-glow: rgb(159 187 232 / 0.6);
   --color-accent-hi: rgb(242 246 253 / 0.95);
   --color-accent-lo: rgb(169 194 234 / 0.9);
   --color-danger-hi: rgb(255 69 58 / 0.95);
@@ -138,7 +140,7 @@
    keep only the prefixed line, which Chrome ignores, so nothing blurred. */
 /* Glass: light tint brighter at the top, strong blur that lets colors glow through, a bright top edge like light
    catching glass, a faint outline and a soft shadow so it floats. Brightens on hover. */
-/* Tinted glass for the main action: milky white glass, still clearly the primary button, but made of the same
+/* Tinted glass for the main action: milky frost glass with the logo's icy light at the bottom edge, still clearly the primary button, but made of the same
    material as the other glass (blur, top edge, outline, shadow, pointer sheen). */
 @utility glass-tint {
   background:
@@ -147,6 +149,7 @@
       rgb(255 255 255 / calc(var(--sheen) * 0.5)),
       transparent 70%
     ),
+    radial-gradient(ellipse 80% 70% at 50% 120%, var(--color-tint-glow), transparent 70%),
     linear-gradient(180deg, var(--color-tint-hi), var(--color-tint-lo));
   color: var(--color-bg);
   backdrop-filter: blur(28px) saturate(1.9);
@@ -166,6 +169,7 @@
           rgb(255 255 255 / calc(var(--sheen) * 0.5)),
           transparent 70%
         ),
+        radial-gradient(ellipse 80% 70% at 50% 120%, var(--color-tint-glow), transparent 70%),
         linear-gradient(180deg, var(--color-tint-hi-hover), var(--color-tint-lo-hover));
     }
   }
