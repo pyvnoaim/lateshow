@@ -103,7 +103,11 @@ export async function Settings() {
             id: k.id,
             name: k.name,
             added: k.createdAt
-              ? k.createdAt.toLocaleDateString("en", { month: "short", day: "numeric" })
+              ? k.createdAt.toLocaleDateString("en", {
+                  month: "short",
+                  day: "numeric",
+                  year: k.createdAt.getFullYear() === new Date().getFullYear() ? undefined : "numeric",
+                })
               : "a while ago",
           }))}
           remove={removePasskey}

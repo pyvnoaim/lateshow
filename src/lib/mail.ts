@@ -44,6 +44,7 @@ export async function sendCode(to: string, code: string) {
     method: "POST",
     headers: { authorization: `Bearer ${RESEND_API_KEY}`, "content-type": "application/json" },
     body: JSON.stringify({ from: MAIL_FROM, to: [to], reply_to: MAIL_REPLY_TO, ...mail }),
+    signal: AbortSignal.timeout(10_000), // a hung Resend must not leave the button on "Sending" forever
   });
   if (!res.ok) throw new Error(`Resend ${res.status}: the sign-in email didn't go out`);
 }

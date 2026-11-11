@@ -2,6 +2,7 @@
 
 import { useState, useTransition, type ReactNode } from "react";
 import { buttonStyles } from "@/components/ui/button";
+import { forget, HAS_PASSKEY, NO_PASSKEY } from "@/lib/passkeyHint";
 
 /**
  * Two steps, all on the page (no browser dialog): "Delete account" sits next to the other data action (`children`),
@@ -32,7 +33,12 @@ export function DeleteAccount({ remove, children }: { remove: () => Promise<void
         <button
           type="button"
           disabled={pending}
-          onClick={() => startTransition(() => remove())}
+          onClick={() =>
+            startTransition(() => {
+              forget(HAS_PASSKEY, NO_PASSKEY);
+              return remove();
+            })
+          }
           className={buttonStyles("dangerConfirm", "sm")}
         >
           {pending ? "Deleting" : "Delete for good"}

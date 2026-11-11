@@ -20,6 +20,10 @@ export const LOGIN_CODE_MINUTES = CODE_MINUTES;
 export const auth = betterAuth({
   secret: BETTER_AUTH_SECRET,
   baseURL: BETTER_AUTH_URL,
+  // Behind Cloudflare + Nginx Proxy Manager X-Forwarded-For has several hops, which Better Auth won't guess from.
+  // Without this every visitor shares one rate limit bucket (3 code requests a minute for the whole site).
+  // ponytail: trusts cf-connecting-ip, fine while the origin is only reached through Cloudflare.
+  advanced: { ipAddress: { ipAddressHeaders: ["cf-connecting-ip"] } },
   database: drizzleAdapter(db, { provider: "sqlite", schema }),
   // set only through our own action (setUsername), never from sign up
   user: {
@@ -36,7 +40,9 @@ export const auth = betterAuth({
       expiresIn: CODE_MINUTES * 60,
       allowedAttempts: 5,
       storeOTP: "hashed",
-      sendVerificationOTP: async ({ email, otp }) => sendCode(email, otp),
+      rateLimit: { window: 60, max: 6 }, // per IP: a few typos must not lock out the right code
+      // only sign-in codes exist here: other types would send a "sign-in" mail that works nowhere
+      sendVerificationOTP: async ({ email, otp, type }) => (type === "sign-in" ? sendCode(email, otp) : undefined),
     }),
     // Face ID / Touch ID / Windows Hello after the first sign-in, tied to this site's domain.
     passkey({ rpName: "Lateshow", rpID: new URL(BETTER_AUTH_URL).hostname }),

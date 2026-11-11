@@ -13,6 +13,14 @@ export function remember(key: string) {
   }
 }
 
+export function forget(...keys: string[]) {
+  try {
+    for (const k of keys) localStorage.removeItem(k);
+  } catch {
+    // nothing stored, nothing to forget
+  }
+}
+
 export function recall(key: string) {
   try {
     return localStorage.getItem(key) === "1";

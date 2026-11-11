@@ -55,16 +55,19 @@ export function SignInForm({
 
   const go = () => window.location.assign(next); // a full load, so every part of the page sees the new session
 
+  // The email field offers a saved passkey like a saved password (conditional UI), where the browser can.
+  // Again after the big button: WebAuthn runs one request at a time, so that one cancelled this.
+  function autofill() {
+    if (typeof window.PublicKeyCredential === "undefined") return;
+    void PublicKeyCredential.isConditionalMediationAvailable?.().then((ok) => {
+      if (ok) void authClient.signIn.passkey({ autoFill: true }).then((r) => !r?.error && go());
+    });
+  }
+
   useEffect(() => {
-    const supported = typeof window.PublicKeyCredential !== "undefined";
     // Ready to type on computers. Not on phones: the keyboard would cover the page before you've seen it.
     if (matchMedia("(hover: hover) and (pointer: fine)").matches) emailInput.current?.focus();
-    // The email field offers a saved passkey like a saved password (conditional UI), where the browser can.
-    if (supported) {
-      void PublicKeyCredential.isConditionalMediationAvailable?.().then((ok) => {
-        if (ok) void authClient.signIn.passkey({ autoFill: true }).then((r) => !r?.error && go());
-      });
-    }
+    autofill();
     // eslint-disable-next-line react-hooks/exhaustive-deps -- once, on arrival
   }, []);
 
@@ -102,9 +105,11 @@ export function SignInForm({
     if (res.error) {
       setBad(true);
       setError(
-        res.error.status === 429 || /attempt/i.test(res.error.message ?? "")
-          ? "Too many wrong tries. Send a new code."
-          : "That code doesn't match. Check the newest email, or send a new one.",
+        res.error.status === 429
+          ? "Too many tries. Wait a minute and try again."
+          : /attempt/i.test(res.error.message ?? "")
+            ? "Too many wrong tries. Send a new code."
+            : "That code doesn't match. Check the newest email, or send a new one.",
       );
       return;
     }
@@ -137,8 +142,10 @@ export function SignInForm({
   async function passkeySignIn() {
     setError("");
     const res = await authClient.signIn.passkey();
-    if (res?.error) setError(`That didn't work. Use ${label} again, or get a code by email.`);
-    else go();
+    if (res?.error) {
+      setError(`That didn't work. Use ${label} again, or get a code by email.`);
+      autofill();
+    } else go();
   }
 
   if (phase === "offer" || phase === "done") {
@@ -248,6 +255,7 @@ export function SignInForm({
           )}
           <button
             type="button"
+            disabled={pending}
             onClick={() =>
               void navigator.clipboard
                 .readText()

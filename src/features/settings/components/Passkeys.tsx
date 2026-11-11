@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { buttonStyles } from "@/components/ui/button";
 import { authClient } from "@/lib/authClient";
-import { HAS_PASSKEY, remember } from "@/lib/passkeyHint";
+import { forget, HAS_PASSKEY, remember } from "@/lib/passkeyHint";
 
 type Key = { id: string; name: string; added: string };
 
@@ -44,7 +44,13 @@ export function Passkeys({
                 type="button"
                 disabled={pending}
                 aria-label={`Remove ${k.name}`}
-                onClick={() => startTransition(() => remove(k.id))}
+                onClick={() =>
+                  startTransition(async () => {
+                    await remove(k.id);
+                    // none left: sign-in stops saying "Welcome back" with a button that can't work
+                    if (keys.length === 1) forget(HAS_PASSKEY);
+                  })
+                }
                 className={buttonStyles("text", "text", "text-small text-danger hover:text-danger")}
               >
                 Remove
@@ -61,7 +67,12 @@ export function Passkeys({
             startTransition(async () => {
               setError("");
               const res = await authClient.passkey.addPasskey();
-              if (res?.error) setError("No passkey saved. Your device may have cancelled it.");
+              if (res?.error)
+                setError(
+                  "code" in res.error && res.error.code === "SESSION_NOT_FRESH"
+                    ? "For your safety, sign out and back in first. Then add it right away."
+                    : "No passkey saved. Your device may have cancelled it.",
+                );
               else {
                 remember(HAS_PASSKEY);
                 router.refresh();
