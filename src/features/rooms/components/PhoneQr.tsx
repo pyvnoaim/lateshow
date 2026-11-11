@@ -28,7 +28,7 @@ export function PhoneQr({ code, load }: { code: string; load: (code: string) => 
       <div
         role="img"
         aria-label="QR code to open this room on your phone"
-        className="size-28 overflow-hidden rounded-thumb bg-fg"
+        className="size-32 shrink-0 overflow-hidden rounded-thumb bg-fg"
         dangerouslySetInnerHTML={{ __html: svg }}
       />
       <div className="flex max-w-56 flex-col gap-1.5">

@@ -177,7 +177,7 @@ export async function phoneQr(raw: string): Promise<string | null> {
     .from(roomMember)
     .where(and(eq(roomMember.roomCode, code), eq(roomMember.memberId, session.user.id), eq(roomMember.joined, true)));
   if (!member) return null;
-  return renderSVG(await handoffUrl(`/rooms/${code}`), { border: 1 });
+  return renderSVG(await handoffUrl(`/rooms/${code}`), { border: 3 }); // a quiet zone, so the tile's round corners never clip the finder squares
 }
 
 /** Loads an open room for its host, or null when you aren't its host. */
