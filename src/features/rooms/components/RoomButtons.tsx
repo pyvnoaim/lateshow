@@ -112,3 +112,17 @@ export function LeaveRoom({
     </button>
   );
 }
+
+export function PlayAgain({ code, again }: { code: string; again: (code: string) => Promise<void> }) {
+  const [pending, startTransition] = useTransition();
+  return (
+    <button
+      type="button"
+      disabled={pending}
+      onClick={() => startTransition(() => again(code))}
+      className={buttonStyles("glass", "md")}
+    >
+      {pending ? "Dealing" : "Play again"}
+    </button>
+  );
+}

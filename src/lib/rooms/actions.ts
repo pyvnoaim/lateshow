@@ -8,8 +8,11 @@ import { redirect } from "next/navigation";
 import { z } from "zod";
 import { getSession } from "@/lib/auth";
 import { db } from "@/lib/db/client";
-import { room, roomMember } from "@/lib/db/schema";
+import { room, roomMember, roomVote } from "@/lib/db/schema";
 import { getFriends } from "@/lib/friends/queries";
+import { getRegion } from "@/lib/region";
+import { buildDeck } from "./deck";
+import { findMatch } from "./swipe";
 import { safeNext } from "@/lib/safeNext";
 import { redeemHandoff } from "./handoff";
 import { GUEST_COOKIE, getRoomIdentity, guestMemberId } from "./identity";
@@ -94,16 +97,96 @@ export async function joinAsGuest(raw: string, rawName: string): Promise<string 
   return null;
 }
 
-/** The host starts the game. Late joiners can still come in. */
-export async function startRoom(raw: string) {
+/** Loads a room for the host, or null when you aren't its host. */
+async function hostedRoom(raw: string) {
   const code = cleanCode(raw);
   const session = await getSession();
-  if (!code || !session) return;
+  if (!code || !session) return null;
+  const [r] = await db
+    .select()
+    .from(room)
+    .where(and(eq(room.code, code), eq(room.hostId, session.user.id)));
+  return r ?? null;
+}
+
+/** Deals a fresh deck for the people in the room right now (their services, the host's country). */
+async function deal(r: typeof room.$inferSelect, round: number) {
+  const members = await db
+    .select({ id: roomMember.memberId })
+    .from(roomMember)
+    .where(and(eq(roomMember.roomCode, r.code), eq(roomMember.joined, true)));
+  const country = r.country ?? (await getRegion()).code;
+  const people = members.map((m) => m.id).filter((id) => !id.startsWith("guest:"));
+  return { country, ...(await buildDeck(r.code, r.kind, people, country, round)) };
+}
+
+/** The host starts the game. Swipe gets its shared deck now. Late joiners can still come in. */
+export async function startRoom(raw: string) {
+  const r = await hostedRoom(raw);
+  if (!r || r.status !== "lobby") return;
+  const dealt = r.game === "swipe" ? await deal(r, 0) : {};
   await db
     .update(room)
-    .set({ status: "playing", version: sql`${room.version} + 1` })
-    .where(and(eq(room.code, code), eq(room.hostId, session.user.id), eq(room.status, "lobby")));
+    .set({ status: "playing", ...dealt, version: sql`${room.version} + 1` })
+    .where(eq(room.code, r.code));
   refresh();
+}
+
+/** Host: a new deck and a clean slate (votes and the winner go). */
+export async function playAgain(raw: string) {
+  const r = await hostedRoom(raw);
+  if (!r || r.status !== "playing") return;
+  const round = (r.version % 97) + 1;
+  const dealt = await deal(r, round);
+  db.transaction((tx) => {
+    tx.delete(roomVote).where(eq(roomVote.roomCode, r.code)).run();
+    tx.update(room)
+      .set({ ...dealt, winner: null, version: sql`${room.version} + 1` })
+      .where(eq(room.code, r.code))
+      .run();
+  });
+  refresh();
+}
+
+const vote = z.object({ tmdbId: z.number().int().positive(), like: z.boolean() });
+
+/**
+ * One swipe. A yes can finish the game: the first title in the deck everyone in the room liked wins
+ * (everyone joined right now, so a late joiner's yes counts too).
+ */
+export async function swipe(raw: string, input: z.input<typeof vote>) {
+  const code = cleanCode(raw);
+  const me = await getRoomIdentity();
+  const parsed = vote.safeParse(input);
+  if (!code || !me || !parsed.success) return;
+  const { tmdbId, like } = parsed.data;
+  db.transaction((tx) => {
+    const r = tx.select().from(room).where(eq(room.code, code)).get();
+    if (!r || r.status !== "playing" || r.winner || !r.deck?.includes(tmdbId)) return;
+    const members = tx
+      .select({ id: roomMember.memberId })
+      .from(roomMember)
+      .where(and(eq(roomMember.roomCode, code), eq(roomMember.joined, true)))
+      .all()
+      .map((m) => m.id);
+    if (!members.includes(me.id)) return;
+    tx.insert(roomVote)
+      .values({ roomCode: code, memberId: me.id, tmdbId, like })
+      .onConflictDoUpdate({ target: [roomVote.roomCode, roomVote.memberId, roomVote.tmdbId], set: { like } })
+      .run();
+    const likes = new Map<number, Set<string>>();
+    for (const v of tx
+      .select()
+      .from(roomVote)
+      .where(and(eq(roomVote.roomCode, code), eq(roomVote.like, true)))
+      .all()) {
+      likes.set(v.tmdbId, (likes.get(v.tmdbId) ?? new Set()).add(v.memberId));
+    }
+    tx.update(room)
+      .set({ winner: findMatch(r.deck, likes, members), version: sql`${room.version} + 1` })
+      .where(eq(room.code, code))
+      .run();
+  });
 }
 
 /** Leaves a room. When the host leaves, the room closes for everyone. */

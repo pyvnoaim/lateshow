@@ -102,6 +102,12 @@ export const room = sqliteTable("room", {
     .notNull()
     .default("lobby"),
   version: integer("version").notNull().default(0),
+  // set when a game starts: the country and services titles come from, and the shared deck (JSON of TMDB ids)
+  country: text("country"),
+  services: text("services", { mode: "json" }).$type<number[]>(),
+  deck: text("deck", { mode: "json" }).$type<number[]>(),
+  // the title everyone picked (swipe: the first one all of you liked)
+  winner: integer("winner"),
   createdAt: integer("created_at", { mode: "timestamp_ms" }).default(now).notNull(),
   expiresAt: integer("expires_at", { mode: "timestamp_ms" }).notNull(),
 });
@@ -122,4 +128,18 @@ export const roomMember = sqliteTable(
     joinedAt: integer("joined_at", { mode: "timestamp_ms" }).default(now).notNull(),
   },
   (t) => [primaryKey({ columns: [t.roomCode, t.memberId] }), index("room_member_by_member").on(t.memberId)],
+);
+
+/** One swipe: a member said yes or no to a title in a room's deck. */
+export const roomVote = sqliteTable(
+  "room_vote",
+  {
+    roomCode: text("room_code")
+      .notNull()
+      .references(() => room.code, { onDelete: "cascade" }),
+    memberId: text("member_id").notNull(),
+    tmdbId: integer("tmdb_id").notNull(),
+    like: integer("like", { mode: "boolean" }).notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.roomCode, t.memberId, t.tmdbId] })],
 );

@@ -1,0 +1,155 @@
+import { ArrowUpRight } from "lucide-react";
+import Image from "next/image";
+import { buttonStyles } from "@/components/ui/button";
+import { getWatchLinks } from "@/lib/justwatch";
+import { getLanguage } from "@/lib/region";
+import { playAgain, swipe } from "@/lib/rooms/actions";
+import { getVotes, type getRoom } from "@/lib/rooms/queries";
+import { getEnglishName, getTitle, img, pickTrailer, shortGenre, subscriptionServices } from "@/lib/tmdb";
+import { PlayAgain } from "./components/RoomButtons";
+import { SwipeDeck, type SwipeCard } from "./components/SwipeDeck";
+
+type Room = NonNullable<Awaited<ReturnType<typeof getRoom>>>;
+
+/** Swipe, for one member: your cards, who's still going, and the match (or no match) for everyone at once. */
+export async function SwipeGame({ r, meId }: { r: Room; meId: string }) {
+  const lang = await getLanguage();
+  const deck = r.deck ?? [];
+  const votes = await getVotes(r.code);
+  const members = r.members.filter((m) => m.joined);
+  const host = r.hostId === meId;
+  const count = (id: string) => votes.filter((v) => v.memberId === id).length;
+
+  if (r.winner) {
+    const t = await getTitle(r.kind, String(r.winner), lang);
+    const english = await getEnglishName(r.kind, t.id).catch(() => t.title ?? t.name ?? "");
+    const links = await getWatchLinks(r.kind, t.id, english, r.country ?? "DE");
+    const link = links.find((l) => l.included) ?? links[0];
+    const name = t.title ?? t.name ?? "";
+    return (
+      <div className="flex flex-col gap-10 sm:flex-row sm:items-center sm:gap-14">
+        <div className="relative aspect-poster w-40 shrink-0 pop overflow-hidden rounded-banner bg-raised shadow-2xl sm:w-72">
+          {t.poster_path && (
+            <Image src={img(t.poster_path, "w780")!} alt="" fill sizes="320px" className="object-cover" />
+          )}
+        </div>
+        <div className="flex rise flex-col gap-6">
+          <span className="text-label text-muted">
+            All {members.length} of you said yes{members.length === 1 ? "" : ", it's on"}.
+          </span>
+          <h1 className="text-page leading-none font-bold break-words">
+            It&apos;s a match.
+            <br />
+            <span className="text-muted">{name}.</span>
+          </h1>
+          <div className="flex flex-wrap items-center gap-4">
+            {link && (
+              <a href={link.url} target="_blank" rel="noopener noreferrer" className={buttonStyles("primary", "md")}>
+                {link.included ? "Watch" : "Rent or buy"} on {link.service}
+                <ArrowUpRight size={18} strokeWidth={2} aria-hidden />
+              </a>
+            )}
+            {host && <PlayAgain code={r.code} again={playAgain} />}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  const mine = new Set(votes.filter((v) => v.memberId === meId).map((v) => v.tmdbId));
+  const remaining = deck.filter((id) => !mine.has(id));
+  const stillGoing = members.filter((m) => count(m.memberId) < deck.length);
+  const faces = (
+    <div className="flex items-center gap-3">
+      <div className="flex">
+        {members.map((m, i) => (
+          <span
+            key={m.memberId}
+            data-tip={m.name}
+            data-tip-meta={count(m.memberId) >= deck.length ? "Done" : `${deck.length - count(m.memberId)} to go`}
+            className={`flex size-8 items-center justify-center rounded-full text-caption font-bold ring-2 ring-bg ${i > 0 ? "-ml-2" : ""} ${count(m.memberId) >= deck.length ? "glass-cell text-muted" : "glass-accent"}`}
+          >
+            {m.name.charAt(0).toUpperCase()}
+          </span>
+        ))}
+      </div>
+      <span className="text-caption text-muted nums">
+        {remaining.length > 0 ? `${remaining.length} left for you` : `${stillGoing.length} still swiping`}
+      </span>
+    </div>
+  );
+
+  if (remaining.length === 0) {
+    // everyone is through and nothing got a yes from all: the most liked ones
+    if (stillGoing.length === 0) {
+      const likes = new Map<number, number>();
+      for (const v of votes) if (v.like) likes.set(v.tmdbId, (likes.get(v.tmdbId) ?? 0) + 1);
+      const top = [...likes.entries()].toSorted((a, b) => b[1] - a[1]).slice(0, 3);
+      const titles = await Promise.all(
+        top.map(([id, n]) => getTitle(r.kind, String(id), lang).then((t) => ({ t, n }))),
+      );
+      return (
+        <div className="flex flex-col gap-10">
+          <h1 className="text-page leading-none font-bold">
+            No match this time.
+            <br />
+            <span className="text-muted">{titles.length > 0 ? "Closest calls:" : "Nobody said yes."}</span>
+          </h1>
+          <ul className="grid max-w-reading grid-cols-3 gap-5">
+            {titles.map(({ t, n }) => (
+              <li key={t.id} className="flex flex-col gap-2.5">
+                <div className="relative aspect-poster overflow-hidden rounded-poster bg-raised">
+                  {t.poster_path && (
+                    <Image src={img(t.poster_path, "w342")!} alt="" fill sizes="200px" className="object-cover" />
+                  )}
+                </div>
+                <span className="text-label font-medium">{t.title ?? t.name}</span>
+                <span className="-mt-2 text-caption text-muted">
+                  {n} of {members.length} said yes
+                </span>
+              </li>
+            ))}
+          </ul>
+          {host && <PlayAgain code={r.code} again={playAgain} />}
+        </div>
+      );
+    }
+    return (
+      <div className="flex flex-col gap-8">
+        {faces}
+        <h1 className="text-page leading-none font-bold">
+          You&apos;re through.
+          <br />
+          <span className="text-muted">Waiting for {stillGoing.map((m) => m.name).join(" and ")}.</span>
+        </h1>
+      </div>
+    );
+  }
+
+  const cards: SwipeCard[] = await Promise.all(
+    remaining.map(async (id) => {
+      const t = await getTitle(r.kind, String(id), lang);
+      const year = (t.release_date ?? t.first_air_date ?? "").slice(0, 4);
+      const length = r.kind === "movie" && t.runtime ? `${Math.floor(t.runtime / 60)} h ${t.runtime % 60} min` : "";
+      const services = subscriptionServices(t, r.country ?? "DE");
+      return {
+        id,
+        title: t.title ?? t.name ?? "",
+        meta: [r.kind === "movie" ? "Movie" : "Series", year, t.genres[0] && shortGenre(t.genres[0].name), length]
+          .filter(Boolean)
+          .join(" · "),
+        overview: t.overview,
+        poster: img(t.poster_path, "w780")!,
+        on: (services.find((s) => r.services?.includes(s.id)) ?? services[0])?.name,
+        trailer: pickTrailer(t.videos.results)?.key,
+      };
+    }),
+  );
+
+  return (
+    <div className="flex flex-col items-center gap-6">
+      {faces}
+      <SwipeDeck code={r.code} cards={cards} swipe={swipe} />
+    </div>
+  );
+}
