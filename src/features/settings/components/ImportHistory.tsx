@@ -78,7 +78,12 @@ export function ImportHistory() {
   async function choose(item: Unsure, c: Candidate | null) {
     setUnsure((u) => u.filter((x) => x !== item));
     if (!c) return;
-    const saved = await importPick(item.row, { id: c.id, title: c.title, posterPath: c.posterPath }).catch(() => null);
+    const saved = await importPick(item.row, {
+      id: c.id,
+      type: c.type,
+      title: c.title,
+      posterPath: c.posterPath,
+    }).catch(() => null);
     if (saved)
       setTotals((t) => ({ ...t, watched: t.watched + saved.watched, watchlist: t.watchlist + saved.watchlist }));
   }
@@ -86,7 +91,7 @@ export function ImportHistory() {
   if (phase === "working") {
     return (
       <p className="text-body text-muted" aria-live="polite">
-        Matching your films <span className="text-fg nums">{progress.done}</span> of{" "}
+        Matching your titles <span className="text-fg nums">{progress.done}</span> of{" "}
         <span className="nums">{progress.total}</span>
       </p>
     );
@@ -110,7 +115,7 @@ export function ImportHistory() {
         {unsure.length > 0 && (
           <div className="flex flex-col gap-3">
             <p className="text-label font-semibold">
-              <span className="nums">{unsure.length}</span> need a look. Same name, different film.
+              <span className="nums">{unsure.length}</span> need a look. Same name, different title.
             </p>
             {unsure.slice(0, 20).map((u) => (
               <div
@@ -123,7 +128,7 @@ export function ImportHistory() {
                 </span>
                 {u.candidates.map((c) => (
                   <button
-                    key={c.id}
+                    key={`${c.type}-${c.id}`}
                     type="button"
                     onClick={() => void choose(u, c)}
                     className="glass-hover flex press items-center gap-2.5 rounded-thumb p-1.5 pr-3 text-left"
@@ -133,7 +138,10 @@ export function ImportHistory() {
                     </span>
                     <span className="text-small">
                       {c.title}
-                      <span className="block text-caption text-muted">{c.year ?? "Year unknown"}</span>
+                      <span className="block text-caption text-muted">
+                        {c.type === "tv" ? "Series · " : ""}
+                        {c.year ?? "Year unknown"}
+                      </span>
                     </span>
                   </button>
                 ))}

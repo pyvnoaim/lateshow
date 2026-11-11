@@ -135,18 +135,21 @@ export function norm(s: string) {
 export type Hit = { id: number; title: string; originalTitle?: string; year?: number };
 
 /**
- * Which search hit is the film in the file: the one with the same title and year (±1, Letterboxd sometimes has the
- * festival year). One clear match: its id. Several, or a year that fits none: up to 3 candidates to pick from.
+ * Which search hit is the title in the file: the one with the same title and year (±1, Letterboxd sometimes has the
+ * festival year). One clear match: that hit. Several, or a year that fits none: up to 3 candidates to pick from.
  */
-export function pickMatch(row: Pick<ImportRow, "title" | "year">, hits: Hit[]): { id: number } | { candidates: Hit[] } {
+export function pickMatch<H extends Hit>(
+  row: Pick<ImportRow, "title" | "year">,
+  hits: H[],
+): { match: H } | { candidates: H[] } {
   const t = norm(row.title);
   const same = hits.filter((h) => norm(h.title) === t || (h.originalTitle && norm(h.originalTitle) === t));
   const pool = same.length ? same : hits;
   if (row.year) {
     const exact = pool.filter((h) => h.year === row.year);
-    if (exact.length === 1 && same.length) return { id: exact[0].id };
+    if (exact.length === 1 && same.length) return { match: exact[0] };
     const near = pool.filter((h) => h.year && Math.abs(h.year - row.year!) <= 1);
-    if (near.length === 1 && same.length) return { id: near[0].id };
-  } else if (same.length === 1) return { id: same[0].id };
+    if (near.length === 1 && same.length) return { match: near[0] };
+  } else if (same.length === 1) return { match: same[0] };
   return { candidates: pool.slice(0, 3) };
 }

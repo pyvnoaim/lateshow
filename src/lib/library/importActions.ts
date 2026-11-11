@@ -6,7 +6,7 @@ import { z } from "zod";
 import { getSession } from "@/lib/auth";
 import { db } from "@/lib/db/client";
 import { watched, watchlist } from "@/lib/db/schema";
-import { findByImdbId, getRuntime, img, searchMovies } from "@/lib/tmdb";
+import { findByImdbId, getAiredEpisodes, getRuntime, img, searchForImport } from "@/lib/tmdb";
 import { pickMatch, type Hit, type ImportRow } from "./importing";
 
 // The browser sends rows read from your export, never the file. Batches stay small so each call is a few seconds.
@@ -26,6 +26,7 @@ const row = z.object({
 });
 const pick = z.object({
   id: z.number().int().positive(),
+  type: z.enum(["movie", "tv"]),
   title: z.string().trim().min(1).max(300),
   posterPath: z
     .string()
@@ -34,7 +35,7 @@ const pick = z.object({
 });
 
 /** `poster` is the small image to show, `posterPath` what gets stored */
-export type Candidate = Hit & { posterPath: string | null; poster: string | null };
+export type Candidate = Hit & { type: "movie" | "tv"; posterPath: string | null; poster: string | null };
 export type Unsure = { row: ImportRow; candidates: Candidate[] };
 export type BatchResult = { watched: number; watchlist: number; notFound: number; unsure: Unsure[] };
 type Match = { row: ImportRow; id: number; type: "movie" | "tv"; title: string; posterPath: string | null };
@@ -48,20 +49,26 @@ async function match(r: ImportRow): Promise<Match | Unsure | null> {
     if (!t) return null;
     return { row: r, id: t.id, type: t.media_type, title: t.title ?? t.name ?? r.title, posterPath: t.poster_path };
   }
-  const hits = await searchMovies(r.title).catch(() => []);
+  const hits = await searchForImport(r.title).catch(() => []);
   if (!hits.length) return null;
   const m = pickMatch(
     r,
-    hits.map((h) => ({ id: h.id, title: h.title, originalTitle: h.original_title, year: yearOf(h.release_date) })),
+    hits.map((h) => ({ ...h, year: yearOf(h.date) })),
   );
-  const poster = (id: number) => hits.find((h) => h.id === id)?.poster_path ?? null;
-  if ("id" in m) {
-    const h = hits.find((x) => x.id === m.id)!;
-    return { row: r, id: h.id, type: "movie", title: h.title, posterPath: h.poster_path };
+  if ("match" in m) {
+    const h = m.match;
+    return { row: r, id: h.id, type: h.type, title: h.title, posterPath: h.posterPath };
   }
   return {
     row: r,
-    candidates: m.candidates.map((c) => ({ ...c, posterPath: poster(c.id), poster: img(poster(c.id), "w92") })),
+    candidates: m.candidates.map((c) => ({
+      id: c.id,
+      type: c.type,
+      title: c.title,
+      year: c.year,
+      posterPath: c.posterPath,
+      poster: img(c.posterPath, "w92"),
+    })),
   };
 }
 
@@ -80,32 +87,46 @@ async function pool<T, R>(items: T[], n: number, fn: (item: T) => Promise<R>): P
   return out;
 }
 
-/** Saves matches. Already there stays as it is, so importing twice adds nothing. Watched beats watchlist. */
+/**
+ * Saves matches. Already there stays as it is, so importing twice adds nothing. Watched beats watchlist.
+ * A watched series means all of it: every episode aired so far.
+ */
 async function save(userId: string, matches: Match[]) {
-  const seen = matches.filter((m) => m.row.list === "watched" && m.type === "movie");
+  const seen = matches.filter((m) => m.row.list === "watched");
   const listed = matches.filter((m) => m.row.list === "watchlist");
-  // runtimes so imported films count in your hours (cached for good, most films are looked up once)
-  const minutes = await pool(seen, 8, (m) => getRuntime(m.id).catch(() => 0));
+  // runtimes so imported titles count in your hours (cached, most are looked up once)
+  const parts = await pool(seen, 8, async (m) =>
+    m.type === "movie"
+      ? [{ season: 0, episode: 0, minutes: await getRuntime(m.id).catch(() => 0) }]
+      : await getAiredEpisodes(m.id).catch(() => []),
+  );
   let w = 0;
   let l = 0;
   db.transaction((tx) => {
     seen.forEach((m, i) => {
-      w += tx
+      if (!parts[i].length) return;
+      // a series counts once however many episodes it brings
+      const added = tx
         .insert(watched)
-        .values({
-          userId,
-          mediaType: "movie",
-          tmdbId: m.id,
-          title: m.title,
-          posterPath: m.posterPath,
-          minutes: Math.min(minutes[i], 1000),
-          ...(m.row.date ? { watchedAt: new Date(`${m.row.date}T12:00:00Z`) } : {}),
-        })
+        .values(
+          parts[i].map((p) => ({
+            userId,
+            mediaType: m.type,
+            tmdbId: m.id,
+            season: p.season,
+            episode: p.episode,
+            title: m.title,
+            posterPath: m.posterPath,
+            minutes: Math.min(p.minutes, 1000),
+            ...(m.row.date ? { watchedAt: new Date(`${m.row.date}T12:00:00Z`) } : {}),
+          })),
+        )
         .onConflictDoNothing()
         .run().changes;
+      if (added) w++;
       // like marking it watched in the app: it leaves the watchlist
       tx.delete(watchlist)
-        .where(and(eq(watchlist.userId, userId), eq(watchlist.mediaType, "movie"), eq(watchlist.tmdbId, m.id)))
+        .where(and(eq(watchlist.userId, userId), eq(watchlist.mediaType, m.type), eq(watchlist.tmdbId, m.id)))
         .run();
     });
     for (const m of listed) {
@@ -150,12 +171,12 @@ export async function importBatch(raw: ImportRow[]): Promise<BatchResult> {
   return { ...saved, notFound: results.filter((r) => r === null).length, unsure };
 }
 
-/** You picked which film an unclear row meant. */
+/** You picked which title an unclear row meant. */
 export async function importPick(rawRow: ImportRow, rawPick: z.input<typeof pick>) {
   const userId = await requireUserId();
   const r = row.parse(rawRow);
   const p = pick.parse(rawPick);
-  const saved = await save(userId, [{ row: r, id: p.id, type: "movie", title: p.title, posterPath: p.posterPath }]);
+  const saved = await save(userId, [{ row: r, id: p.id, type: p.type, title: p.title, posterPath: p.posterPath }]);
   refresh();
   return saved;
 }

@@ -61,10 +61,10 @@ describe("pickMatch", () => {
     { id: 3, title: "Suspiria in Concert", year: 2019 },
   ];
   it("takes the one with the same title and year", () => {
-    expect(pickMatch({ title: "Suspiria", year: 1977 }, hits)).toEqual({ id: 2 });
+    expect(pickMatch({ title: "Suspiria", year: 1977 }, hits)).toEqual({ match: hits[1] });
   });
   it("accepts a year that is one off", () => {
-    expect(pickMatch({ title: "suspiria", year: 1976 }, hits)).toEqual({ id: 2 });
+    expect(pickMatch({ title: "suspiria", year: 1976 }, hits)).toEqual({ match: hits[1] });
   });
   it("asks when the title fits several and no year decides", () => {
     expect(pickMatch({ title: "Suspiria" }, hits)).toEqual({ candidates: hits.slice(0, 2) });

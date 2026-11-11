@@ -36,6 +36,7 @@ export type Episode = {
   vote_average: number;
   still_path: string | null;
   runtime: number | null;
+  air_date?: string | null;
 };
 
 export type Title = {
@@ -561,19 +562,52 @@ export async function getCinemaCalendar(country: string, lang: string = DEFAULT_
 }
 
 /** Films by title, in English (exports are English), for the import. Up to 20 hits, the caller picks. */
-export async function searchMovies(query: string) {
+export async function searchForImport(query: string) {
   "use cache";
   cacheLife("days");
+  // Letterboxd lists miniseries and some series too, so films and series both
   const data = await tmdb<{
     results: {
       id: number;
-      title: string;
+      media_type: string;
+      title?: string;
+      name?: string;
       original_title?: string;
+      original_name?: string;
       release_date?: string;
-      poster_path: string | null;
+      first_air_date?: string;
+      poster_path?: string | null;
     }[];
-  }>("/search/movie", { query, include_adult: "false" }, "en-US");
-  return data.results;
+  }>("/search/multi", { query, include_adult: "false" }, "en-US");
+  return data.results.flatMap((r) =>
+    r.media_type === "movie" || r.media_type === "tv"
+      ? [
+          {
+            id: r.id,
+            type: r.media_type as "movie" | "tv",
+            title: r.title ?? r.name ?? "",
+            originalTitle: r.original_title ?? r.original_name,
+            date: r.release_date ?? r.first_air_date,
+            posterPath: r.poster_path ?? null,
+          },
+        ]
+      : [],
+  );
+}
+
+/** Every episode of a series that has aired (specials left out), for importing a watched series. */
+export async function getAiredEpisodes(id: number) {
+  "use cache";
+  cacheLife("days");
+  const show = await tmdb<{ seasons?: { season_number: number }[] }>(`/tv/${id}`, {}, "en-US");
+  const numbers = (show.seasons ?? []).map((s) => s.season_number).filter((n) => n > 0);
+  const today = new Date().toISOString().slice(0, 10);
+  const seasons = await getSeasons(String(id), numbers, "en-US");
+  return seasons.flatMap((s) =>
+    s.episodes
+      .filter((e) => e.air_date && e.air_date <= today)
+      .map((e) => ({ season: s.number, episode: e.episode_number, minutes: e.runtime ?? 0 })),
+  );
 }
 
 /** The TMDB title for an IMDb id (tt0133093), for the IMDb import. Null when TMDB doesn't know it. */
