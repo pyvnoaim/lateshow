@@ -1,7 +1,8 @@
 # Lateshow
 
 Movies and series: find what to watch, where to stream it, track what you watched.
-Personal, non-commercial (TMDB key terms): no ads, no paid features, ever. lateshow.app / .film not bought yet.
+Personal, non-commercial (TMDB key terms): no ads, no paid features, ever. Live at https://lateshow.pyvno.xyz (2026-11-11). Buy lateshow.app only if it gets users
+(then change `BETTER_AUTH_URL` in Portainer, add the DNS record and NPM host).
 Read `node_modules/next/dist/docs/` before using Next APIs (see AGENTS.md).
 
 ## Run
@@ -96,8 +97,10 @@ delete account), /watchlist + /u/me redirects in `next.config.ts`, 404, errors, 
 
 ## Todo (in order)
 
-- [ ] Before public: Resend account + DNS records for the sending domain, SQLite backup off the VPS (Litestream to R2 planned), deploy on the VPS (Docker + CI done 2026-11-11, next: Portainer stack,
-      NPM host with buffering off for `/api/rooms/*/events`, webhook secret), buy lateshow.app.
+- [x] Hosting (2026-11-11): Portainer stack `lateshow` from this repo, NPM host lateshow.pyvno.xyz (custom `*.pyvno.xyz`
+      cert, like quorum), Cloudflare A record proxied, CI webhook deploys. Resend: pyvno.xyz verified (eu-west-1,
+      return path `send`, tracking off), `RESEND_API_KEY` + `MAIL_FROM` in Portainer.
+- [ ] Next: SQLite backup off the VPS (Litestream to R2), then the privacy/impressum placeholders.
       /privacy and /impressum exist (2026-11-11): fill the placeholders in `src/lib/legal.ts` and the email provider
       line on /privacy. Keep /privacy true to the code: no browser request may go to TMDB/JustWatch (images go
       through next/image), cookies listed there are the only ones.
