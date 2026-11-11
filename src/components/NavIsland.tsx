@@ -23,7 +23,7 @@ export function NavIsland({ upNext, account }: { upNext: ReactNode; account: Rea
   return (
     <div
       inert={!shown}
-      className={`fixed top-3 left-1/2 z-40 flex -translate-x-1/2 items-center gap-4 rounded-full p-1.5 glass transition duration-500 ease-spring motion-reduce:transition-none ${shown ? "translate-y-0 scale-100 opacity-100" : "-translate-y-6 scale-95 opacity-0"}`}
+      className={`fixed top-3 left-1/2 z-40 flex -translate-x-1/2 items-center gap-4 rounded-full p-1.5 glass-deep transition duration-500 ease-spring motion-reduce:transition-none ${shown ? "translate-y-0 scale-100 opacity-100" : "-translate-y-6 scale-95 opacity-0"}`}
     >
       {/* every item sits in a 36 px slot with the same 6 px around: both ends are round and the same distance in */}
       <Link
