@@ -1,6 +1,6 @@
 import "server-only";
 import { cacheLife } from "next/cache";
-import type { MediaType } from "./tmdb";
+import { serviceName, type MediaType } from "./tmdb";
 
 // Unofficial, undocumented JustWatch endpoint. No key. Can break any time: every caller must cope with [].
 const QUERY = `query Search($country: Country!, $language: Language!, $filter: TitleFilter) {
@@ -58,7 +58,11 @@ export async function getWatchLinks(
 export function pickLinks(offers: Offer[]): WatchLink[] {
   const byService = new Map<number, WatchLink>();
   for (const o of offers) {
-    const link = { service: o.package.clearName, url: o.standardWebURL, included: INCLUDED.has(o.monetizationType) };
+    const link = {
+      service: serviceName(o.package.clearName),
+      url: o.standardWebURL,
+      included: INCLUDED.has(o.monetizationType),
+    };
     const prev = byService.get(o.package.packageId);
     if (!prev || (link.included && !prev.included)) byService.set(o.package.packageId, link);
   }

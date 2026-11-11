@@ -200,7 +200,7 @@ export function serviceName(name: string): string {
   return name
     .replace(/\s+(Standard\s+)?with\s+Ads$/i, "")
     .replace(/^Amazon Prime Video/, "Prime Video")
-    .replace(/\s+Plus$/, "+");
+    .replace(/\s+Plus$/i, "+");
 }
 
 /** A full title as a poster card (for lists that start from title ids, like the watchlist or the Top 10). */

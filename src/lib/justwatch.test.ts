@@ -17,4 +17,8 @@ describe("pickLinks", () => {
     const links = pickLinks([offer(2, "Apple", "BUY"), offer(3, "Netflix", "FLATRATE")]);
     expect(links.map((l) => l.service)).toEqual(["Netflix", "Apple"]);
   });
+
+  it("writes Plus as + (Disney Plus -> Disney+)", () => {
+    expect(pickLinks([offer(2, "Disney Plus", "FLATRATE")])[0].service).toBe("Disney+");
+  });
 });
