@@ -88,6 +88,39 @@ export async function setWatched(ref: WatchedRef, on: boolean) {
   refresh();
 }
 
+/** "Episodes 1 and 2 too?": marks several episodes of one season as watched at once (after you checked a later one). */
+export async function setEarlierWatched(ref: TitleRef, season: number, episodes: { n: number; minutes: number }[]) {
+  const userId = await requireUserId();
+  const t = titleRef.parse(ref);
+  const s = z.number().int().min(0).parse(season);
+  const eps = z
+    .array(z.object({ n: z.number().int().min(1), minutes: z.number().int().min(0).max(1000) }))
+    .max(500)
+    .parse(episodes);
+  if (eps.length === 0) return;
+  db.transaction((tx) => {
+    tx.insert(watched)
+      .values(
+        eps.map((e) => ({
+          userId,
+          mediaType: t.type,
+          tmdbId: t.tmdbId,
+          season: s,
+          episode: e.n,
+          title: t.title,
+          posterPath: t.posterPath,
+          minutes: e.minutes,
+        })),
+      )
+      .onConflictDoNothing()
+      .run();
+    tx.delete(watchlist)
+      .where(and(eq(watchlist.userId, userId), eq(watchlist.mediaType, t.type), eq(watchlist.tmdbId, t.tmdbId)))
+      .run();
+  });
+  refresh();
+}
+
 export type AddResult = {
   type: "movie" | "tv";
   id: number;
