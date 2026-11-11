@@ -109,6 +109,8 @@
     color: var(--color-fg);
   }
   body {
+    /* full-bleed strips (bleed) reach 100vw, which includes a desktop scrollbar: never a sideways page scroll */
+    overflow-x: clip;
     font-family: var(--font-sans);
     -webkit-font-smoothing: antialiased;
   }
@@ -179,6 +181,12 @@
    with a thin quiet scrollbar. */
 /* Sideways strips you swipe (genre row on phones): no scrollbar track under the text */
 /* The swipe card: as big as the screen allows while the buttons under it stay in view (2:3 poster, height-led) */
+/* A sideways strip that runs to both screen edges while its first item lines up with the page column.
+   Snapping needs a matching scroll-padding (scroll-px-*), else the first item snaps to the screen edge. */
+@utility bleed {
+  margin-inline: calc(50% - 50vw);
+  padding-inline: calc(50vw - 50%);
+}
 @utility swipe-card {
   width: min(100%, calc((100dvh - var(--spacing-swipe-chrome)) * 2 / 3));
 }
