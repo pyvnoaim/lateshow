@@ -4,7 +4,7 @@ const pill =
 
 const sizes = {
   /** Top bar search: the icon button inside sits flush left, so no left padding. */
-  bar: "h-11 pr-4",
+  bar: "h-9 pr-3.5 text-small",
   /** Search and filters. */
   md: "h-12 pr-2 pl-4.5",
   /** Forms with a button inside the pill (sign in). */

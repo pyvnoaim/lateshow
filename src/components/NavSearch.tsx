@@ -117,7 +117,7 @@ export function NavSearch() {
       role="search"
       onSubmit={submit}
       className={`flex items-center overflow-hidden rounded-full transition-all duration-300 ease-spring ${
-        expanded ? `${fieldStyles("bar")} w-full max-w-96 min-w-0` : "h-11 w-11 shrink-0"
+        expanded ? `${fieldStyles("bar")} w-full max-w-72 min-w-0` : "h-9 w-9 shrink-0"
       }`}
     >
       <button
@@ -130,9 +130,9 @@ export function NavSearch() {
           setOpen(true);
           input.current?.focus();
         }}
-        className="flex size-11 shrink-0 press items-center justify-center rounded-full text-fg"
+        className="flex size-9 shrink-0 press items-center justify-center rounded-full text-fg"
       >
-        <Search size={20} strokeWidth={1.75} aria-hidden />
+        <Search size={18} strokeWidth={1.75} aria-hidden />
       </button>
       <label htmlFor="nav-search" className="sr-only">
         Search movies, series and people

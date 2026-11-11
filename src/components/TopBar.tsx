@@ -28,7 +28,7 @@ export function TopBar() {
           <Suspense>
             <UpNext />
           </Suspense>
-          <Suspense fallback={<div aria-hidden className="size-11" />}>
+          <Suspense fallback={<div aria-hidden className="size-9" />}>
             <NavSearch />
           </Suspense>
           {/* phones reach the profile (or sign in) from the menu, so search gets the room */}
