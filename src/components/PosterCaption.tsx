@@ -40,7 +40,7 @@ export async function PosterCaption({ card, plus = true }: { card: Card; plus?: 
         />
       )}
       {plus && listed && (
-        <span className="ml-auto pl-1">
+        <span className="ml-auto flex pl-1">
           <WatchlistPlus
             titleRef={{
               type: card.media_type,
