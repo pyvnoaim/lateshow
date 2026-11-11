@@ -277,25 +277,7 @@
 @utility scroll-box {
   overflow: auto;
   overscroll-behavior: contain;
-  scrollbar-width: none; /* ScrollBox draws the ASCII bar */
-  /* ScrollBox sets data-fade to the sides with more to scroll: a fixed mask per case, no variables (same everywhere) */
-  &[data-fade="bottom"] {
-    mask-image: linear-gradient(to bottom, black calc(100% - 88px), rgb(0 0 0 / 0.45) calc(100% - 36px), transparent);
-  }
-  &[data-fade="top"] {
-    mask-image: linear-gradient(to bottom, transparent, rgb(0 0 0 / 0.45) 36px, black 88px);
-  }
-  &[data-fade="both"] {
-    mask-image: linear-gradient(
-      to bottom,
-      transparent,
-      rgb(0 0 0 / 0.45) 36px,
-      black 88px,
-      black calc(100% - 88px),
-      rgb(0 0 0 / 0.45) calc(100% - 36px),
-      transparent
-    );
-  }
+  scrollbar-width: none; /* ScrollBox draws the ASCII bar, and its fades as overlays (masks varied between browsers) */
 }
 /* Clear until hovered, then the glass fades in behind it (for quiet links like where-to-watch). The glass is a
    layer under the content, so only its opacity animates. */
