@@ -82,7 +82,7 @@ pure logic extracted with a `*.test.ts` beside it, no barrel files, move code to
 - Every page: press feel, shaped skeletons (no spinners for loading; rooms' small braille Spinner means waiting on people, not loading), reserved image space + blur-up, optimistic toggles, tabular nums,
   visible focus ring, empty states with one action, Esc closes overlays, `/` opens search.
 - Screenshot desktop and phone after every UI change before calling it done.
-- Drafts canvas: https://claude.ai/artifact/8EkS5HkArQEZrCnRYzy1vi
+- Drafts canvas: https://claude.ai/artifact/KDPVeZzb5JSDArwfVghDnx (the old one is gone, 2026-11-11)
 
 ## Built
 
