@@ -4,12 +4,19 @@ import { Section } from "@/components/ui/Section";
 import { getSession } from "@/lib/auth";
 import { LANGUAGES } from "@/lib/languages";
 import { getRegion } from "@/lib/region";
-import { deleteAccount, setLanguage, setMyService, setName, setSpoilerGuard } from "@/lib/settings/actions";
+import {
+  deleteAccount,
+  setLanguage,
+  setMyService,
+  setName,
+  setSpoilerGuard,
+  setUsername,
+} from "@/lib/settings/actions";
 import { getMyServiceIds, getSpoilerGuard } from "@/lib/settings/queries";
 import { getServiceChoices, img } from "@/lib/tmdb";
 import { ChoicePicker } from "./components/ChoicePicker";
 import { DeleteAccount } from "./components/DeleteAccount";
-import { NameForm } from "./components/NameForm";
+import { TextSetting } from "./components/TextSetting";
 import { ServicePicker } from "./components/ServicePicker";
 
 export async function Settings() {
@@ -25,8 +32,26 @@ export async function Settings() {
   return (
     <div className="flex flex-col gap-section">
       <h1 className="rise text-page leading-none font-bold">Settings</h1>
-      <Section title="Your name" description="Shown on your profile.">
-        <NameForm initial={session.user.name || session.user.email.split("@")[0]} save={setName} />
+      <Section title="You" description="Your name, and the username in your profile's address. Friends see both.">
+        <div className="flex flex-col gap-3">
+          <TextSetting
+            id="name"
+            label="Name"
+            initial={session.user.name || session.user.email.split("@")[0]}
+            save={setName}
+            maxLength={40}
+            autoComplete="nickname"
+          />
+          <TextSetting
+            id="username"
+            label="Username"
+            prefix="/u/"
+            placeholder="pick a username"
+            initial={session.user.username ?? ""}
+            save={setUsername}
+            maxLength={21}
+          />
+        </div>
       </Section>
       <Section
         title="Your services"

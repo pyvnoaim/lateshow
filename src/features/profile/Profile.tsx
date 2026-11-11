@@ -20,7 +20,14 @@ const toCard = (r: Row): Card => ({ id: r.tmdbId, media_type: r.mediaType, title
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 const shortDate = (d: Date) => d.toLocaleDateString("en", { month: "short", day: "numeric" });
 
-export async function Profile({ searchParams }: { searchParams: Promise<{ tab?: string | string[] }> }) {
+/** Your profile. Lives at /u/me and, once you have a username, at /u/yourname (`base` keeps the tabs on that address). */
+export async function Profile({
+  searchParams,
+  base = "/u/me",
+}: {
+  searchParams: Promise<{ tab?: string | string[] }>;
+  base?: string;
+}) {
   const session = await getSession();
   if (!session) redirect("/login");
   const { tab: raw } = await searchParams;
@@ -47,7 +54,9 @@ export async function Profile({ searchParams }: { searchParams: Promise<{ tab?: 
           </div>
           <div className="min-w-0 flex-1">
             <div className="text-body font-semibold">{name}</div>
-            <div className="text-small text-muted">Since {since}</div>
+            <div className="text-small text-muted">
+              {session.user.username && `@${session.user.username} · `}Since {since}
+            </div>
           </div>
           <div className="flex gap-6">
             <Link href="/settings" className={buttonStyles("text", "text")}>
@@ -85,7 +94,7 @@ export async function Profile({ searchParams }: { searchParams: Promise<{ tab?: 
             key: t,
             label: t.charAt(0).toUpperCase() + t.slice(1),
             active: t === tab,
-            href: t === "overview" ? "/u/me" : `/u/me?tab=${t}`,
+            href: t === "overview" ? base : `${base}?tab=${t}`,
           }))}
         />
       </div>

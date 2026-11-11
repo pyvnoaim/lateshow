@@ -1,6 +1,6 @@
 "use server";
 
-import { and, eq } from "drizzle-orm";
+import { and, eq, ne } from "drizzle-orm";
 import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
@@ -11,6 +11,7 @@ import { user } from "@/lib/db/auth-schema";
 import { userServices } from "@/lib/db/schema";
 import { LANGUAGE_COOKIE, LANGUAGES } from "@/lib/languages";
 import { SPOILER_COOKIE } from "@/lib/settings/queries";
+import { checkUsername } from "@/lib/username";
 
 const providerId = z.number().int().positive();
 
@@ -46,15 +47,40 @@ export async function setSpoilerGuard(value: "show" | "hide") {
 
 const displayName = z.string().trim().min(1).max(40);
 
-/** The name shown on your profile (and to friends later). */
-export async function setName(name: string) {
+/** What a text setting's save returns: the value as stored, or what went wrong. */
+export type Saved = { value: string } | { error: string };
+
+/** The name shown on your profile and to friends. */
+export async function setName(name: string): Promise<Saved> {
   const session = await getSession();
-  if (!session) throw new Error("Sign in to save this.");
-  await db
-    .update(user)
-    .set({ name: displayName.parse(name), updatedAt: new Date() })
-    .where(eq(user.id, session.user.id));
+  if (!session) return { error: "Sign in again to save this." };
+  const parsed = displayName.safeParse(name);
+  if (!parsed.success) return { error: "Use 1 to 40 characters." };
+  await db.update(user).set({ name: parsed.data, updatedAt: new Date() }).where(eq(user.id, session.user.id));
   refresh();
+  return { value: parsed.data };
+}
+
+/** Your username, the address of your profile (/u/name). Unique, stored lowercase. */
+export async function setUsername(raw: string): Promise<Saved> {
+  const session = await getSession();
+  if (!session) return { error: "Sign in again to save this." };
+  const check = checkUsername(raw);
+  if (!check.ok) return { error: check.error };
+  const uid = session.user.id;
+  const taken = await db
+    .select({ id: user.id })
+    .from(user)
+    .where(and(eq(user.username, check.value), ne(user.id, uid)))
+    .limit(1);
+  if (taken.length > 0) return { error: "That one is taken." };
+  try {
+    await db.update(user).set({ username: check.value, updatedAt: new Date() }).where(eq(user.id, uid));
+  } catch {
+    return { error: "That one is taken." }; // the unique index caught a race with someone else
+  }
+  refresh();
+  return { value: check.value };
 }
 
 /**
