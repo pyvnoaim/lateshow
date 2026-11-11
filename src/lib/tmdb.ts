@@ -415,10 +415,16 @@ export async function getGenreTitles(
   ids: { movie: number | null; tv: number | null },
   country: string,
   lang: string = DEFAULT_LANGUAGE,
+  page = 1,
 ) {
   "use cache";
   cacheLife("hours");
-  const params = (id: number) => ({ with_genres: String(id), sort_by: "popularity.desc", "vote_count.gte": "100" });
+  const params = (id: number) => ({
+    with_genres: String(id),
+    sort_by: "popularity.desc",
+    "vote_count.gte": "100",
+    page: String(page),
+  });
   const [movies, shows] = await Promise.all([
     kind === "tv" || ids.movie === null ? [] : discover("movie", params(ids.movie), country, lang),
     kind === "movie" || ids.tv === null ? [] : discover("tv", params(ids.tv), country, lang),

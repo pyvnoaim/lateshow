@@ -27,7 +27,12 @@ export type TypeFilter = MediaType | "all";
 
 const one = (v: string | string[] | undefined) => (Array.isArray(v) ? v[0] : v);
 
-export type SearchParams = { q?: string | string[]; type?: string | string[]; genre?: string | string[] };
+export type SearchParams = {
+  q?: string | string[];
+  type?: string | string[];
+  genre?: string | string[];
+  more?: string | string[];
+};
 
 /** The search page's state from its URL: ?q=dune&type=movie&genre=sci-fi. Unknown values fall back to "any". */
 export function readSearch(s: SearchParams) {
@@ -36,18 +41,25 @@ export function readSearch(s: SearchParams) {
     q: (one(s.q) ?? "").trim().slice(0, 100),
     type: (type === "movie" ? "movie" : type === "series" ? "tv" : "all") as TypeFilter,
     genre: GENRES.find((g) => g.slug === one(s.genre)) ?? null,
+    // how many "Show more" steps (24 titles each) a genre shows, capped so a URL can't ask TMDB for 50 pages
+    more: Math.min(Math.max(Number.parseInt(one(s.more) ?? "1", 10) || 1, 1), MAX_MORE),
   };
 }
+
+export const PER_STEP = 24;
+export const MAX_MORE = 8;
 
 export type SearchState = ReturnType<typeof readSearch>;
 
 /** A search link with some filters changed. `null` removes one. */
-export function searchHref(state: SearchState, patch: { type?: TypeFilter; genre?: Genre | null }) {
+export function searchHref(state: SearchState, patch: { type?: TypeFilter; genre?: Genre | null; more?: number }) {
   const next = { ...state, ...patch };
   const params = new URLSearchParams();
   if (next.q) params.set("q", next.q);
   if (next.type !== "all") params.set("type", next.type === "tv" ? "series" : "movie");
   if (next.genre) params.set("genre", next.genre.slug);
+  // a new filter starts back at 24, only "Show more" carries the count on
+  if (patch.more && patch.more > 1) params.set("more", String(patch.more));
   const query = params.toString();
   return query ? `/search?${query}` : "/search";
 }
