@@ -8,7 +8,8 @@ import { getRegion } from "@/lib/region";
  * "Up next" in the top bar: the show you're in the middle of, as one small glass pill. Opens the next episode on
  * your service (or the title page when no service has it). Nothing when you're signed out or caught up.
  */
-export async function UpNext() {
+/** `inMenu`: the phone menu's version, a full width glass row (the pill is tablet and up). */
+export async function UpNext({ inMenu = false }: { inMenu?: boolean }) {
   const session = await getSession();
   if (!session) return null;
   const [show] = await getShowsInProgress(session.user.id, 1, (await getRegion()).code);
@@ -21,7 +22,9 @@ export async function UpNext() {
       <span className="text-muted nums">{ep}</span>
     </>
   );
-  const pill = "hidden h-9 press items-center gap-2 rounded-full pr-4 pl-3.5 text-small font-medium glass md:flex";
+  const pill = inMenu
+    ? "flex h-12 press items-center gap-2.5 rounded-full px-5 text-label font-medium glass"
+    : "hidden h-9 press items-center gap-2 rounded-full pr-4 pl-3.5 text-small font-medium glass md:flex";
   return show.link ? (
     <a
       href={show.link.url}

@@ -1,7 +1,7 @@
 import { ArrowUpRight } from "lucide-react";
 import Image from "next/image";
 import type { ReactNode } from "react";
-import { Scramble } from "@/components/Scramble";
+import { Scramble } from "@/features/rooms/components/Scramble";
 import { buttonStyles } from "@/components/ui/button";
 import { getWatchLinks } from "@/lib/justwatch";
 import { getLanguage } from "@/lib/region";

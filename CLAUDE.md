@@ -72,7 +72,7 @@ pure logic extracted with a `*.test.ts` beside it, no barrel files, move code to
 - Rejected, don't bring back: white pill switchers, a dock nav at the bottom, a full-width frosted bar fixed on scroll, poster glow, cinema motifs,
   serif accents, play button on posters, moving hover arrows.
 - Every poster caption is the same everywhere (`PosterCaption`): Type · Year · Genre + small service icon.
-- Every page: press feel, shaped skeletons (no spinners), reserved image space + blur-up, optimistic toggles, tabular nums,
+- Every page: press feel, shaped skeletons (no spinners for loading; rooms' small braille Spinner means waiting on people, not loading), reserved image space + blur-up, optimistic toggles, tabular nums,
   visible focus ring, empty states with one action, Esc closes overlays, `/` opens search.
 - Screenshot desktop and phone after every UI change before calling it done.
 - Drafts canvas: https://claude.ai/artifact/8EkS5HkArQEZrCnRYzy1vi

@@ -72,10 +72,15 @@ export const auth = betterAuth({
       sendVerificationOTP: async ({ email, otp, type }, ctx) => {
         if (type !== "sign-in") return;
         await sendCode(email, otp).catch(async (e: unknown) => {
-          // the slot comes back only because the code dies with the mail: no free codes (and guesses) in an outage
-          await ctx?.context.internalAdapter.deleteVerificationByIdentifier(`sign-in-otp-${email.toLowerCase()}`);
+          // note the failure first, so a failing delete can't turn it into a silent success
           failedSends.add(email.toLowerCase());
-          refundSendSlot(sendLog, email);
+          // the slot comes back only because the code dies with the mail: no free codes (and guesses) in an outage.
+          // Better Auth keeps one code per address (a new send deletes the old), so this only removes this one.
+          const deleted = await ctx?.context.internalAdapter
+            .deleteVerificationByIdentifier(`sign-in-otp-${email.toLowerCase()}`)
+            .then(() => true)
+            .catch(() => false);
+          if (deleted) refundSendSlot(sendLog, email);
           throw e; // still logged by Better Auth
         });
       },

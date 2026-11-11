@@ -13,7 +13,7 @@ const HEAD = 220;
 /**
  * A scrollbar lettered like Resona's ASCII skin: a `:` rail with a `#` thumb down the right edge. The page's own
  * (fixed to the window), or with `box` the one of a scroll area (ScrollBox, inside its relative wrapper).
- * Only with a mouse or trackpad, never when nothing scrolls. Drag the thumb or click the rail to jump.
+ * Only with a mouse or trackpad, never when nothing scrolls. Drag the thumb to scroll, the rail lets clicks through.
  * Decoration for pointers: keys and wheels scroll as always.
  */
 export function AsciiScrollbar({ box }: { box?: RefObject<HTMLElement | null> }) {
@@ -101,11 +101,6 @@ export function AsciiScrollbar({ box }: { box?: RefObject<HTMLElement | null> })
     <div
       aria-hidden
       onPointerDown={(e) => {
-        const cell = Math.floor((e.clientY - e.currentTarget.getBoundingClientRect().top) / CELL);
-        // on the rail: jump so the thumb centres there; on the thumb: just start dragging
-        if (cell < bar.top || cell >= bar.top + bar.len) {
-          go(((cell - bar.len / 2) / Math.max(bar.n - bar.len, 1)) * (all() - seen()));
-        }
         drag.current = { y: e.clientY, scroll: scrollTop() };
         e.currentTarget.setPointerCapture(e.pointerId);
       }}
@@ -114,7 +109,7 @@ export function AsciiScrollbar({ box }: { box?: RefObject<HTMLElement | null> })
       }}
       onPointerUp={() => (drag.current = null)}
       onPointerCancel={() => (drag.current = null)}
-      className={`group ${box ? "absolute h-full" : "fixed z-30"} top-0 right-0 flex w-4 cursor-default flex-col items-center font-mono text-scroll leading-cell font-bold select-none`}
+      className={`group pointer-events-none ${box ? "absolute h-full" : "fixed z-30"} top-0 right-0 flex w-4 cursor-default flex-col items-center font-mono text-scroll leading-cell font-bold select-none`}
     >
       {Array.from({ length: bar.n }, (_, i) =>
         i >= bar.top && i < bar.top + bar.len ? (
@@ -142,7 +137,10 @@ function Rail({ age }: { age: number }) {
 function Thumb({ age }: { age: number }) {
   const head = age >= 0 && age < HEAD;
   return (
-    <span className={head ? "text-fg/75" : "text-fg/40 transition-colors group-hover:text-fg/70"}>
+    // only the thumb takes the pointer (to drag it): the rail lets clicks through to what is under the edge
+    <span
+      className={`pointer-events-auto cursor-grab ${head ? "text-fg/75" : "text-fg/40 transition-colors group-hover:text-fg/70"}`}
+    >
       {head ? "@" : "#"}
     </span>
   );

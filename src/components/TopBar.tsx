@@ -55,5 +55,14 @@ export function TopBar() {
 }
 
 async function PhoneMenu() {
-  return <MobileMenu signedIn={(await getSession()) !== null} />;
+  return (
+    <MobileMenu
+      signedIn={(await getSession()) !== null}
+      upNext={
+        <Suspense>
+          <UpNext inMenu />
+        </Suspense>
+      }
+    />
+  );
 }

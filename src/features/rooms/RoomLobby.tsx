@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Avatar } from "@/components/Avatar";
-import { Spinner } from "@/components/Spinner";
+import { Spinner } from "@/features/rooms/components/Spinner";
 import { connection } from "next/server";
 import type { ReactNode } from "react";
 import { buttonStyles } from "@/components/ui/button";

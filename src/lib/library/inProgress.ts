@@ -12,8 +12,14 @@ export type ShowInProgress = NonNullable<Awaited<ReturnType<typeof loadShow>>>;
 /** Your shows that still have an episode to watch, most recently watched first. */
 export async function getShowsInProgress(userId: string, limit: number, country: string) {
   const recent = await getRecentShows(userId, limit + 4); // some may be caught up
-  const shows = await Promise.all(recent.map((r) => loadShow(userId, r.tmdbId, r.title, country)));
-  return shows.filter((s): s is ShowInProgress => s !== null).slice(0, limit);
+  // one at a time until there are enough: the top bar asks for 1 on every page, so this is usually one show's work
+  const shows: ShowInProgress[] = [];
+  for (const r of recent) {
+    if (shows.length >= limit) break;
+    const s = await loadShow(userId, r.tmdbId, r.title, country);
+    if (s) shows.push(s);
+  }
+  return shows;
 }
 
 async function loadShow(userId: string, tmdbId: number, fallbackName: string, country: string) {

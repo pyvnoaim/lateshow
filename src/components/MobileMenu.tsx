@@ -4,7 +4,7 @@ import * as Dialog from "@radix-ui/react-dialog";
 import { Menu, X } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 import { Logo } from "./Logo";
 import { buttonStyles } from "./ui/button";
 
@@ -21,7 +21,7 @@ const YOU = [
 ];
 
 /** Phones only: the top bar links don't fit, so a menu button opens them in a glass sheet below the bar. */
-export function MobileMenu({ signedIn }: { signedIn: boolean }) {
+export function MobileMenu({ signedIn, upNext }: { signedIn: boolean; upNext?: ReactNode }) {
   const [open, setOpen] = useState(false);
   const path = usePathname();
   const current = path;
@@ -43,6 +43,12 @@ export function MobileMenu({ signedIn }: { signedIn: boolean }) {
               <X size={20} strokeWidth={1.75} aria-hidden />
             </Dialog.Close>
           </div>
+          {/* your show in progress (the top bar's Up next pill is too wide for phones) */}
+          {upNext && (
+            <div onClick={() => setOpen(false)} className="px-1 pb-2">
+              {upNext}
+            </div>
+          )}
           <nav aria-label="Main" className="flex flex-col">
             {[...PAGES, ...(signedIn ? YOU : [{ href: "/login", label: "Sign in" }])].map((l) => (
               <Link

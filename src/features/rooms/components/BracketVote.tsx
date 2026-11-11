@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import { useState, useTransition } from "react";
-import { Spinner } from "@/components/Spinner";
+import { Spinner } from "@/features/rooms/components/Spinner";
 
 export type Contender = { id: number; title: string; meta: string; poster: string };
 

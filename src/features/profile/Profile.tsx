@@ -104,14 +104,8 @@ export async function Profile({
   // a friend's profile leads with how alike your taste is, and the titles you both watched
   const match = !self && !hidden ? await getMatch(session.user.id, uid, lang) : null;
   // full TMDB cards (poster, year, genre) for the shared titles, the stored rows only have a title
-  const both = await Promise.all(
-    (match?.both ?? []).slice(0, 12).map((r) =>
-      getTitle(r.mediaType, String(r.tmdbId), lang)
-        .then((t) => titleToCard(t, r.mediaType))
-        .catch(() => toCard(r)),
-    ),
-  );
-  const [recent, listCards] = await Promise.all([
+  const [both, recent, listCards] = await Promise.all([
+    fullCards((match?.both ?? []).slice(0, 12), lang),
     fullCards(uniqueTitles(history).slice(0, 12), lang),
     tab === "watchlist" ? fullCards(watchlist, lang) : [],
   ]);
