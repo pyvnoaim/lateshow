@@ -1,4 +1,5 @@
 import Image from "next/image";
+import { getSpoilerGuard } from "@/lib/settings/queries";
 import { getLanguage } from "@/lib/region";
 import Link from "next/link";
 import { Section } from "@/components/ui/Section";
@@ -35,7 +36,7 @@ export async function NewEpisodes() {
   ];
 
   const { today, weekEnd } = nextSevenDays();
-  const lang = await getLanguage();
+  const [lang, guard] = await Promise.all([getLanguage(), getSpoilerGuard()]);
   const shows = await Promise.all(ids.map((id) => getTitle("tv", String(id), lang).catch(() => null)));
   const upcoming = shows
     .flatMap((t) => {
@@ -64,7 +65,7 @@ export async function NewEpisodes() {
                 <div className="truncate text-label font-medium">{t.name}</div>
                 <div className="truncate text-caption text-muted nums">
                   S{ep.season_number} E{ep.episode_number}
-                  {ep.name && ` · ${ep.name}`}
+                  {ep.name && !guard && ` · ${ep.name}`}
                 </div>
               </div>
               <span className="shrink-0 text-label text-accent">{when(ep.air_date, today)}</span>

@@ -77,7 +77,8 @@ Top bar (search with live results, account, phone menu), footer, home (hero caro
 continue, new episodes, Can't decide?, watchlist, Top 10, trending, because you watched, new on streaming, cinemas, hidden gems),
 /cinemas calendar, /search (type + genre filters in the URL, browse a genre without a query), title page (where to watch, trailer, episodes + ratings grid, cast, more like), sign in with `?next=`,
 profile /u/me (stats, heatmap, history, watchlist), /settings (your services: My services tab on Trending,
-picks only from them, your service first in captions and Watch on, language for TMDB data in a cookie, else the browser's), /watchlist + /u/me redirects in `next.config.ts`, 404, errors, /about.
+picks only from them, your service first in captions and Watch on, language for TMDB data in a cookie, else the browser's, name, spoiler guard cookie, CSV export at /api/export,
+delete account), /watchlist + /u/me redirects in `next.config.ts`, 404, errors, /about.
 
 ## Todo (in order)
 

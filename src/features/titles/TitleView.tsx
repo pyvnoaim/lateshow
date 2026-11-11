@@ -29,7 +29,7 @@ import { Episodes, type SeasonData } from "./components/Episodes";
 import { RatingsGrid } from "./components/RatingsGrid";
 import { Trailer } from "@/components/Trailer";
 import { getLanguage, getRegion } from "@/lib/region";
-import { getMyServiceIds } from "@/lib/settings/queries";
+import { getMyServiceIds, getSpoilerGuard } from "@/lib/settings/queries";
 import { Suspense } from "react";
 
 type Library = { signedIn: boolean; onWatchlist: boolean; watched: string[]; ref: TitleRef };
@@ -227,12 +227,14 @@ async function SeasonSections({ t, library, next }: { t: Title; library: Library
   const numbers = (t.seasons ?? [])
     .filter((s) => s.season_number > 0 && s.episode_count > 0)
     .map((s) => s.season_number);
-  const raw = await getSeasons(String(t.id), numbers, await getLanguage());
+  const [raw, guard] = await Promise.all([getSeasons(String(t.id), numbers, await getLanguage()), getSpoilerGuard()]);
+  const seen = new Set(library.watched);
   const seasons: SeasonData[] = raw.map((s) => ({
     number: s.number,
     episodes: s.episodes.map((e) => ({
       n: e.episode_number,
-      name: e.name,
+      // spoiler guard: titles of episodes you haven't watched stay hidden (list and ratings grid both use this)
+      name: guard && !seen.has(`${s.number}-${e.episode_number}`) ? `Episode ${e.episode_number}` : e.name,
       rating: e.vote_average,
       still: img(e.still_path, "w300"),
       lowStill: img(e.still_path, "w92"),
