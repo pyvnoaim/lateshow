@@ -1,7 +1,7 @@
 /** Usernames: lowercase letters, numbers and _, 3 to 20 long. Stored lowercase, so "Leon" and "leon" are one name. */
 const PATTERN = /^[a-z0-9_]{3,20}$/;
 
-// Paths and words that must never be someone's profile URL (/u/me is your own profile).
+// Paths and words that must never be someone's profile URL (/u/me forwards to your own profile).
 const RESERVED = new Set([
   "me",
   "admin",

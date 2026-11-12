@@ -88,6 +88,10 @@ export async function Profile({
   // yours: the watchlist has its own page (/watchlist). A friend's: their watchlist is a tab here.
   const tabs = TABS.filter((t) => (self ? t !== "watchlist" : t !== "friends"));
   const { tab: raw } = await searchParams;
+  // /u/me is only a shortcut for links: with a username you land on /u/yourname, the address you can share
+  if (self && base === "/u/me" && owner.username) {
+    redirect(`/u/${owner.username}${typeof raw === "string" ? `?tab=${encodeURIComponent(raw)}` : ""}`);
+  }
   const tab: Tab = tabs.find((t) => t === raw) ?? "overview";
 
   const uid = owner.id;
