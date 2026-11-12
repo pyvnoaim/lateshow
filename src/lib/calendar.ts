@@ -29,7 +29,6 @@ export type CalendarEvent = { uid: string; date: string; summary: string; url: s
 // TMDB text could carry a lone CR or other control characters: every line break becomes \n, the rest is dropped,
 // so nothing can start a new ICS property
 const escape = (text: string) => clean(text.replace(/[\\;,]/g, (c) => `\\${c}`).replace(/\r\n|\r|\n/g, "\\n"));
-// eslint-disable-next-line no-control-regex
 const clean = (text: string) => text.replace(/[\x00-\x1f\x7f]/g, "");
 
 /** Lines longer than 75 octets continue on the next line after a space (RFC 5545), never inside a UTF-8 character. */
