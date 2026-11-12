@@ -9,7 +9,7 @@ const features = fs
   .filter((d) => d.isDirectory())
   .map((d) => d.name);
 const DATA_SOURCES = ["@/lib/tmdb", "@/lib/justwatch", "@/lib/db", "@/lib/db/*"];
-const NEXT_FILES = "{page,layout,loading,error,global-error,not-found,template,default}";
+const NEXT_FILES = "{page,layout,loading,error,global-error,not-found,template,default,opengraph-image}";
 
 const restrict = (...patterns) => ({ "no-restricted-imports": ["error", { patterns }] });
 const noParentImports = { group: ["../*"], message: "Use an @/ import instead of ../" };
@@ -35,7 +35,10 @@ export default defineConfig([
       ],
     },
   },
-  { files: [`src/app/**/${NEXT_FILES}.tsx`, "src/app/**/route.ts"], rules: { "import/no-default-export": "off" } },
+  {
+    files: [`src/app/**/${NEXT_FILES}.tsx`, "src/app/**/route.ts", "src/app/manifest.ts"],
+    rules: { "import/no-default-export": "off" },
+  },
 
   // Pages stay thin: they call features, never data sources (types are fine).
   {
