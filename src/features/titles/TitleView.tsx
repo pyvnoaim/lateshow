@@ -30,13 +30,24 @@ import {
 } from "@/lib/tmdb";
 import { Episodes, type SeasonData } from "./components/Episodes";
 import { RatingsGrid } from "./components/RatingsGrid";
+import { AddToList } from "./components/AddToList";
+import { createList, setInList } from "@/lib/lists/actions";
+import { getMyListsFor } from "@/lib/lists/queries";
 import { Trailer } from "@/components/Trailer";
 import { getLanguage, getRegion } from "@/lib/region";
 import { getMyServiceIds, getSpoilerGuard } from "@/lib/settings/queries";
 import { Suspense } from "react";
 import { FriendsOnTitle } from "./components/FriendsOnTitle";
 
-type Library = { signedIn: boolean; onWatchlist: boolean; watched: string[]; rating: number | null; ref: TitleRef };
+type Library = {
+  signedIn: boolean;
+  onWatchlist: boolean;
+  watched: string[];
+  rating: number | null;
+  /** yours, with whether this title is on each. Null signed out */
+  lists: { id: string; name: string; has: boolean }[] | null;
+  ref: TitleRef;
+};
 
 export async function TitleView({ type, id }: { type: string; id: string }) {
   if ((type !== "movie" && type !== "tv") || !/^\d+$/.test(id)) notFound();
@@ -52,12 +63,13 @@ export async function TitleView({ type, id }: { type: string; id: string }) {
     getMyServiceIds(),
   ]);
   const links = yourServicesFirst(allLinks, t, region.code, myIds);
-  const lib = session
-    ? await getTitleLibrary(session.user.id, type, t.id)
-    : { onWatchlist: false, watched: [], rating: null };
+  const [lib, lists] = session
+    ? await Promise.all([getTitleLibrary(session.user.id, type, t.id), getMyListsFor(session.user.id, type, t.id)])
+    : [{ onWatchlist: false, watched: [], rating: null }, null];
   const library: Library = {
     signedIn: session !== null,
     ...lib,
+    lists,
     ref: { type, tmdbId: t.id, title: name, posterPath: t.poster_path },
   };
   const trailer = pickTrailer(t.videos.results);
@@ -179,6 +191,13 @@ function Hero({
           initial={library.onWatchlist}
           toggle={setOnWatchlist.bind(null, library.ref)}
         />
+        {library.lists && (
+          <AddToList
+            lists={library.lists}
+            toggle={setInList.bind(null, library.ref)}
+            create={createList.bind(null, library.ref)}
+          />
+        )}
         {type === "movie" && !inCinemasFrom && (
           <LibraryToggle
             kind="watched"

@@ -14,6 +14,9 @@ import { getInviteLink, removeFriend } from "@/lib/friends/actions";
 import { getFriendCount, getFriends } from "@/lib/friends/queries";
 import { MIN_TITLES } from "@/lib/friends/match";
 import { getMatch } from "@/lib/friends/taste";
+import { createList } from "@/lib/lists/actions";
+import { getListsOf } from "@/lib/lists/queries";
+import { VISIBILITY } from "@/lib/lists/rules";
 import { shownName } from "@/lib/username";
 import { getHistory, getStats, getWatchlist, getWatchTimes } from "@/lib/library/queries";
 import { getLanguage } from "@/lib/region";
@@ -21,9 +24,10 @@ import { getTitle, img, titleToCard, type Card } from "@/lib/tmdb";
 import { TmdbImage } from "@/components/TmdbImage";
 import { SignOutButton } from "./components/SignOutButton";
 import { YearHeatmap } from "./components/YearHeatmap";
+import { NewListForm } from "./components/NewListForm";
 import { yearGrid } from "./yearGrid";
 
-const TABS = ["overview", "history", "watchlist", "friends"] as const;
+const TABS = ["overview", "history", "watchlist", "lists", "friends"] as const;
 type Tab = (typeof TABS)[number];
 
 /** Whose profile this is. A friend's comes with when you became friends. */
@@ -128,10 +132,11 @@ export async function Profile({
   // a friend's profile leads with how alike your taste is, and the titles you both watched
   const match = !self && !hidden ? await getMatch(session.user.id, uid, lang) : null;
   // full TMDB cards (poster, year, genre) for the shared titles, the stored rows only have a title
-  const [both, recent, listCards] = await Promise.all([
+  const [both, recent, listCards, lists] = await Promise.all([
     fullCards((match?.both ?? []).slice(0, 12), lang),
     fullCards(uniqueTitles(history).slice(0, 12), lang),
     tab === "watchlist" ? fullCards(watchlist, lang) : [],
+    tab === "lists" && !hidden ? getListsOf(uid, session.user.id) : [],
   ]);
   const month = (d: Date) => d.toLocaleDateString("en", { month: "long", year: "numeric" });
   const empty = stats.movies + stats.episodes === 0;
@@ -316,6 +321,44 @@ export async function Profile({
               ))}
             </PosterGrid>
           ))}
+
+        {!hidden && tab === "lists" && (
+          <div className="flex flex-col gap-10">
+            {self && <NewListForm create={createList.bind(null, null)} />}
+            {lists.length === 0 ? (
+              <p className="text-body text-muted">
+                {self ? "No lists yet. Name one above, then add titles from any title page." : "No lists shared yet."}
+              </p>
+            ) : (
+              <PosterGrid>
+                {lists.map((l, i) => (
+                  <Link
+                    key={l.id}
+                    href={`/l/${l.id}`}
+                    className="group flex rise flex-col gap-2.5 rounded-poster"
+                    style={{ animationDelay: `${Math.min(i, 12) * 80}ms` }}
+                  >
+                    {/* the first four posters as a 2 by 2 mosaic, poster shaped like every other card */}
+                    <div className="grid aspect-poster lift grid-cols-2 grid-rows-2 overflow-hidden rounded-poster bg-raised outline-1 -outline-offset-1 outline-hairline">
+                      {l.posters.map((p) => (
+                        <span key={p} className="relative overflow-hidden">
+                          <TmdbImage src={img(p, "w185")!} lowSrc={img(p, "w92")!} alt="" sizes="100px" />
+                        </span>
+                      ))}
+                    </div>
+                    <span className="flex flex-col gap-1">
+                      <span className="truncate text-label font-medium">{l.name}</span>
+                      <span className="text-caption text-muted nums">
+                        {l.count} {l.count === 1 ? "title" : "titles"}
+                        {self && ` · ${VISIBILITY.find((v) => v.key === l.visibility)?.label}`}
+                      </span>
+                    </span>
+                  </Link>
+                ))}
+              </PosterGrid>
+            )}
+          </div>
+        )}
 
         {tab === "friends" &&
           (friends.length === 0 ? (

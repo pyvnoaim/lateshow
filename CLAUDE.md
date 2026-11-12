@@ -96,7 +96,7 @@ picks only from them, your service first in captions and Watch on, language for 
 delete account, Calendar: private .ics link `/api/cal/<userId>.<hmac>`, not revocable without rotating the secret),
 ratings (not for me / like / love, `rating` table, on the title page once watched, feed "Because you loved", taste match
 and imports), OG images per title and profile (profile shows only the name, profiles are friends only), PWA manifest,
-/watchlist + /u/me redirects in `next.config.ts`, 404, errors, /about.
+lists (/l/<id>, see Todo), /watchlist + /u/me redirects in `next.config.ts`, 404, errors, /about.
 
 ## Todo (in order)
 
@@ -110,7 +110,10 @@ and imports), OG images per title and profile (profile shows only the name, prof
 - [x] Import (2026-11-11): Settings › Import takes a Letterboxd export ZIP or IMDb ratings/watchlist CSVs. The browser
       unpacks and reads them (fflate), only rows go to the server in batches of 150 (`lib/library/importActions.ts`),
       IMDb matches by id, Letterboxd by title + year (±1) across films and series (a watched series = every aired episode), unclear ones are picked by hand. Ratings come along (9+ love, 6+ like, 4 or less not for me).
-- [ ] Lists you can share with friends, a room can swipe from one (next).
+- [x] Lists (2026-11-12): `list` + `list_item`, the 16 char id is the link. Owner picks Only you / Friends / Anyone
+      with the link (signed out too), access in `canSeeList`. Add from the title page (list button), Lists tab on
+      profiles, /l/<id> (rename, copy link, delete, Remove under posters), "Pick one together" = a swipe room over the
+      list (`room.list_id`, the kind most titles are). Later maybe: add to list from poster captions, list OG image.
 - [ ] Later: genre/mood row, imports from TMDB account and Trakt (both have ids), Netflix CSV (titles only, weak).
 - [ ] Watch together = a browser extension (drafts on the canvas, approved 2026-11-11): syncs the streaming site's
       player for everyone in a room, on a laptop. Rejected: a manual 3-2-1 countdown flow without the extension.

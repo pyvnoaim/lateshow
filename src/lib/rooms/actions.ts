@@ -11,6 +11,7 @@ import { getSession } from "@/lib/auth";
 import { db } from "@/lib/db/client";
 import { room, roomMember, roomMood, roomPick, roomVote } from "@/lib/db/schema";
 import { getFriends } from "@/lib/friends/queries";
+import { getList, getListIds } from "@/lib/lists/queries";
 import { getRegion } from "@/lib/region";
 import { safeNext } from "@/lib/safeNext";
 import { BRACKET_SIZE, bracketState } from "./bracket";
@@ -88,6 +89,8 @@ const startInput = z.object({
   kind: z.enum(["movie", "tv"]),
   game: z.enum(["swipe", "bracket", "reel"]),
   friends: z.array(z.string()).max(20),
+  /** swipe over a list you can see instead of discover */
+  listId: z.string().max(40).optional(),
 });
 
 /** Opens a room you host. Friends you tick get an invite on their Home. Needs a username (guests see it). */
@@ -95,7 +98,8 @@ export async function createRoom(input: z.input<typeof startInput>): Promise<{ c
   const session = await getSession();
   if (!session) return { error: "Sign in to start a room." };
   if (!session.user.username) return { error: "Pick a username in Settings first. Everyone in the room sees it." };
-  const { kind, game, friends } = startInput.parse(input);
+  const { kind, game, friends, listId } = startInput.parse(input);
+  if (listId && (game !== "swipe" || !(await getList(listId, session.user.id)))) return { error: "That list is gone." };
   await sweepRooms();
   const mine = (await getFriends(session.user.id)).filter((f) => friends.includes(f.id) && f.username);
   for (let attempt = 0; attempt < 5; attempt++) {
@@ -108,6 +112,7 @@ export async function createRoom(input: z.input<typeof startInput>): Promise<{ c
             hostId: session.user.id,
             kind,
             game,
+            listId,
             expiresAt: new Date(Date.now() + ROOM_HOURS * 3600_000),
           })
           .run();
@@ -202,7 +207,8 @@ async function deal(r: typeof room.$inferSelect, round: number) {
   const ids = members.map((m) => m.id);
   const people = ids.filter((id) => !id.startsWith("guest:"));
   const size = r.game === "bracket" ? BRACKET_SIZE : undefined;
-  return { country, players: ids, ...(await buildDeck(r.code, r.kind, people, country, round, size)) };
+  const fromList = r.listId ? await getListIds(r.listId, r.kind) : undefined;
+  return { country, players: ids, ...(await buildDeck(r.code, r.kind, people, country, round, size, fromList)) };
 }
 
 /**

@@ -112,6 +112,8 @@ export const room = sqliteTable("room", {
   players: text("players", { mode: "json" }).$type<string[]>(),
   // reel: the mood the spin landed on (its 3 picks are in `deck`)
   mood: text("mood"),
+  // swipe or bracket over a list's titles instead of discover (no FK: a deleted list just deals an empty deck)
+  listId: text("list_id"),
   createdAt: integer("created_at", { mode: "timestamp_ms" }).default(now).notNull(),
   expiresAt: integer("expires_at", { mode: "timestamp_ms" }).notNull(),
 });
@@ -189,4 +191,39 @@ export const rating = sqliteTable(
     ratedAt: integer("rated_at", { mode: "timestamp_ms" }).default(now).notNull(),
   },
   (t) => [primaryKey({ columns: [t.userId, t.mediaType, t.tmdbId] }), index("rating_by_time").on(t.userId, t.ratedAt)],
+);
+
+/**
+ * A list of titles someone made ("Halloween with friends"). The id is the link, long enough not to be guessed.
+ * `visibility`: only the owner, their friends, or anyone with the link (signed out too).
+ */
+export const list = sqliteTable(
+  "list",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    name: text("name").notNull(),
+    visibility: text("visibility", { enum: ["private", "friends", "link"] })
+      .notNull()
+      .default("private"),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).default(now).notNull(),
+  },
+  (t) => [index("list_by_user").on(t.userId)],
+);
+
+export const listItem = sqliteTable(
+  "list_item",
+  {
+    listId: text("list_id")
+      .notNull()
+      .references(() => list.id, { onDelete: "cascade" }),
+    mediaType: text("media_type", { enum: ["movie", "tv"] }).notNull(),
+    tmdbId: integer("tmdb_id").notNull(),
+    title: text("title").notNull(),
+    posterPath: text("poster_path"),
+    addedAt: integer("added_at", { mode: "timestamp_ms" }).default(now).notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.listId, t.mediaType, t.tmdbId] })],
 );
