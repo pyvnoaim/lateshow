@@ -110,14 +110,17 @@ export async function Profile({
     self && tab === "friends"
       ? getFriends(uid).then((list) =>
           Promise.all(
-            list.map(async (f) => ({
-              ...f,
-              match: f.shareActivity ? (await getMatch(uid, f.id, lang)).percent : null,
-              // their last few titles, so each friend shows as posters, not just a line of text
-              recent: f.shareActivity
-                ? await fullCards(uniqueTitles(await getHistory(f.id, 30)).slice(0, 6), lang)
-                : [],
-            })),
+            list.map(async (f) => {
+              // match and posters side by side, each friend in parallel
+              const [match, recent] = f.shareActivity
+                ? await Promise.all([
+                    getMatch(uid, f.id, lang).then((m) => m.percent),
+                    // their last few titles, so each friend shows as posters, not just a line of text
+                    getHistory(f.id, 30).then((h) => fullCards(uniqueTitles(h).slice(0, 6), lang)),
+                  ])
+                : [null, []];
+              return { ...f, match, recent };
+            }),
           ),
         )
       : [],
@@ -134,7 +137,7 @@ export async function Profile({
   const empty = stats.movies + stats.episodes === 0;
 
   return (
-    <div className="flex flex-col gap-section">
+    <div className="group/profile flex flex-col gap-section">
       <div className="flex flex-col gap-10">
         {/* relative z-10: the invite card hangs from here over the page, above the sections' own layers */}
         <div className="relative z-10 flex rise flex-wrap items-center gap-5">
@@ -231,136 +234,139 @@ export async function Profile({
         )}
       </div>
 
-      {!hidden && tab === "overview" && (
-        <>
-          {match && match.both.length > 0 && (
+      {/* the old tab dims while the next one renders on the server (SegmentedTabs sets data-pending) */}
+      <div className="flex flex-col gap-section transition-opacity duration-200 group-has-data-pending/profile:opacity-40">
+        {!hidden && tab === "overview" && (
+          <>
+            {match && match.both.length > 0 && (
+              <Section
+                title="You both watched"
+                aside={<p className="text-small text-muted">{plural(match.both.length, "title")}</p>}
+              >
+                <PosterGrid>
+                  {both.map((c, i) => (
+                    <PosterLink key={`${c.media_type}-${c.id}`} card={c} index={i} morph={false} />
+                  ))}
+                </PosterGrid>
+              </Section>
+            )}
             <Section
-              title="You both watched"
-              aside={<p className="text-small text-muted">{plural(match.both.length, "title")}</p>}
+              title={self ? "Your year" : "Their year"}
+              aside={<p className="text-small text-muted">Each square is a day.</p>}
             >
-              <PosterGrid>
-                {both.map((c, i) => (
-                  <PosterLink key={`${c.media_type}-${c.id}`} card={c} index={i} morph={false} />
-                ))}
-              </PosterGrid>
+              <YearHeatmap days={yearGrid(times, now)} />
             </Section>
-          )}
-          <Section
-            title={self ? "Your year" : "Their year"}
-            aside={<p className="text-small text-muted">Each square is a day.</p>}
-          >
-            <YearHeatmap days={yearGrid(times, now)} />
-          </Section>
-          {history.length > 0 && (
-            <Section title="Recently watched">
-              <PosterGrid>
-                {recent.map((c, i) => (
-                  <PosterLink key={`${c.media_type}-${c.id}`} card={c} index={i} />
-                ))}
-              </PosterGrid>
-            </Section>
-          )}
-        </>
-      )}
+            {history.length > 0 && (
+              <Section title="Recently watched">
+                <PosterGrid>
+                  {recent.map((c, i) => (
+                    <PosterLink key={`${c.media_type}-${c.id}`} card={c} index={i} />
+                  ))}
+                </PosterGrid>
+              </Section>
+            )}
+          </>
+        )}
 
-      {!hidden &&
-        tab === "history" &&
-        (history.length === 0 ? (
-          <Empty text="Nothing watched yet." action={self} />
-        ) : (
-          <div className="flex max-w-reading flex-col gap-8">
-            {byWhen(history, now).map(([day, rows]) => (
-              <section key={day} className="flex flex-col gap-1">
-                <h2 className="text-small font-medium text-muted">{day}</h2>
-                <ol className="flex flex-col">
-                  {rows.map((r) => {
-                    const poster = img(r.posterPath, "w92");
-                    return (
-                      <li key={r.id}>
-                        <Link
-                          href={`/title/${r.mediaType}/${r.tmdbId}`}
-                          className="group -mx-3 flex items-center gap-4 rounded-thumb px-3 py-2 transition-colors duration-200 hover:bg-fg/5"
-                        >
-                          <span className="relative aspect-poster w-10 shrink-0 overflow-hidden rounded-md bg-raised">
-                            {poster && <TmdbImage src={poster} lowSrc={poster} alt="" sizes="40px" />}
-                          </span>
-                          <span className="min-w-0 flex-1">
-                            <span className="block truncate text-body font-medium">{r.title}</span>
-                            <span className="block text-small text-muted nums">
-                              {r.mediaType === "movie" ? "Movie" : `Season ${r.season}, episode ${r.episode}`}
+        {!hidden &&
+          tab === "history" &&
+          (history.length === 0 ? (
+            <Empty text="Nothing watched yet." action={self} />
+          ) : (
+            <div className="flex max-w-reading flex-col gap-8">
+              {byWhen(history, now).map(([day, rows]) => (
+                <section key={day} className="flex flex-col gap-1">
+                  <h2 className="text-small font-medium text-muted">{day}</h2>
+                  <ol className="flex flex-col">
+                    {rows.map((r) => {
+                      const poster = img(r.posterPath, "w92");
+                      return (
+                        <li key={r.id}>
+                          <Link
+                            href={`/title/${r.mediaType}/${r.tmdbId}`}
+                            className="group -mx-3 flex items-center gap-4 rounded-thumb px-3 py-2 transition-colors duration-200 hover:bg-fg/5"
+                          >
+                            <span className="relative aspect-poster w-10 shrink-0 overflow-hidden rounded-md bg-raised">
+                              {poster && <TmdbImage src={poster} lowSrc={poster} alt="" sizes="40px" />}
                             </span>
-                          </span>
-                        </Link>
-                      </li>
-                    );
-                  })}
-                </ol>
-              </section>
-            ))}
-          </div>
-        ))}
+                            <span className="min-w-0 flex-1">
+                              <span className="block truncate text-body font-medium">{r.title}</span>
+                              <span className="block text-small text-muted nums">
+                                {r.mediaType === "movie" ? "Movie" : `Season ${r.season}, episode ${r.episode}`}
+                              </span>
+                            </span>
+                          </Link>
+                        </li>
+                      );
+                    })}
+                  </ol>
+                </section>
+              ))}
+            </div>
+          ))}
 
-      {!hidden &&
-        tab === "watchlist" &&
-        (watchlist.length === 0 ? (
-          <Empty text={self ? "Your watchlist is empty." : "Their watchlist is empty."} action={self} />
-        ) : (
-          <PosterGrid>
-            {listCards.map((c, i) => (
-              <PosterLink key={`${c.media_type}-${c.id}`} card={c} index={i} />
-            ))}
-          </PosterGrid>
-        ))}
+        {!hidden &&
+          tab === "watchlist" &&
+          (watchlist.length === 0 ? (
+            <Empty text={self ? "Your watchlist is empty." : "Their watchlist is empty."} action={self} />
+          ) : (
+            <PosterGrid>
+              {listCards.map((c, i) => (
+                <PosterLink key={`${c.media_type}-${c.id}`} card={c} index={i} />
+              ))}
+            </PosterGrid>
+          ))}
 
-      {tab === "friends" &&
-        (friends.length === 0 ? (
-          <p className="text-body text-muted">
-            No friends yet.
-            <br />
-            Invite one with the button at the top.
-          </p>
-        ) : (
-          <ul className="flex flex-col gap-section">
-            {friends.map((f) => (
-              <li key={f.id} className="flex flex-col gap-5">
-                <Link href={`/u/${f.username}`} className="group flex items-center gap-4 rounded-thumb">
-                  <Avatar name={f.username ?? "?"} image={f.image} size="lg" />
-                  <div className="min-w-0 flex-1">
-                    <div className="truncate text-section font-bold transition-colors group-hover:text-accent">
-                      {f.username}
-                    </div>
-                    <div className="truncate text-small text-muted">
-                      {!f.shareActivity
-                        ? "Keeps their activity private"
-                        : f.last
-                          ? `Watched ${f.last.title}${f.last.mediaType === "tv" ? ` S${f.last.season} E${f.last.episode}` : ""} · ${ago(f.last.watchedAt, now)}`
-                          : "Nothing watched yet"}
-                    </div>
-                  </div>
-                  {f.match !== null && (
-                    <div className="shrink-0 text-right">
-                      <div className="text-section leading-none font-bold nums">{f.match}%</div>
-                      <div className="text-caption text-muted">match</div>
-                    </div>
-                  )}
-                </Link>
-                {f.recent.length > 0 && (
-                  <PosterGrid>
-                    {/* one full row at every width: 4 on phones (2 rows of 2), 3, 4, then all 6 */}
-                    {f.recent.map((c, i) => (
-                      <div
-                        key={`${c.media_type}-${c.id}`}
-                        className={i >= 4 ? "hidden lg:block" : i === 3 ? "sm:max-md:hidden" : ""}
-                      >
-                        <PosterLink card={c} index={i} morph={false} />
+        {tab === "friends" &&
+          (friends.length === 0 ? (
+            <p className="text-body text-muted">
+              No friends yet.
+              <br />
+              Invite one with the button at the top.
+            </p>
+          ) : (
+            <ul className="flex flex-col gap-section">
+              {friends.map((f) => (
+                <li key={f.id} className="flex flex-col gap-5">
+                  <Link href={`/u/${f.username}`} className="group flex items-center gap-4 rounded-thumb">
+                    <Avatar name={f.username ?? "?"} image={f.image} size="lg" />
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-section font-bold transition-colors group-hover:text-accent">
+                        {f.username}
                       </div>
-                    ))}
-                  </PosterGrid>
-                )}
-              </li>
-            ))}
-          </ul>
-        ))}
+                      <div className="truncate text-small text-muted">
+                        {!f.shareActivity
+                          ? "Keeps their activity private"
+                          : f.last
+                            ? `Watched ${f.last.title}${f.last.mediaType === "tv" ? ` S${f.last.season} E${f.last.episode}` : ""} · ${ago(f.last.watchedAt, now)}`
+                            : "Nothing watched yet"}
+                      </div>
+                    </div>
+                    {f.match !== null && (
+                      <div className="shrink-0 text-right">
+                        <div className="text-section leading-none font-bold nums">{f.match}%</div>
+                        <div className="text-caption text-muted">match</div>
+                      </div>
+                    )}
+                  </Link>
+                  {f.recent.length > 0 && (
+                    <PosterGrid>
+                      {/* one full row at every width: 4 on phones (2 rows of 2), 3, 4, then all 6 */}
+                      {f.recent.map((c, i) => (
+                        <div
+                          key={`${c.media_type}-${c.id}`}
+                          className={i >= 4 ? "hidden lg:block" : i === 3 ? "sm:max-md:hidden" : ""}
+                        >
+                          <PosterLink card={c} index={i} morph={false} />
+                        </div>
+                      ))}
+                    </PosterGrid>
+                  )}
+                </li>
+              ))}
+            </ul>
+          ))}
+      </div>
     </div>
   );
 }
