@@ -1,7 +1,7 @@
 "use client";
 
 import { UserPlus, X } from "lucide-react";
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { UsernameForm } from "@/components/UsernameForm";
 import { buttonStyles } from "@/components/ui/button";
 import { useCopy } from "@/components/useCopy";
@@ -9,13 +9,15 @@ import type { InviteLink } from "@/lib/friends/actions";
 
 /**
  * "Invite a friend" in the profile header. Opens a glass card over the page under the header, with the link, Copy
- * and New link. The header must be `relative` (with a z-index) for that. Esc closes it.
+ * and New link. The header must be `relative` (with a z-index) for that. Esc or a click outside closes it.
  */
 export function InviteButton({ getLink }: { getLink: (fresh: boolean) => Promise<InviteLink> }) {
   const [open, setOpen] = useState(false);
   const [link, setLink] = useState<InviteLink | null>(null);
   const { copied, copy } = useCopy();
   const [pending, startTransition] = useTransition();
+  const button = useRef<HTMLButtonElement>(null);
+  const card = useRef<HTMLDivElement>(null);
 
   const load = (fresh: boolean) =>
     startTransition(async () => {
@@ -24,14 +26,24 @@ export function InviteButton({ getLink }: { getLink: (fresh: boolean) => Promise
   useEffect(() => {
     if (!open) return;
     const close = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    // the button itself toggles, so a press on it isn't "outside"
+    const outside = (e: PointerEvent) => {
+      const t = e.target as Node;
+      if (!card.current?.contains(t) && !button.current?.contains(t)) setOpen(false);
+    };
     window.addEventListener("keydown", close);
-    return () => window.removeEventListener("keydown", close);
+    document.addEventListener("pointerdown", outside);
+    return () => {
+      window.removeEventListener("keydown", close);
+      document.removeEventListener("pointerdown", outside);
+    };
   }, [open]);
   const url = link && "code" in link ? `${window.location.origin}/invite/${link.code}` : "";
 
   return (
     <>
       <button
+        ref={button}
         type="button"
         aria-expanded={open}
         onClick={() => {
@@ -47,7 +59,7 @@ export function InviteButton({ getLink }: { getLink: (fresh: boolean) => Promise
         // over the page, not a row of its own: nothing below moves when it opens
         <div className="absolute top-full right-0 mt-3 flex w-full justify-end">
           {/* solid backing: over the page, see-through glass would mix with the text below */}
-          <div className="w-full max-w-form pop rounded-banner bg-bg shadow-2xl">
+          <div ref={card} className="w-full max-w-form pop rounded-banner bg-bg shadow-2xl">
             <div className="flex flex-col gap-5 rounded-banner p-7 glass">
               <div className="flex items-start justify-between gap-4">
                 <div className="flex flex-col gap-2">

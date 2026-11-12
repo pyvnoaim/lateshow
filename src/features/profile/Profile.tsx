@@ -17,7 +17,8 @@ import { getMatch } from "@/lib/friends/taste";
 import { shownName } from "@/lib/username";
 import { getHistory, getStats, getWatchlist, getWatchTimes } from "@/lib/library/queries";
 import { getLanguage } from "@/lib/region";
-import { getTitle, titleToCard, type Card } from "@/lib/tmdb";
+import { getTitle, img, titleToCard, type Card } from "@/lib/tmdb";
+import { TmdbImage } from "@/components/TmdbImage";
 import { SignOutButton } from "./components/SignOutButton";
 import { YearHeatmap } from "./components/YearHeatmap";
 import { yearGrid } from "./yearGrid";
@@ -48,6 +49,18 @@ const fullCards = (rows: Row[], lang: string) =>
   );
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 const shortDate = (d: Date) => d.toLocaleDateString("en", { month: "short", day: "numeric" });
+const dayLabel = (d: Date, now: Date) => {
+  const days = Math.round((startOfDay(now) - startOfDay(d)) / 86_400_000);
+  if (days === 0) return "Today";
+  if (days === 1) return "Yesterday";
+  if (days < 7) return shortDate(d);
+  // older ones by month, so a show watched one episode a week isn't a heading per row
+  return d.toLocaleDateString("en", {
+    month: "long",
+    year: d.getFullYear() === now.getFullYear() ? undefined : "numeric",
+  });
+};
+const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
 
 /**
  * A profile: yours (at /u/me, or /u/yourname once you have a username) or a friend's (`owner` given, their username
@@ -96,6 +109,10 @@ export async function Profile({
             list.map(async (f) => ({
               ...f,
               match: f.shareActivity ? (await getMatch(uid, f.id, lang)).percent : null,
+              // their last few titles, so each friend shows as posters, not just a line of text
+              recent: f.shareActivity
+                ? await fullCards(uniqueTitles(await getHistory(f.id, 30)).slice(0, 6), lang)
+                : [],
             })),
           ),
         )
@@ -246,22 +263,36 @@ export async function Profile({
         (history.length === 0 ? (
           <Empty text="Nothing watched yet." action={self} />
         ) : (
-          <ol className="flex max-w-reading flex-col">
-            {history.map((r) => (
-              <li key={r.id}>
-                <Link
-                  href={`/title/${r.mediaType}/${r.tmdbId}`}
-                  className="-mx-3 flex h-16 items-center gap-6 rounded-thumb px-3 transition-colors duration-200 hover:bg-fg/5"
-                >
-                  <span className="w-16 text-small text-muted nums">{shortDate(r.watchedAt)}</span>
-                  <span className="min-w-0 flex-1 truncate text-body font-medium">{r.title}</span>
-                  <span className="text-small text-muted nums">
-                    {r.mediaType === "movie" ? "Movie" : `S${r.season} E${r.episode}`}
-                  </span>
-                </Link>
-              </li>
+          <div className="flex max-w-reading flex-col gap-8">
+            {byWhen(history, now).map(([day, rows]) => (
+              <section key={day} className="flex flex-col gap-1">
+                <h2 className="text-small font-medium text-muted">{day}</h2>
+                <ol className="flex flex-col">
+                  {rows.map((r) => {
+                    const poster = img(r.posterPath, "w92");
+                    return (
+                      <li key={r.id}>
+                        <Link
+                          href={`/title/${r.mediaType}/${r.tmdbId}`}
+                          className="group -mx-3 flex items-center gap-4 rounded-thumb px-3 py-2 transition-colors duration-200 hover:bg-fg/5"
+                        >
+                          <span className="relative aspect-poster w-10 shrink-0 overflow-hidden rounded-md bg-raised">
+                            {poster && <TmdbImage src={poster} lowSrc={poster} alt="" sizes="40px" />}
+                          </span>
+                          <span className="min-w-0 flex-1">
+                            <span className="block truncate text-body font-medium">{r.title}</span>
+                            <span className="block text-small text-muted nums">
+                              {r.mediaType === "movie" ? "Movie" : `Season ${r.season}, episode ${r.episode}`}
+                            </span>
+                          </span>
+                        </Link>
+                      </li>
+                    );
+                  })}
+                </ol>
+              </section>
             ))}
-          </ol>
+          </div>
         ))}
 
       {!hidden &&
@@ -284,16 +315,15 @@ export async function Profile({
             Invite one with the button at the top.
           </p>
         ) : (
-          <ul className="flex max-w-reading flex-col">
+          <ul className="flex flex-col gap-section">
             {friends.map((f) => (
-              <li key={f.id}>
-                <Link
-                  href={`/u/${f.username}`}
-                  className="-mx-3 flex items-center gap-4 rounded-thumb px-3 py-3.5 transition-colors duration-200 hover:bg-fg/5"
-                >
-                  <Avatar name={f.username ?? "?"} image={f.image} size="md" />
+              <li key={f.id} className="flex flex-col gap-5">
+                <Link href={`/u/${f.username}`} className="group flex items-center gap-4 rounded-thumb">
+                  <Avatar name={f.username ?? "?"} image={f.image} size="lg" />
                   <div className="min-w-0 flex-1">
-                    <div className="truncate text-body font-semibold">{f.username}</div>
+                    <div className="truncate text-section font-bold transition-colors group-hover:text-accent">
+                      {f.username}
+                    </div>
                     <div className="truncate text-small text-muted">
                       {!f.shareActivity
                         ? "Keeps their activity private"
@@ -309,6 +339,19 @@ export async function Profile({
                     </div>
                   )}
                 </Link>
+                {f.recent.length > 0 && (
+                  <PosterGrid>
+                    {/* one full row at every width: 4 on phones (2 rows of 2), 3, 4, then all 6 */}
+                    {f.recent.map((c, i) => (
+                      <div
+                        key={`${c.media_type}-${c.id}`}
+                        className={i >= 4 ? "hidden lg:block" : i === 3 ? "sm:max-md:hidden" : ""}
+                      >
+                        <PosterLink card={c} index={i} morph={false} />
+                      </div>
+                    ))}
+                  </PosterGrid>
+                )}
               </li>
             ))}
           </ul>
@@ -325,6 +368,16 @@ function uniqueTitles(rows: Row[]) {
     seen.add(key);
     return true;
   });
+}
+
+/** History rows grouped under "Today", "Yesterday", "Nov 9", then "October", newest first (rows come sorted). */
+function byWhen<T extends { watchedAt: Date }>(rows: T[], now: Date) {
+  const groups = new Map<string, T[]>();
+  for (const r of rows) {
+    const day = dayLabel(r.watchedAt, now);
+    groups.set(day, [...(groups.get(day) ?? []), r]);
+  }
+  return [...groups];
 }
 
 function Empty({ text, action }: { text: string; action: boolean }) {

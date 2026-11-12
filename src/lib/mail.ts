@@ -1,5 +1,6 @@
 import "server-only";
 import { env, isProduction } from "@/lib/env";
+import { SITE_URL } from "@/lib/site";
 
 export const CODE_MINUTES = 10;
 
@@ -14,13 +15,13 @@ export function codeEmail(code: string) {
   return {
     // the code in the subject, so the notification alone is enough
     subject: `${spaced(code)} is your Lateshow code`,
-    text: `Your Lateshow sign-in code: ${spaced(code)}\n\nType it where you asked for it. It works for ${CODE_MINUTES} minutes, once.\nDidn't ask? Ignore this email. Nobody can sign in without the code.`,
+    text: `Your Lateshow sign-in code: ${spaced(code)}\n\nWorks for ${CODE_MINUTES} minutes, once. Didn't ask? Ignore this.`,
     html: `<!doctype html><html><body style="margin:0;background:#1c1c1e;padding:32px 16px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,sans-serif">
 <div style="max-width:440px;margin:0 auto;background:#000;color:#f5f5f7;border-radius:28px;padding:44px 36px">
-<div style="font-size:22px;font-weight:700;letter-spacing:-0.035em">Lateshow</div>
+<div style="font-size:22px;font-weight:700;letter-spacing:-0.035em"><img src="${SITE_URL}/apple-icon.png" width="32" height="32" alt="" style="vertical-align:middle;border-radius:8px;margin-right:10px">Lateshow</div>
 <div style="padding-top:28px;font-size:15px;color:#86868b">Your sign-in code</div>
 <div style="padding-top:8px;font-size:52px;font-weight:700;letter-spacing:0.06em">${c}</div>
-<p style="margin:24px 0 0;font-size:15px;line-height:1.55;color:#86868b">Type it where you asked for it. It works for ${CODE_MINUTES} minutes, once.<br>Didn't ask? Ignore this email. Nobody can sign in without the code.</p>
+<p style="margin:24px 0 0;font-size:15px;line-height:1.55;color:#86868b">Works for ${CODE_MINUTES} minutes, once.<br>Didn't ask? Ignore this.</p>
 </div></body></html>`,
   };
 }
