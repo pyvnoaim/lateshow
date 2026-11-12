@@ -93,7 +93,10 @@ Not streaming here; type/genre/sort in the URL, Add a title, Pick one; a + on ev
 too), Out this week from your list on Home), /search (type + genre filters in the URL, browse a genre without a query), title page (where to watch, trailer, episodes + ratings grid, cast, more like), sign in with `?next=`,
 profile /u/username (avatar, phone menu and invite page link there, /u/me forwards to it, the footer keeps /u/me since it never looks up who is signed in; stats, heatmap, history, watchlist), /settings (your services: My services tab on Trending,
 picks only from them, your service first in captions and Watch on, language for TMDB data in a cookie, else the browser's, name, spoiler guard cookie, CSV export at /api/export,
-delete account), /watchlist + /u/me redirects in `next.config.ts`, 404, errors, /about.
+delete account, Calendar: private .ics link `/api/cal/<userId>.<hmac>`, not revocable without rotating the secret),
+ratings (not for me / like / love, `rating` table, on the title page once watched, feed "Because you loved", taste match
+and imports), OG images per title and profile (profile shows only the name, profiles are friends only), PWA manifest,
+/watchlist + /u/me redirects in `next.config.ts`, 404, errors, /about.
 
 ## Todo (in order)
 
@@ -107,6 +110,7 @@ delete account), /watchlist + /u/me redirects in `next.config.ts`, 404, errors, 
 - [x] Import (2026-11-11): Settings › Import takes a Letterboxd export ZIP or IMDb ratings/watchlist CSVs. The browser
       unpacks and reads them (fflate), only rows go to the server in batches of 150 (`lib/library/importActions.ts`),
       IMDb matches by id, Letterboxd by title + year (±1) across films and series (a watched series = every aired episode), unclear ones are picked by hand. Ratings aren't imported.
+- [ ] Lists you can share with friends, a room can swipe from one (next).
 - [ ] Later: genre/mood row, imports from TMDB account and Trakt (both have ids), Netflix CSV (titles only, weak).
 - [ ] Watch together = a browser extension (drafts on the canvas, approved 2026-11-11): syncs the streaming site's
       player for everyone in a room, on a laptop. Rejected: a manual 3-2-1 countdown flow without the extension.
