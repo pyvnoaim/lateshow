@@ -29,6 +29,16 @@ describe("buildIcs", () => {
     expect(ics.replace(/\r\n/g, "")).not.toMatch(/[\r\n]/);
   });
 
+  it("can't be broken into a new property by a lone CR or other control characters", () => {
+    const ics = buildIcs(
+      [{ uid: "a\rX-EVIL:1", date: "2026-12-31", summary: "Pilot\rATTENDEE:evil\u0007", url: "https://x\n/" }],
+      new Date("2026-11-12T08:09:10Z"),
+    );
+    expect(ics).toContain("SUMMARY:Pilot\\nATTENDEE:evil\r\n");
+    expect(ics).not.toMatch(/\r\n(X-EVIL|ATTENDEE)/);
+    expect(ics.replace(/\r\n/g, "")).not.toMatch(/[\x00-\x1f]/);
+  });
+
   it("folds at 75 octets without splitting characters", () => {
     const folded = fold("SUMMARY:" + "ü".repeat(60));
     const lines = folded.split("\r\n");

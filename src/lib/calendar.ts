@@ -3,7 +3,11 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 /** Pure helpers for the calendar feed: the private link's token and the .ics text. The secret comes from the caller. */
 
 const sign = (userId: string, secret: string) =>
-  createHmac("sha256", secret).update(userId).digest("base64url").slice(0, 22);
+  // own key for this purpose, so the auth secret is never used for anything but auth
+  createHmac("sha256", createHmac("sha256", secret).update("calendar-feed:v1").digest())
+    .update(userId)
+    .digest("base64url")
+    .slice(0, 22);
 
 /** `<userId>.<hmac>`: anyone with it reads that user's calendar, nothing else. */
 export function makeCalendarToken(userId: string, secret: string) {
@@ -22,7 +26,11 @@ export function verifyCalendarToken(token: string, secret: string) {
 
 export type CalendarEvent = { uid: string; date: string; summary: string; url: string };
 
-const escape = (text: string) => text.replace(/[\\;,]/g, (c) => `\\${c}`).replace(/\r?\n/g, "\\n");
+// TMDB text could carry a lone CR or other control characters: every line break becomes \n, the rest is dropped,
+// so nothing can start a new ICS property
+const escape = (text: string) => clean(text.replace(/[\\;,]/g, (c) => `\\${c}`).replace(/\r\n|\r|\n/g, "\\n"));
+// eslint-disable-next-line no-control-regex
+const clean = (text: string) => text.replace(/[\x00-\x1f\x7f]/g, "");
 
 /** Lines longer than 75 octets continue on the next line after a space (RFC 5545), never inside a UTF-8 character. */
 export function fold(line: string) {
@@ -61,12 +69,12 @@ export function buildIcs(events: CalendarEvent[], now: Date) {
       const next = new Date(Date.parse(e.date) + 86_400_000).toISOString().slice(0, 10).replace(/-/g, "");
       return [
         "BEGIN:VEVENT",
-        `UID:${e.uid}`,
+        `UID:${clean(e.uid)}`,
         `DTSTAMP:${stamp}`,
         `DTSTART;VALUE=DATE:${day}`,
         `DTEND;VALUE=DATE:${next}`,
         `SUMMARY:${escape(e.summary)}`,
-        `URL:${e.url}`,
+        `URL:${clean(e.url)}`,
         "TRANSP:TRANSPARENT",
         "END:VEVENT",
       ];
