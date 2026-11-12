@@ -146,13 +146,14 @@ export async function Profile({
           </div>
           {self ? (
             <>
-              <InviteButton getLink={getInviteLink} />
+              {/* quiet links first, the one button at the edge */}
               <div className="flex gap-6">
                 <Link href="/settings" className={buttonStyles("text", "text")}>
                   Settings
                 </Link>
                 <SignOutButton />
               </div>
+              <InviteButton getLink={getInviteLink} />
             </>
           ) : (
             <FriendMenu friendId={owner.id} name={name} remove={removeFriend} />
