@@ -109,7 +109,7 @@ export function ImportHistory() {
               <span className="nums">{totals.notFound + totals.skipped}</span> couldn&apos;t be found or placed.{" "}
             </>
           )}
-          Ratings and reviews stay where they were.
+          Ratings came along as loved, liked or not for me. Reviews stay where they were.
         </p>
         {error && <p className="text-small text-danger">{error}</p>}
         {unsure.length > 0 && (

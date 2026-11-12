@@ -175,3 +175,18 @@ export const roomMood = sqliteTable(
   },
   (t) => [primaryKey({ columns: [t.roomCode, t.memberId] })],
 );
+
+/** Your verdict on a title: -1 not for me, 1 liked it, 2 loved it. No row = not rated. */
+export const rating = sqliteTable(
+  "rating",
+  {
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    mediaType: text("media_type", { enum: ["movie", "tv"] }).notNull(),
+    tmdbId: integer("tmdb_id").notNull(),
+    value: integer("value").notNull(),
+    ratedAt: integer("rated_at", { mode: "timestamp_ms" }).default(now).notNull(),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.mediaType, t.tmdbId] }), index("rating_by_time").on(t.userId, t.ratedAt)],
+);

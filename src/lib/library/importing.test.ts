@@ -13,7 +13,7 @@ describe("parseCsv", () => {
 });
 
 describe("readExport", () => {
-  it("reads Letterboxd: diary dates win over watched, watchlist separate, ratings ignored", () => {
+  it("reads Letterboxd: diary dates win over watched, watchlist separate, ratings bring scores", () => {
     const { rows } = readExport([
       { name: "watched.csv", text: "Date,Name,Year,Letterboxd URI\n2020-01-01,Dune,2021,x\n2020-02-02,Heat,1995,x" },
       {
@@ -21,11 +21,15 @@ describe("readExport", () => {
         text: "Date,Name,Year,Letterboxd URI,Rating,Rewatch,Tags,Watched Date\n2021-11-01,Dune,2021,x,4,,,2021-10-28",
       },
       { name: "watchlist.csv", text: "Date,Name,Year,Letterboxd URI\n2022-05-05,Alien,1979,x" },
-      { name: "ratings.csv", text: "Date,Name,Year,Letterboxd URI,Rating\n2020-01-01,Dune,2021,x,4" },
+      {
+        name: "ratings.csv",
+        text: "Date,Name,Year,Letterboxd URI,Rating\n2020-01-01,Dune,2021,x,4\n2020-01-01,Heat,1995,x,4.5\n2019-01-01,Cats,2019,x,1",
+      },
     ]);
     expect(rows).toEqual([
-      { title: "Dune", year: 2021, type: "movie", list: "watched", date: "2021-10-28" },
-      { title: "Heat", year: 1995, type: "movie", list: "watched", date: "2020-02-02" },
+      { title: "Dune", year: 2021, type: "movie", list: "watched", date: "2021-10-28", score: 8 },
+      { title: "Heat", year: 1995, type: "movie", list: "watched", date: "2020-02-02", score: 9 },
+      { title: "Cats", year: 2019, type: "movie", list: "watched", date: "2019-01-01", score: 2 },
       { title: "Alien", year: 1979, type: "movie", list: "watchlist", date: "2022-05-05" },
     ]);
   });
@@ -38,7 +42,15 @@ describe("readExport", () => {
       },
     ]);
     expect(rows).toEqual([
-      { title: "The Matrix", year: 1999, imdbId: "tt0133093", type: "movie", list: "watched", date: "2019-03-01" },
+      {
+        title: "The Matrix",
+        year: 1999,
+        imdbId: "tt0133093",
+        type: "movie",
+        list: "watched",
+        date: "2019-03-01",
+        score: 9,
+      },
     ]);
     expect(skipped).toBe(2);
   });

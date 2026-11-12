@@ -34,4 +34,22 @@ describe("tasteMatch", () => {
   it("needs 10 titles each", () => {
     expect(tasteMatch(taste([1, 2, 3], [[18, 1]]), taste(ten, [[18, 1]]))).toBeNull();
   });
+  it("doesn't count a title one rated down and the other up", () => {
+    const a = {
+      ...taste(ten, [[18, 1]]),
+      ratings: new Map([
+        ["movie-0", -1],
+        ["movie-1", 2],
+      ]),
+    };
+    const b = {
+      ...taste(ten, [[18, 1]]),
+      ratings: new Map([
+        ["movie-0", 1],
+        ["movie-1", 1],
+      ]),
+    };
+    // 9 of 10 shared, same genres: (0.9 + 1) / 2
+    expect(tasteMatch(a, b)).toBe(95);
+  });
 });

@@ -2,7 +2,7 @@ import "server-only";
 import { desc, eq, max } from "drizzle-orm";
 import { cache } from "react";
 import { db } from "@/lib/db/client";
-import { watched } from "@/lib/db/schema";
+import { rating, watched } from "@/lib/db/schema";
 import { getTitle } from "@/lib/tmdb";
 import { tasteMatch, type Taste } from "./match";
 
@@ -27,12 +27,17 @@ export const getTaste = cache(async (userId: string, lang: string) => {
     .where(eq(watched.userId, userId))
     .groupBy(watched.mediaType, watched.tmdbId)
     .orderBy(desc(last));
+  const rated = await db
+    .select({ mediaType: rating.mediaType, tmdbId: rating.tmdbId, value: rating.value })
+    .from(rating)
+    .where(eq(rating.userId, userId));
+  const ratings = new Map(rated.map((r) => [`${r.mediaType}-${r.tmdbId}`, r.value]));
   const genres = new Map<number, number>();
   const details = await Promise.all(
     titles.slice(0, GENRE_SAMPLE).map((t) => getTitle(t.mediaType, String(t.tmdbId), lang).catch(() => null)),
   );
   for (const d of details) for (const g of d?.genres ?? []) genres.set(g.id, (genres.get(g.id) ?? 0) + 1);
-  const taste: Taste = { titles: new Set(titles.map((t) => `${t.mediaType}-${t.tmdbId}`)), genres };
+  const taste: Taste = { titles: new Set(titles.map((t) => `${t.mediaType}-${t.tmdbId}`)), genres, ratings };
   return { ...taste, list: titles };
 });
 

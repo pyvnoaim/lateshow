@@ -5,9 +5,10 @@ import { refresh } from "next/cache";
 import { z } from "zod";
 import { getSession } from "@/lib/auth";
 import { db } from "@/lib/db/client";
-import { watched, watchlist } from "@/lib/db/schema";
+import { rating, watched, watchlist } from "@/lib/db/schema";
 import { findByImdbId, getAiredEpisodes, getRuntime, img, searchForImport } from "@/lib/tmdb";
 import { pickMatch, type Hit, type ImportRow } from "./importing";
+import { fromScore } from "./rating";
 
 // The browser sends rows read from your export, never the file. Batches stay small so each call is a few seconds.
 const row = z.object({
@@ -23,6 +24,7 @@ const row = z.object({
     .string()
     .regex(/^\d{4}-\d{2}-\d{2}$/)
     .optional(),
+  score: z.number().min(0).max(10).optional(),
 });
 const pick = z.object({
   id: z.number().int().positive(),
@@ -89,7 +91,7 @@ async function pool<T, R>(items: T[], n: number, fn: (item: T) => Promise<R>): P
 
 /**
  * Saves matches. Already there stays as it is, so importing twice adds nothing. Watched beats watchlist.
- * A watched series means all of it: every episode aired so far.
+ * A watched series means all of it: every episode aired so far. Ratings come along (loved, liked, not for me).
  */
 async function save(userId: string, matches: Match[]) {
   const seen = matches.filter((m) => m.row.list === "watched");
@@ -124,6 +126,10 @@ async function save(userId: string, matches: Match[]) {
         .onConflictDoNothing()
         .run().changes;
       if (added) w++;
+      // a rating from the export, unless you already rated it here
+      const value = m.row.score ? fromScore(m.row.score) : undefined;
+      if (value)
+        tx.insert(rating).values({ userId, mediaType: m.type, tmdbId: m.id, value }).onConflictDoNothing().run();
       // like marking it watched in the app: it leaves the watchlist
       tx.delete(watchlist)
         .where(and(eq(watchlist.userId, userId), eq(watchlist.mediaType, m.type), eq(watchlist.tmdbId, m.id)))

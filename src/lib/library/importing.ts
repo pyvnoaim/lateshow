@@ -12,6 +12,8 @@ export type ImportRow = {
   list: "watched" | "watchlist";
   /** YYYY-MM-DD, when you watched it (or added it) */
   date?: string;
+  /** your score out of 10 (IMDb as is, Letterboxd stars doubled), becomes a rating via `fromScore` */
+  score?: number;
 };
 
 /** Reads CSV: quoted fields, "" inside quotes, commas and newlines in titles, CRLF, a leading BOM. */
@@ -72,13 +74,14 @@ export function readExport(files: { name: string; text: string }[]): { rows: Imp
   let skipped = 0;
   // Letterboxd: the diary has the real watch dates, watched.csv everything (dated when logged). Diary first wins.
   const lb = (f: { name: string }) => f.name.replace(/^.*\//, "").toLowerCase();
-  const order = (f: { name: string }) => ["diary.csv", "watched.csv", "watchlist.csv"].indexOf(lb(f));
+  const FILES = ["diary.csv", "watched.csv", "ratings.csv", "watchlist.csv"];
+  const order = (f: { name: string }) => FILES.indexOf(lb(f));
   for (const file of [...files].sort((a, b) => order(a) - order(b))) {
     const recs = records(file.text);
     const cols = recs[0] ? Object.keys(recs[0]) : [];
     if (cols.includes("Letterboxd URI")) {
       const name = lb(file);
-      if (!["diary.csv", "watched.csv", "watchlist.csv"].includes(name)) continue; // ratings, reviews, likes
+      if (!FILES.includes(name)) continue; // reviews, likes, lists
       for (const r of recs) {
         if (!r.Name) continue;
         rows.push({
@@ -87,6 +90,7 @@ export function readExport(files: { name: string; text: string }[]): { rows: Imp
           type: "movie",
           list: name === "watchlist.csv" ? "watchlist" : "watched",
           date: day(r["Watched Date"]) ?? day(r.Date),
+          score: Number(r.Rating) * 2 || undefined,
         });
       }
     } else if (cols.includes("Const")) {
@@ -106,16 +110,22 @@ export function readExport(files: { name: string; text: string }[]): { rows: Imp
           type,
           list: rated ? "watched" : "watchlist",
           date: day(r["Date Rated"]) ?? day(r.Created),
+          score: Number(r["Your Rating"]) || undefined,
         });
       }
     }
   }
-  // one row per title and list (a rewatch in the diary is one watched film)
-  const seen = new Set<string>();
+  // one row per title and list (a rewatch in the diary is one watched film). The first row wins, a later one
+  // (ratings.csv) can still bring the score.
+  const seen = new Map<string, ImportRow>();
   const unique = rows.filter((r) => {
     const key = `${r.list}|${r.imdbId ?? `${norm(r.title)}|${r.year ?? ""}`}`;
-    if (seen.has(key)) return false;
-    seen.add(key);
+    const first = seen.get(key);
+    if (first) {
+      first.score ??= r.score;
+      return false;
+    }
+    seen.set(key, r);
     return true;
   });
   return { rows: unique, skipped };

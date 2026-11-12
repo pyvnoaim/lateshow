@@ -1,9 +1,9 @@
 import "server-only";
 import { cache } from "react";
 import { getSession } from "@/lib/auth";
-import { and, count, desc, eq, gte, max, sum } from "drizzle-orm";
+import { and, count, desc, eq, gte, isNull, max, or, sum } from "drizzle-orm";
 import { db } from "@/lib/db/client";
-import { watched, watchlist } from "@/lib/db/schema";
+import { rating, watched, watchlist } from "@/lib/db/schema";
 import type { MediaType } from "@/lib/tmdb";
 
 const byTitle = (userId: string, type: MediaType, tmdbId: number) => ({
@@ -11,14 +11,22 @@ const byTitle = (userId: string, type: MediaType, tmdbId: number) => ({
   watchlist: and(eq(watchlist.userId, userId), eq(watchlist.mediaType, type), eq(watchlist.tmdbId, tmdbId)),
 });
 
-/** What this user has done with one title: on the watchlist, which episodes ("season-episode") are watched. */
+/** What this user has done with one title: on the watchlist, which episodes ("season-episode") are watched, rating. */
 export async function getTitleLibrary(userId: string, type: MediaType, tmdbId: number) {
   const where = byTitle(userId, type, tmdbId);
-  const [listed, rows] = await Promise.all([
+  const [listed, rows, rated] = await Promise.all([
     db.select({ userId: watchlist.userId }).from(watchlist).where(where.watchlist).limit(1),
     db.select({ season: watched.season, episode: watched.episode }).from(watched).where(where.watched),
+    db
+      .select({ value: rating.value })
+      .from(rating)
+      .where(and(eq(rating.userId, userId), eq(rating.mediaType, type), eq(rating.tmdbId, tmdbId))),
   ]);
-  return { onWatchlist: listed.length > 0, watched: rows.map((r) => `${r.season}-${r.episode}`) };
+  return {
+    onWatchlist: listed.length > 0,
+    watched: rows.map((r) => `${r.season}-${r.episode}`),
+    rating: rated[0]?.value ?? null,
+  };
 }
 
 export async function getWatchlist(userId: string) {
@@ -72,15 +80,41 @@ export async function getWatchedTitleKeys(userId: string) {
   return new Set(rows.map((r) => `${r.mediaType}-${r.tmdbId}`));
 }
 
-/** The most recent thing you watched. */
-export async function getLastWatched(userId: string) {
-  const [row] = await db
-    .select()
-    .from(watched)
-    .where(eq(watched.userId, userId))
-    .orderBy(desc(watched.watchedAt))
-    .limit(1);
-  return row ?? null;
+/**
+ * What "Because you ..." suggestions start from: a title you loved in the last 30 days, else the last thing you
+ * watched that you didn't rate down. `loved` picks the heading.
+ */
+export async function getSuggestionSeed(userId: string) {
+  const ratedAs = and(
+    eq(rating.userId, watched.userId),
+    eq(rating.mediaType, watched.mediaType),
+    eq(rating.tmdbId, watched.tmdbId),
+  );
+  const pick = { mediaType: watched.mediaType, tmdbId: watched.tmdbId, title: watched.title, value: rating.value };
+  const [[loved], [last]] = await Promise.all([
+    db
+      .select(pick)
+      .from(rating)
+      .innerJoin(watched, ratedAs)
+      .where(
+        and(
+          eq(rating.userId, userId),
+          eq(rating.value, 2),
+          gte(rating.ratedAt, new Date(Date.now() - 30 * 86_400_000)),
+        ),
+      )
+      .orderBy(desc(rating.ratedAt))
+      .limit(1),
+    db
+      .select(pick)
+      .from(watched)
+      .leftJoin(rating, ratedAs)
+      .where(and(eq(watched.userId, userId), or(isNull(rating.value), gte(rating.value, 1))))
+      .orderBy(desc(watched.watchedAt))
+      .limit(1),
+  ]);
+  const seed = loved ?? last;
+  return seed ? { ...seed, loved: seed.value === 2 } : null;
 }
 
 /**

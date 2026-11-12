@@ -5,7 +5,7 @@ import { refresh } from "next/cache";
 import { z } from "zod";
 import { getSession } from "@/lib/auth";
 import { db } from "@/lib/db/client";
-import { watched, watchlist } from "@/lib/db/schema";
+import { rating, watched, watchlist } from "@/lib/db/schema";
 import { getLanguage } from "@/lib/region";
 import { img, searchTitles } from "@/lib/tmdb";
 import { getMyWatchlistKeys } from "./queries";
@@ -84,6 +84,31 @@ export async function setWatched(ref: WatchedRef, on: boolean) {
     });
   } else {
     await db.delete(watched).where(same);
+  }
+  refresh();
+}
+
+/** Rates a title (-1 not for me, 1 liked, 2 loved), null clears it. */
+export async function setRating(ref: TitleRef, value: number | null) {
+  const userId = await requireUserId();
+  const t = titleRef.parse(ref);
+  const v = z
+    .union([z.literal(-1), z.literal(1), z.literal(2)])
+    .nullable()
+    .parse(value);
+  const key = { userId, mediaType: t.type, tmdbId: t.tmdbId };
+  if (v === null) {
+    await db
+      .delete(rating)
+      .where(and(eq(rating.userId, userId), eq(rating.mediaType, t.type), eq(rating.tmdbId, t.tmdbId)));
+  } else {
+    await db
+      .insert(rating)
+      .values({ ...key, value: v })
+      .onConflictDoUpdate({
+        target: [rating.userId, rating.mediaType, rating.tmdbId],
+        set: { value: v, ratedAt: new Date() },
+      });
   }
   refresh();
 }

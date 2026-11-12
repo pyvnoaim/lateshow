@@ -2,6 +2,7 @@ import { ArrowUpRight, Play, Star, Ticket } from "lucide-react";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import { LibraryToggle } from "@/components/library/LibraryToggle";
+import { RatingButtons } from "@/components/library/RatingButtons";
 import { PosterLink } from "@/components/PosterLink";
 import { BackdropHero, BackdropHeroSkeleton, heroTitle } from "@/components/BackdropHero";
 import { HeroLogo } from "@/components/HeroShell";
@@ -11,7 +12,7 @@ import { PosterGrid, PosterGridSkeleton } from "@/components/ui/PosterGrid";
 import { Section } from "@/components/ui/Section";
 import { getSession } from "@/lib/auth";
 import { getWatchLinks, type WatchLink } from "@/lib/justwatch";
-import { setOnWatchlist, setWatched, type TitleRef } from "@/lib/library/actions";
+import { setOnWatchlist, setRating, setWatched, type TitleRef } from "@/lib/library/actions";
 import { nextEpisode, parseEpisodeKeys, type EpisodeRef } from "@/lib/library/progress";
 import { getTitleLibrary } from "@/lib/library/queries";
 import {
@@ -35,7 +36,7 @@ import { getMyServiceIds, getSpoilerGuard } from "@/lib/settings/queries";
 import { Suspense } from "react";
 import { FriendsOnTitle } from "./components/FriendsOnTitle";
 
-type Library = { signedIn: boolean; onWatchlist: boolean; watched: string[]; ref: TitleRef };
+type Library = { signedIn: boolean; onWatchlist: boolean; watched: string[]; rating: number | null; ref: TitleRef };
 
 export async function TitleView({ type, id }: { type: string; id: string }) {
   if ((type !== "movie" && type !== "tv") || !/^\d+$/.test(id)) notFound();
@@ -51,7 +52,9 @@ export async function TitleView({ type, id }: { type: string; id: string }) {
     getMyServiceIds(),
   ]);
   const links = yourServicesFirst(allLinks, t, region.code, myIds);
-  const lib = session ? await getTitleLibrary(session.user.id, type, t.id) : { onWatchlist: false, watched: [] };
+  const lib = session
+    ? await getTitleLibrary(session.user.id, type, t.id)
+    : { onWatchlist: false, watched: [], rating: null };
   const library: Library = {
     signedIn: session !== null,
     ...lib,
@@ -183,6 +186,10 @@ function Hero({
             initial={library.watched.includes("0-0")}
             toggle={setWatched.bind(null, { ...library.ref, minutes: t.runtime ?? 0 })}
           />
+        )}
+        {/* once you've seen it (a series: any episode) */}
+        {library.watched.length > 0 && (
+          <RatingButtons initial={library.rating} rate={setRating.bind(null, library.ref)} />
         )}
       </div>
     </BackdropHero>
