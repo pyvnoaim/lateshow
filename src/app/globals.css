@@ -415,8 +415,8 @@
 }
 /* Glass: light tint brighter at the top, strong blur that lets colors glow through, a bright top edge like light
    catching glass, a faint outline and a soft shadow so it floats. On hover it brightens and a soft highlight
-   follows the pointer (position from GlassSheen: --mx, --my). Fields (glass holding an input) stay still:
-   on a wide pill the highlight reads as a grey smudge. */
+   follows the pointer (position from GlassSheen: --mx, --my). Only on things you can press: on a panel (the
+   invite card) or a field (glass holding an input) the highlight reads as a grey smudge. */
 /* Glass that floats over anything (the scroll island): the same blur and edge, over a dark tint, so grey text stays
    readable on bright pictures. */
 @utility glass-deep {
@@ -448,7 +448,7 @@
     box-shadow var(--duration-hover) ease-out,
     transform var(--duration-press) var(--ease-spring);
   @media (hover: hover) {
-    &:hover:not(:has(input), output) {
+    &:is(a, button, summary, [role="button"]):hover:not(:has(input)) {
       --sheen: 1;
       background:
         radial-gradient(
