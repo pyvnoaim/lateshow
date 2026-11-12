@@ -9,6 +9,7 @@ import { NavSearch } from "./NavSearch";
 import { UpNext } from "./UpNext";
 import { Container } from "./ui/Container";
 import { getSession } from "@/lib/auth";
+import { profileHref } from "@/lib/username";
 
 /**
  * Navbar C: name + links left, search + you right. Sits over the page so backdrops run underneath, scrolls away.
@@ -55,9 +56,10 @@ export function TopBar() {
 }
 
 async function PhoneMenu() {
+  const session = await getSession();
   return (
     <MobileMenu
-      signedIn={(await getSession()) !== null}
+      profile={session ? profileHref(session.user) : undefined}
       upNext={
         <Suspense>
           <UpNext inMenu />

@@ -27,3 +27,6 @@ export function checkUsername(raw: string): { ok: true; value: string } | { ok: 
 
 /** The name everyone sees: your username, or the start of your email until you pick one. */
 export const shownName = (u: { username?: string | null; email: string }) => u.username || u.email.split("@")[0];
+
+/** Your profile link: /u/yourname (the address you can share), /u/me until you pick a username. */
+export const profileHref = (u: { username?: string | null }) => (u.username ? `/u/${u.username}` : "/u/me");

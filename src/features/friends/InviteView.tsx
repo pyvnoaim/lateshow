@@ -7,7 +7,7 @@ import { areFriends, getInvite } from "@/lib/friends/queries";
 import { Avatar } from "@/components/Avatar";
 import { getImagesByUsername } from "@/lib/friends/queries";
 import { inviteState } from "@/lib/friends/rules";
-import { shownName } from "@/lib/username";
+import { profileHref, shownName } from "@/lib/username";
 import { UsernameForm } from "@/components/UsernameForm";
 import { AcceptInvite } from "./components/AcceptInvite";
 
@@ -88,7 +88,7 @@ export async function InviteView({
   if (state === "own") {
     body = (
       <Message title="This is your" muted="own invite." detail="Send it to a friend. They add you from here.">
-        <Link href="/u/me" className={buttonStyles("glass", "sm")}>
+        <Link href={session ? profileHref(session.user) : "/u/me"} className={buttonStyles("glass", "sm")}>
           Your profile
         </Link>
       </Message>
@@ -129,7 +129,7 @@ export async function InviteView({
             </>
           }
         >
-          <Link href="/u/me" className={buttonStyles("primary", "sm")}>
+          <Link href={session ? profileHref(session.user) : "/u/me"} className={buttonStyles("primary", "sm")}>
             Your profile
           </Link>
           {home}

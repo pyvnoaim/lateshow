@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { getSession } from "@/lib/auth";
-import { shownName } from "@/lib/username";
+import { profileHref, shownName } from "@/lib/username";
 import { Avatar } from "./Avatar";
 import { buttonStyles } from "./ui/button";
 
@@ -15,7 +15,12 @@ export async function AccountButton() {
     );
   }
   return (
-    <Link href="/u/me" aria-label="Your profile" data-tip="Your profile" className="press rounded-full">
+    <Link
+      href={profileHref(session.user)}
+      aria-label="Your profile"
+      data-tip="Your profile"
+      className="press rounded-full"
+    >
       <Avatar name={shownName(session.user)} image={session.user.image} size="sm" />
     </Link>
   );

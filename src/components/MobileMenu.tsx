@@ -15,13 +15,10 @@ const PAGES = [
   { href: "/rooms", label: "Rooms" },
   { href: "/cinemas", label: "Coming to cinemas" },
 ];
-const YOU = [
-  { href: "/u/me", label: "Profile" },
-  { href: "/settings", label: "Settings" },
-];
 
 /** Phones only: the top bar links don't fit, so a menu button opens them in a glass sheet below the bar. */
-export function MobileMenu({ signedIn, upNext }: { signedIn: boolean; upNext?: ReactNode }) {
+/** `profile` is your profile link, missing when signed out. */
+export function MobileMenu({ profile, upNext }: { profile?: string; upNext?: ReactNode }) {
   const [open, setOpen] = useState(false);
   const path = usePathname();
   const current = path;
@@ -50,7 +47,15 @@ export function MobileMenu({ signedIn, upNext }: { signedIn: boolean; upNext?: R
             </div>
           )}
           <nav aria-label="Main" className="flex flex-col">
-            {[...PAGES, ...(signedIn ? YOU : [{ href: "/login", label: "Sign in" }])].map((l) => (
+            {[
+              ...PAGES,
+              ...(profile
+                ? [
+                    { href: profile, label: "Profile" },
+                    { href: "/settings", label: "Settings" },
+                  ]
+                : [{ href: "/login", label: "Sign in" }]),
+            ].map((l) => (
               <Link
                 key={l.href}
                 href={l.href}
