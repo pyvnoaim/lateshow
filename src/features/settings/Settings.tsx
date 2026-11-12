@@ -17,7 +17,9 @@ import {
 } from "@/lib/settings/actions";
 import { getMyPasskeys, getMyServiceIds, getSpoilerGuard } from "@/lib/settings/queries";
 import { getServiceChoices, img } from "@/lib/tmdb";
+import { calendarUrl } from "./calendarFeed";
 import { AvatarPicker } from "./components/AvatarPicker";
+import { CalendarLink } from "./components/CalendarLink";
 import { ChoicePicker } from "./components/ChoicePicker";
 import { DeleteAccount } from "./components/DeleteAccount";
 import { ImportHistory } from "./components/ImportHistory";
@@ -102,6 +104,12 @@ export async function Settings() {
           current={guard ? "hide" : "show"}
           save={setSpoilerGuard}
         />
+      </Section>
+      <Section
+        title="Calendar"
+        description="New episodes and release days from your list, in Apple or Google Calendar. Anyone with this link sees your schedule, so keep it to yourself."
+      >
+        <CalendarLink url={calendarUrl(session.user.id)} />
       </Section>
       <Section title="Sign-in">
         <Passkeys
