@@ -4,6 +4,7 @@ import { Inter_Tight } from "next/font/google";
 import { AsciiScrollbar } from "@/components/AsciiScrollbar";
 import { GlassSheen } from "@/components/GlassSheen";
 import { Tooltips } from "@/components/Tooltips";
+import { UpdateBar } from "@/components/UpdateBar";
 import "./globals.css";
 
 const interTight = Inter_Tight({ variable: "--font-inter-tight", subsets: ["latin"] });
@@ -24,6 +25,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         {children}
         <GlassSheen />
         <Tooltips />
+        <UpdateBar />
         <AsciiScrollbar />
       </body>
     </html>

@@ -54,7 +54,7 @@ src/lib/         tmdb, justwatch, env, region, auth, db/, library/ (watched + wa
 
 Lint-enforced: no default exports outside route files, no `../` imports, `app/` can't import `lib/tmdb|justwatch|db`,
 features can't import each other, `components/` and `lib/` can't import features, no arbitrary Tailwind `[values]`.
-Also: data access is `server-only`, only `lib/env.ts` reads `process.env`, writes are zod-validated server actions,
+Also: data access is `server-only`, only `lib/env.ts` reads `process.env` (plus `lib/build.ts`, the build id inlined at build), writes are zod-validated server actions,
 pure logic extracted with a `*.test.ts` beside it, no barrel files, move code to `components/` only when a 2nd feature needs it.
 
 ## Styling
@@ -99,7 +99,7 @@ picks only from them, your service first in captions and Watch on, language for 
 delete account, Calendar: private .ics link `/api/cal/<userId>.<hmac>`, New link raises `calendar_feed.version` and retires the old one),
 ratings (not for me / like / love, `rating` table, on the title page once watched, feed "Because you loved", taste match
 and imports), OG images per title and profile (profile shows only the name, profiles are friends only), PWA manifest,
-lists (/l/<id>, see Todo), /watchlist + /u/me redirects in `next.config.ts`, 404, errors, /about.
+lists (/l/<id>, see Todo), update bar after a deploy (`UpdateBar`: build id from next.config vs `/api/version`, on tab focus and every 10 min), /watchlist + /u/me redirects in `next.config.ts`, 404, errors, /about.
 
 ## Todo (in order)
 
