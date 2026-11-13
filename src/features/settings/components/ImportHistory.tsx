@@ -1,7 +1,7 @@
 "use client";
 
 import { strFromU8, unzipSync } from "fflate";
-import { ChevronDown, Upload } from "lucide-react";
+import { Upload } from "lucide-react";
 import Image from "next/image";
 import { useState, type DragEvent } from "react";
 import { buttonStyles } from "@/components/ui/button";
@@ -188,27 +188,6 @@ export function ImportHistory() {
           {error}
         </p>
       )}
-      <details className="group text-small text-muted">
-        <summary className="flex w-fit cursor-pointer list-none items-center gap-1 transition-colors hover:text-fg">
-          How to get it
-          <ChevronDown
-            size={14}
-            strokeWidth={2}
-            aria-hidden
-            className="transition-transform duration-200 group-open:rotate-180"
-          />
-        </summary>
-        <ul className="mt-3 flex flex-col gap-2 leading-normal">
-          <li>
-            <span className="text-fg">Letterboxd</span>: Settings, Import &amp; Export, Export your data. Drop the ZIP
-            as it comes.
-          </li>
-          <li>
-            <span className="text-fg">IMDb</span>: on your ratings or watchlist, the ⋯ menu, Export. Drop the CSV.
-          </li>
-          <li>The file is read in your browser. Only the titles reach Lateshow. Importing twice adds nothing twice.</li>
-        </ul>
-      </details>
     </div>
   );
 }
