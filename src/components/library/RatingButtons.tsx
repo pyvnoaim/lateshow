@@ -21,6 +21,12 @@ export function RatingButtons({
   rate: (value: number | null) => Promise<void>;
 }) {
   const [saved, setSaved] = useState(initial);
+  // a refresh brought a different rating (import, another tab): follow it without remounting (no replayed pops)
+  const [seen, setSeen] = useState(initial);
+  if (initial !== seen) {
+    setSeen(initial);
+    setSaved(initial);
+  }
   const [value, setOptimistic] = useOptimistic(saved);
   const [, startTransition] = useTransition();
 
@@ -54,12 +60,13 @@ export function RatingButtons({
             }`}
           >
             <Icon
-              key={String(on)}
+              key={on ? "on" : "off"}
               size={18}
               strokeWidth={on ? 2.25 : 1.75}
               fill={on ? "currentColor" : "none"}
               aria-hidden
-              className="pop"
+              // only the one that just lit up pops, the one turning off just goes quiet
+              className={on ? "pop" : undefined}
             />
           </button>
         );
