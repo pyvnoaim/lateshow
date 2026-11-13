@@ -168,7 +168,7 @@ export function ImportHistory() {
   return (
     <div
       onDragOver={(e) => (e.preventDefault(), setOver(true))}
-      onDragLeave={() => setOver(false)}
+      onDragLeave={(e) => !e.currentTarget.contains(e.relatedTarget as Node) && setOver(false)}
       onDrop={drop}
       className="flex flex-col items-start gap-4"
     >
