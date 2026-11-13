@@ -7,6 +7,7 @@ import { shownName } from "@/lib/username";
 import { getRegion } from "@/lib/region";
 import {
   deleteAccount,
+  newCalendarLink,
   setAvatar,
   setLanguage,
   setMyService,
@@ -109,7 +110,7 @@ export async function Settings() {
         title="Calendar"
         description="New episodes and release days from your list, in Apple or Google Calendar. Anyone with this link sees your schedule, so keep it to yourself."
       >
-        <CalendarLink url={calendarUrl(session.user.id)} />
+        <CalendarLink url={await calendarUrl(session.user.id)} renew={newCalendarLink} />
       </Section>
       <Section title="Sign-in">
         <Passkeys

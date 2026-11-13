@@ -2,26 +2,32 @@ import { createHmac, timingSafeEqual } from "node:crypto";
 
 /** Pure helpers for the calendar feed: the private link's token and the .ics text. The secret comes from the caller. */
 
-const sign = (userId: string, secret: string) =>
+// Version 0 signs the bare user id, so links made before New link existed keep working.
+const sign = (userId: string, version: number, secret: string) =>
   // own key for this purpose, so the auth secret is never used for anything but auth
   createHmac("sha256", createHmac("sha256", secret).update("calendar-feed:v1").digest())
-    .update(userId)
+    .update(version ? `${userId}:${version}` : userId)
     .digest("base64url")
     .slice(0, 22);
 
-/** `<userId>.<hmac>`: anyone with it reads that user's calendar, nothing else. */
-export function makeCalendarToken(userId: string, secret: string) {
-  return `${userId}.${sign(userId, secret)}`;
+/** `<userId>.<hmac>`: anyone with it reads that user's calendar, nothing else. A new `version` retires the old one. */
+export function makeCalendarToken(userId: string, version: number, secret: string) {
+  return `${userId}.${sign(userId, version, secret)}`;
 }
 
-/** The user id when the token is one we made, else null. */
-export function verifyCalendarToken(token: string, secret: string) {
+/** Whose token this claims to be (look up their version, then `verifyCalendarToken`). Null when it has no id. */
+export function calendarTokenUser(token: string) {
   const dot = token.lastIndexOf(".");
-  if (dot <= 0) return null;
-  const userId = token.slice(0, dot);
-  const given = Buffer.from(token.slice(dot + 1));
-  const expected = Buffer.from(sign(userId, secret));
-  return given.length === expected.length && timingSafeEqual(given, expected) ? userId : null;
+  return dot > 0 ? token.slice(0, dot) : null;
+}
+
+/** Whether the token is the one we'd make for its user at this version. */
+export function verifyCalendarToken(token: string, version: number, secret: string) {
+  const userId = calendarTokenUser(token);
+  if (!userId) return false;
+  const given = Buffer.from(token.slice(userId.length + 1));
+  const expected = Buffer.from(sign(userId, version, secret));
+  return given.length === expected.length && timingSafeEqual(given, expected);
 }
 
 export type CalendarEvent = { uid: string; date: string; summary: string; url: string };

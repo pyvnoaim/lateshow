@@ -1,6 +1,6 @@
 "use server";
 
-import { and, eq, ne } from "drizzle-orm";
+import { and, eq, ne, sql } from "drizzle-orm";
 import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
@@ -8,13 +8,24 @@ import { z } from "zod";
 import { getSession } from "@/lib/auth";
 import { db } from "@/lib/db/client";
 import { passkey, user } from "@/lib/db/auth-schema";
-import { roomMember, roomMood, roomPick, roomVote, userServices } from "@/lib/db/schema";
+import { calendarFeed, roomMember, roomMood, roomPick, roomVote, userServices } from "@/lib/db/schema";
 import { LANGUAGE_COOKIE, LANGUAGES } from "@/lib/languages";
 import { SPOILER_COOKIE } from "@/lib/settings/queries";
 import { checkUsername } from "@/lib/username";
 import { isAvatarValue } from "@/lib/avatar";
 
 const providerId = z.number().int().positive();
+
+/** New calendar link: the version goes up, so the old link stops working at once (calendars need the new one). */
+export async function newCalendarLink() {
+  const session = await getSession();
+  if (!session) throw new Error("Sign in first.");
+  await db
+    .insert(calendarFeed)
+    .values({ userId: session.user.id, version: 1 })
+    .onConflictDoUpdate({ target: calendarFeed.userId, set: { version: sql`${calendarFeed.version} + 1` } });
+  refresh();
+}
 
 /** Adds or removes one streaming service from the signed in user's services. */
 export async function setMyService(id: number, on: boolean) {

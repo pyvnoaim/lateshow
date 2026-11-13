@@ -1,5 +1,15 @@
 import "server-only";
-import { buildIcs, makeCalendarToken, verifyCalendarToken, type CalendarEvent } from "@/lib/calendar";
+import { eq } from "drizzle-orm";
+import {
+  buildIcs,
+  calendarTokenUser,
+  makeCalendarToken,
+  verifyCalendarToken,
+  type CalendarEvent,
+} from "@/lib/calendar";
+import { user } from "@/lib/db/auth-schema";
+import { db } from "@/lib/db/client";
+import { calendarFeed as feed } from "@/lib/db/schema";
 import { env } from "@/lib/env";
 import { getRecentShows, getWatchlist } from "@/lib/library/queries";
 import { DEFAULT_COUNTRY } from "@/lib/region";
@@ -9,9 +19,20 @@ import { getTitle, theatricalDate } from "@/lib/tmdb";
 
 const DAY = 86_400_000;
 
+/** The account and its link version (0 without a row), or undefined when the account is gone. */
+const linkVersion = async (userId: string) => {
+  const [row] = await db
+    .select({ version: feed.version })
+    .from(user)
+    .leftJoin(feed, eq(feed.userId, user.id))
+    .where(eq(user.id, userId));
+  return row ? (row.version ?? 0) : undefined;
+};
+
 /** The private subscribe link for Settings. */
-export function calendarUrl(userId: string) {
-  return `${SITE_URL}/api/cal/${makeCalendarToken(userId, env("auth").BETTER_AUTH_SECRET)}.ics`;
+export async function calendarUrl(userId: string) {
+  const token = makeCalendarToken(userId, (await linkVersion(userId)) ?? 0, env("auth").BETTER_AUTH_SECRET);
+  return `${SITE_URL}/api/cal/${token}.ics`;
 }
 
 /**
@@ -21,8 +42,12 @@ export function calendarUrl(userId: string) {
  * Episode names are always shown, the spoiler guard is a browser cookie the calendar app doesn't have.
  */
 export async function calendarFeed(token: string) {
-  const userId = verifyCalendarToken(token.replace(/\.ics$/, ""), env("auth").BETTER_AUTH_SECRET);
-  if (!userId) return null;
+  const raw = token.replace(/\.ics$/, "");
+  const userId = calendarTokenUser(raw);
+  const version = userId ? await linkVersion(userId) : undefined;
+  // a deleted account, an old link after New link, or not ours at all: the same 404
+  if (!userId || version === undefined || !verifyCalendarToken(raw, version, env("auth").BETTER_AUTH_SECRET))
+    return null;
   const now = new Date();
   const today = now.toISOString().slice(0, 10);
   const end = new Date(now.getTime() + 60 * DAY).toISOString().slice(0, 10);

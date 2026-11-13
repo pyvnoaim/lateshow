@@ -1,17 +1,27 @@
 import { describe, expect, it } from "vitest";
-import { buildIcs, fold, makeCalendarToken, verifyCalendarToken } from "./calendar";
+import { buildIcs, calendarTokenUser, fold, makeCalendarToken, verifyCalendarToken } from "./calendar";
 
 const secret = "x".repeat(32);
 
 describe("calendar token", () => {
   it("round trips and rejects anything else", () => {
-    const token = makeCalendarToken("user.1", secret);
+    const token = makeCalendarToken("user.1", 0, secret);
     expect(token.split(".").at(-1)).toHaveLength(22);
-    expect(verifyCalendarToken(token, secret)).toBe("user.1");
-    expect(verifyCalendarToken(token, "y".repeat(32))).toBeNull();
-    expect(verifyCalendarToken(`other.${token.split(".").at(-1)}`, secret)).toBeNull();
-    expect(verifyCalendarToken(token.slice(0, -1), secret)).toBeNull();
-    expect(verifyCalendarToken("nodot", secret)).toBeNull();
+    expect(calendarTokenUser(token)).toBe("user.1");
+    expect(verifyCalendarToken(token, 0, secret)).toBe(true);
+    expect(verifyCalendarToken(token, 0, "y".repeat(32))).toBe(false);
+    expect(verifyCalendarToken(`other.${token.split(".").at(-1)}`, 0, secret)).toBe(false);
+    expect(verifyCalendarToken(token.slice(0, -1), 0, secret)).toBe(false);
+    expect(calendarTokenUser("nodot")).toBeNull();
+    expect(verifyCalendarToken("nodot", 0, secret)).toBe(false);
+  });
+
+  it("retires the old link when the version goes up", () => {
+    const first = makeCalendarToken("u1", 0, secret);
+    const second = makeCalendarToken("u1", 1, secret);
+    expect(second).not.toBe(first);
+    expect(verifyCalendarToken(first, 1, secret)).toBe(false);
+    expect(verifyCalendarToken(second, 1, secret)).toBe(true);
   });
 });
 
