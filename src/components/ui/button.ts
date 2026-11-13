@@ -10,10 +10,6 @@ const tones = {
   ghost: "glass-hover",
   /** Quiet text action (Sign out, Send again): grey, turns white on hover, nothing else moves or fills. */
   text: "text-muted transition-colors hover:text-fg",
-  /** Dark glass for small buttons over posters: light glass washed out on bright ones. */
-  deep: "glass-chip text-fg",
-  /** The same, on: the icon turns icy instead of the glass, so it stays readable over any poster. */
-  deepOn: "glass-chip text-accent",
   /** Accent tinted glass (icy), for something that is on (watched, on the watchlist). */
   accent: "glass-accent",
   /** Frosted glass with a red label: an action that deletes something. */

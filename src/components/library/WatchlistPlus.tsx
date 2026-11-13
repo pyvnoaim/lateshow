@@ -2,7 +2,6 @@
 
 import { Check, Plus } from "lucide-react";
 import { useOptimistic, useState, useTransition } from "react";
-import { buttonStyles } from "@/components/ui/button";
 import { setOnWatchlist, type TitleRef } from "@/lib/library/actions";
 
 /**
@@ -50,7 +49,7 @@ export function WatchlistPlus({
       }}
       className={
         variant === "overlay"
-          ? buttonStyles(on ? "deepOn" : "deep", "iconSm")
+          ? `flex size-7 shrink-0 press items-center justify-center rounded-full transition-colors hover:bg-fg/12 ${on ? "text-accent" : "text-fg"}`
           : `-m-1.5 inline-flex shrink-0 press items-center gap-1 rounded-full p-1.5 transition-colors ${on ? "text-accent" : "text-muted hover:text-fg"}`
       }
     >
