@@ -1,6 +1,5 @@
 "use client";
 
-import { X } from "lucide-react";
 import { useEffect, useState } from "react";
 import { buttonStyles } from "@/components/ui/button";
 import { BUILD_ID } from "@/lib/build";
@@ -8,14 +7,13 @@ import { BUILD_ID } from "@/lib/build";
 const EVERY_MS = 10 * 60_000;
 
 /**
- * After a deploy, a small glass bar at the bottom: "Lateshow got an update", Reload or close. The page knows
+ * After a deploy, a small glass bar at the bottom: "Lateshow got an update", Reload. The page knows
  * the build it came from (BUILD_ID, inlined), /api/version says what runs now. Checked when you
  * come back to the tab and every 10 minutes. Navigating reloads on its own anyway (Next's version skew handling),
  * this is for a page left open.
  */
 export function UpdateBar() {
   const [fresh, setFresh] = useState(false);
-  const [closed, setClosed] = useState(false);
 
   useEffect(() => {
     const check = () => {
@@ -33,7 +31,7 @@ export function UpdateBar() {
     };
   }, []);
 
-  if (!fresh || closed) return null;
+  if (!fresh) return null;
   return (
     // solid backing like the other floating cards: over the page, see-through glass let the text below read through
     <div role="status" className="fixed inset-x-4 bottom-4 z-50 mx-auto w-fit rise rounded-full bg-bg shadow-2xl">
@@ -41,15 +39,6 @@ export function UpdateBar() {
         <span className="text-label whitespace-nowrap">Lateshow got an update.</span>
         <button type="button" onClick={() => location.reload()} className={buttonStyles("primary", "sm")}>
           Reload
-        </button>
-        <button
-          type="button"
-          aria-label="Later"
-          data-tip="Later"
-          onClick={() => setClosed(true)}
-          className={buttonStyles("ghost", "icon")}
-        >
-          <X size={18} strokeWidth={1.75} aria-hidden />
         </button>
       </div>
     </div>
