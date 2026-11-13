@@ -5,11 +5,12 @@ import Link from "next/link";
 import { Suspense, useEffect, useState, type ReactNode } from "react";
 import { NavLinks, NavLinksView } from "./NavLinks";
 
-const TOP = 48; // the top bar is on its way out here: the island takes over, so there's never a moment with neither
+const TOP = 32; // halfway through the bar dissolving (--spacing-handoff): the two cross, never a moment with neither
 
 /**
  * The bar, once you've scrolled past it: a compact glass island in the middle of the top edge, there in both
- * directions. Hidden (back at the top, where the full bar is) it can't be tabbed into.
+ * directions. It rises out of where the bar was (lower, a touch larger, no blur: a filter on glass smears what is behind it) as the bar dissolves (`bar-out`), so
+ * the bar reads as condensing into it. Hidden (back at the top, where the full bar is) it can't be tabbed into.
  */
 export function NavIsland({ account }: { account: ReactNode }) {
   const [shown, setShown] = useState(false);
@@ -23,7 +24,7 @@ export function NavIsland({ account }: { account: ReactNode }) {
   return (
     <div
       inert={!shown}
-      className={`fixed top-3 left-1/2 z-40 flex -translate-x-1/2 items-center gap-4 rounded-full p-1.5 glass-deep transition duration-500 ease-spring motion-reduce:transition-none ${shown ? "translate-y-0 scale-100 opacity-100" : "-translate-y-6 scale-95 opacity-0"}`}
+      className={`fixed top-3 left-1/2 z-40 flex -translate-x-1/2 items-center gap-4 rounded-full p-1.5 glass-deep transition duration-500 ease-spring motion-reduce:transition-none ${shown ? "translate-y-0 scale-100 opacity-100" : "translate-y-4 scale-105 opacity-0"}`}
     >
       {/* every item sits in a 36 px slot with the same 6 px around: both ends are round and the same distance in */}
       <Link

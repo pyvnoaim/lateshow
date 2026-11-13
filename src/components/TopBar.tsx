@@ -17,7 +17,7 @@ import { profileHref } from "@/lib/username";
 export function TopBar() {
   return (
     <header className="absolute inset-x-0 top-0 z-20">
-      <Container className="flex h-bar items-center gap-8">
+      <Container className="flex h-bar bar-out items-center gap-8">
         <Link href="/" aria-label="Lateshow, home" className="rounded-thumb">
           <Logo />
         </Link>

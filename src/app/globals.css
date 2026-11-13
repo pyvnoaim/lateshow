@@ -63,6 +63,7 @@
   --container-form: 480px;
   --container-trailer: 1100px;
   --spacing-bar: 88px; /* top bar height, also the offset for heroes under it */
+  --spacing-handoff: 64px; /* scroll distance over which the top bar dissolves into the island (NavIsland TOP is inside it) */
   --spacing-page-top: 120px; /* top padding of pages without a hero */
   --spacing-section: 72px; /* rhythm between sections */
   --spacing-swipe-chrome: 360px; /* top bar, room line, faces and the buttons around a swipe card */
@@ -507,6 +508,28 @@
   animation:
     shimmer var(--duration-shimmer) var(--ease-spring) infinite,
     sk-in 400ms ease-out var(--delay-skeleton) both;
+}
+/*
+ * Top bar handing over to the scroll island: its contents lift, shrink a touch and fade with the first scroll,
+ * tied to the scroll position, while the island rises out of the same spot. Never on the header itself: a transform
+ * there would pin the fixed island to the header. No blur: a filter here pulls the backdrop behind the glass pills
+ * (Up next) into the blurred layer and smears the hero. No scroll timelines (Firefox): the bar just scrolls away as before.
+ */
+@utility bar-out {
+  @supports (animation-timeline: scroll()) {
+    animation: bar-out linear both;
+    animation-timeline: scroll(root);
+    animation-range: 0 var(--spacing-handoff);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+@keyframes bar-out {
+  to {
+    opacity: 0;
+    transform: translateY(-12px) scale(0.98);
+  }
 }
 @utility rise {
   animation: rise var(--duration-rise) var(--ease-spring) both;
