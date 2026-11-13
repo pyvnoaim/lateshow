@@ -106,7 +106,7 @@ export function ListMenu({
           size === "button"
             ? buttonStyles(onAny ? "accent" : "glass", "icon")
             : size === "overlay"
-              ? `flex size-7 shrink-0 press items-center justify-center rounded-full transition-colors hover:bg-fg/12 ${onAny ? "text-accent" : "text-fg"}`
+              ? `flex size-7 shrink-0 press items-center justify-center rounded-full transition-colors ${onAny ? "text-accent" : "text-fg/75 hover:text-fg"}`
               : `-m-1.5 inline-flex shrink-0 press items-center rounded-full p-1.5 transition-colors ${onAny ? "text-accent" : "text-muted hover:text-fg"}`
         }
       >

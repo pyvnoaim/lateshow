@@ -116,7 +116,7 @@ lists (/l/<id>, see Todo), /watchlist + /u/me redirects in `next.config.ts`, 404
 - [x] Lists (2026-11-12): `list` + `list_item`, the 16 char id is the link. Owner picks Only you / Friends / Anyone
       with the link (signed out too), access in `canSeeList`. Add from the list icon on the title page and in every poster caption (once you have a list), Lists tab on
       profiles, /l/<id> (rename, copy link, delete, Remove under posters), "Pick one together" = a swipe room over the
-      list (`room.list_id`, the kind most titles are). Later maybe: list OG image.
+      list (`room.list_id`, the kind most titles are). Link preview (OG) only for "Anyone with the link" lists, the rest get a plain card.
 - [ ] Later: genre/mood row, imports from TMDB account and Trakt (both have ids), Netflix CSV (titles only, weak).
 - [ ] Watch together = a browser extension (drafts on the canvas, approved 2026-11-11): syncs the streaming site's
       player for everyone in a room, on a laptop. Rejected: a manual 3-2-1 countdown flow without the extension.
