@@ -38,8 +38,9 @@ export function ListOwnerBar({
     e.preventDefault();
     if (!draft.trim()) return;
     startTransition(async () => {
-      await rename(draft.trim());
-      setMode("idle");
+      await rename(draft.trim())
+        .then(() => setMode("idle"))
+        .catch(() => {}); // stays open with the name, nothing is lost
     });
   };
 
@@ -58,7 +59,7 @@ export function ListOwnerBar({
       </div>
       <p className="text-small text-muted">
         {shown === "private" && "Only you see this list."}
-        {shown === "friends" && "Your friends see it on your profile and at its link."}
+        {shown === "friends" && "Your friends can open it, signed in."}
         {shown === "link" && "Anyone with the link can open it, without an account."}
       </p>
       <div className="flex flex-wrap items-center gap-6">

@@ -208,7 +208,11 @@ function Hero({
         )}
         {/* once you've seen it (a series: any episode) */}
         {library.watched.length > 0 && (
-          <RatingButtons initial={library.rating} rate={setRating.bind(null, library.ref)} />
+          <RatingButtons
+            key={String(library.rating)}
+            initial={library.rating}
+            rate={setRating.bind(null, library.ref)}
+          />
         )}
       </div>
     </BackdropHero>

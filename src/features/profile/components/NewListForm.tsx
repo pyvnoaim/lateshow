@@ -13,7 +13,10 @@ export function NewListForm({ create }: { create: (name: string) => Promise<stri
   const submit = (e: FormEvent) => {
     e.preventDefault();
     if (!name.trim()) return;
-    startTransition(async () => router.push(`/l/${await create(name.trim())}`));
+    startTransition(async () => {
+      const id = await create(name.trim()).catch(() => null);
+      if (id) router.push(`/l/${id}`);
+    });
   };
   return (
     <form onSubmit={submit} className={`${fieldStyles("lg")} w-full max-w-form`}>

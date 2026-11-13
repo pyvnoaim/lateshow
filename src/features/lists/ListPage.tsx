@@ -8,6 +8,7 @@ import { getSession } from "@/lib/auth";
 import { deleteList, renameList, setInList, setListVisibility, swipeList } from "@/lib/lists/actions";
 import { getList } from "@/lib/lists/queries";
 import { VISIBILITY } from "@/lib/lists/rules";
+import { pool } from "@/lib/pool";
 import { getLanguage } from "@/lib/region";
 import { getTitle, titleToCard, type Card } from "@/lib/tmdb";
 import { ListOwnerBar } from "./components/ListOwnerBar";
@@ -23,13 +24,11 @@ export async function ListPage({ id }: { id: string }) {
   const mine = session?.user.id === l.userId;
   const lang = await getLanguage();
   // full TMDB cards so captions match every other poster (cached per title and language)
-  // ponytail: one lookup per title, fine for lists of a few dozen. Store year and genre on list_item if lists get long.
-  const cards: Card[] = await Promise.all(
-    l.items.map((i) =>
-      getTitle(i.mediaType, String(i.tmdbId), lang)
-        .then((t) => titleToCard(t, i.mediaType))
-        .catch(() => ({ id: i.tmdbId, media_type: i.mediaType, title: i.title, poster_path: i.posterPath })),
-    ),
+  // ponytail: one lookup per title, 8 at a time. Store year and genre on list_item if long lists get slow.
+  const cards: Card[] = await pool(l.items, 8, (i) =>
+    getTitle(i.mediaType, String(i.tmdbId), lang)
+      .then((t) => titleToCard(t, i.mediaType))
+      .catch(() => ({ id: i.tmdbId, media_type: i.mediaType, title: i.title, poster_path: i.posterPath })),
   );
   const count = `${l.items.length} ${l.items.length === 1 ? "title" : "titles"}`;
 

@@ -53,8 +53,8 @@ export function AddToList({
     const n = name.trim();
     if (!n) return;
     startTransition(async () => {
-      await create(n);
-      setName("");
+      // signed out meanwhile or a bad name: keep what was typed rather than throwing to the error page
+      if (await create(n).catch(() => null)) setName("");
     });
   };
 

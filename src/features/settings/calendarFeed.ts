@@ -4,6 +4,7 @@ import { env } from "@/lib/env";
 import { getRecentShows, getWatchlist } from "@/lib/library/queries";
 import { DEFAULT_COUNTRY } from "@/lib/region";
 import { SITE_URL } from "@/lib/site";
+import { pool } from "@/lib/pool";
 import { getTitle, theatricalDate } from "@/lib/tmdb";
 
 const DAY = 86_400_000;
@@ -34,42 +35,41 @@ export async function calendarFeed(token: string) {
     ...listed.filter((w) => w.mediaType === "tv").map((w) => w.tmdbId),
   ]);
 
-  const episodes = Promise.all(
-    [...showIds].map(async (id): Promise<CalendarEvent[]> => {
-      const t = await getTitle("tv", String(id)).catch(() => null);
-      const ep = t?.next_episode_to_air;
-      if (!t || !ep || !soon(ep.air_date)) return [];
-      const name = ep.name && !/^Episode \d+$/.test(ep.name) ? `: ${ep.name}` : "";
+  // 8 at a time each: a long watchlist on a cold cache must not hit TMDB's rate limit (and drop events)
+  const episodes = pool([...showIds], 8, async (id): Promise<CalendarEvent[]> => {
+    const t = await getTitle("tv", String(id)).catch(() => null);
+    const ep = t?.next_episode_to_air;
+    if (!t || !ep || !soon(ep.air_date)) return [];
+    const name = ep.name && !/^Episode \d+$/.test(ep.name) ? `: ${ep.name}` : "";
+    return [
+      {
+        uid: `tv-${t.id}-s${ep.season_number}e${ep.episode_number}@lateshow`,
+        date: ep.air_date,
+        summary: `${t.name} S${ep.season_number}E${ep.episode_number}${name}`,
+        url: `${SITE_URL}/title/tv/${t.id}`,
+      },
+    ];
+  });
+  // series on the watchlist already show up above through their next episode, so only films here
+  const releases = pool(
+    listed.filter((w) => w.mediaType === "movie"),
+    8,
+    async (w): Promise<CalendarEvent[]> => {
+      const t = await getTitle("movie", String(w.tmdbId)).catch(() => null);
+      if (!t) return [];
+      const cinema = theatricalDate(t, DEFAULT_COUNTRY);
+      const date = cinema ?? t.release_date;
+      if (!date || date < today) return [];
+      const title = t.title ?? w.title;
       return [
         {
-          uid: `tv-${t.id}-s${ep.season_number}e${ep.episode_number}@lateshow`,
-          date: ep.air_date,
-          summary: `${t.name} S${ep.season_number}E${ep.episode_number}${name}`,
-          url: `${SITE_URL}/title/tv/${t.id}`,
+          uid: `movie-${t.id}@lateshow`,
+          date,
+          summary: cinema ? `${title} in cinemas` : `${title} out`,
+          url: `${SITE_URL}/title/movie/${t.id}`,
         },
       ];
-    }),
-  );
-  // series on the watchlist already show up above through their next episode, so only films here
-  const releases = Promise.all(
-    listed
-      .filter((w) => w.mediaType === "movie")
-      .map(async (w): Promise<CalendarEvent[]> => {
-        const t = await getTitle("movie", String(w.tmdbId)).catch(() => null);
-        if (!t) return [];
-        const cinema = theatricalDate(t, DEFAULT_COUNTRY);
-        const date = cinema ?? t.release_date;
-        if (!date || date < today) return [];
-        const title = t.title ?? w.title;
-        return [
-          {
-            uid: `movie-${t.id}@lateshow`,
-            date,
-            summary: cinema ? `${title} in cinemas` : `${title} out`,
-            url: `${SITE_URL}/title/movie/${t.id}`,
-          },
-        ];
-      }),
+    },
   );
 
   const events = (await Promise.all([episodes, releases])).flat(2).toSorted((a, b) => a.date.localeCompare(b.date));

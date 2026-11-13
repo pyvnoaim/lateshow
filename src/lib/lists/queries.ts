@@ -1,13 +1,17 @@
 import "server-only";
 import { and, asc, count, desc, eq, inArray, ne } from "drizzle-orm";
+import { cache } from "react";
 import { user } from "@/lib/db/auth-schema";
 import { db } from "@/lib/db/client";
 import { list, listItem } from "@/lib/db/schema";
 import { areFriends } from "@/lib/friends/queries";
 import { canSeeList } from "./rules";
 
-/** One list with its titles (oldest first, the order they were added), or null when this viewer can't see it. */
-export async function getList(id: string, viewerId: string | null) {
+/**
+ * One list with its titles (oldest first, the order they were added), or null when this viewer can't see it.
+ * Once per request (the page and its metadata both ask).
+ */
+export const getList = cache(async (id: string, viewerId: string | null) => {
   const [l] = await db
     .select({
       id: list.id,
@@ -25,8 +29,9 @@ export async function getList(id: string, viewerId: string | null) {
   if (!canSeeList(l, viewerId, friends)) return null;
   const items = await db.select().from(listItem).where(eq(listItem.listId, id)).orderBy(asc(listItem.addedAt));
   return { ...l, items };
-}
+});
 
+// ponytail: reads every item of every list for 4 posters each. One ROW_NUMBER() query if lists get long.
 /**
  * Someone's lists with a count and the first posters: all of them for the owner, for anyone else only the ones
  * not kept private (call it for a friend's profile only, a stranger never gets there).
@@ -73,13 +78,4 @@ export async function getMyListsFor(userId: string, type: "movie" | "tv", tmdbId
   ]);
   const has = new Set(on.map((o) => o.id));
   return lists.map((l) => ({ ...l, has: has.has(l.id) }));
-}
-
-/** The TMDB ids of one kind on a list, for a room's deck. */
-export async function getListIds(id: string, kind: "movie" | "tv") {
-  const rows = await db
-    .select({ id: listItem.tmdbId })
-    .from(listItem)
-    .where(and(eq(listItem.listId, id), eq(listItem.mediaType, kind)));
-  return rows.map((r) => r.id);
 }

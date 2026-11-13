@@ -7,6 +7,7 @@ import { getSession } from "@/lib/auth";
 import { db } from "@/lib/db/client";
 import { rating, watched, watchlist } from "@/lib/db/schema";
 import { findByImdbId, getAiredEpisodes, getRuntime, img, searchForImport } from "@/lib/tmdb";
+import { pool } from "@/lib/pool";
 import { pickMatch, type Hit, type ImportRow } from "./importing";
 import { fromScore } from "./rating";
 
@@ -72,21 +73,6 @@ async function match(r: ImportRow): Promise<Match | Unsure | null> {
       poster: img(c.posterPath, "w92"),
     })),
   };
-}
-
-/** Runs `fn` over `items`, `n` at a time (TMDB is fine with that, and it keeps a batch to a few seconds). */
-async function pool<T, R>(items: T[], n: number, fn: (item: T) => Promise<R>): Promise<R[]> {
-  const out = new Array<R>(items.length);
-  let next = 0;
-  await Promise.all(
-    Array.from({ length: Math.min(n, items.length) }, async () => {
-      while (next < items.length) {
-        const i = next++;
-        out[i] = await fn(items[i]);
-      }
-    }),
-  );
-  return out;
 }
 
 /**

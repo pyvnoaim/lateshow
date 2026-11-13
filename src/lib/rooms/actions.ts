@@ -11,7 +11,7 @@ import { getSession } from "@/lib/auth";
 import { db } from "@/lib/db/client";
 import { room, roomMember, roomMood, roomPick, roomVote } from "@/lib/db/schema";
 import { getFriends } from "@/lib/friends/queries";
-import { getList, getListIds } from "@/lib/lists/queries";
+import { getList } from "@/lib/lists/queries";
 import { getRegion } from "@/lib/region";
 import { safeNext } from "@/lib/safeNext";
 import { BRACKET_SIZE, bracketState } from "./bracket";
@@ -207,7 +207,11 @@ async function deal(r: typeof room.$inferSelect, round: number) {
   const ids = members.map((m) => m.id);
   const people = ids.filter((id) => !id.startsWith("guest:"));
   const size = r.game === "bracket" ? BRACKET_SIZE : undefined;
-  const fromList = r.listId ? await getListIds(r.listId, r.kind) : undefined;
+  // checked again on every deal: if the host lost access since (unfriended, list made private), the deck is empty
+  const list = r.listId ? await getList(r.listId, r.hostId) : null;
+  const fromList = r.listId
+    ? (list?.items.filter((i) => i.mediaType === r.kind).map((i) => i.tmdbId) ?? [])
+    : undefined;
   return { country, players: ids, ...(await buildDeck(r.code, r.kind, people, country, round, size, fromList)) };
 }
 
@@ -218,10 +222,11 @@ async function deal(r: typeof room.$inferSelect, round: number) {
 export async function startRoom(raw: string) {
   const r = await hostedRoom(raw);
   if (!r || r.status !== "lobby") return;
-  const dealt = r.game === "reel" ? {} : await deal(r, 0);
+  const dealt = r.game === "reel" ? null : await deal(r, 0);
+  if (dealt && !dealt.deck.length) return; // a list room whose list is gone or private now: stay in the lobby
   await db
     .update(room)
-    .set({ status: "playing", ...dealt, version: sql`${room.version} + 1` })
+    .set({ status: "playing", ...(dealt ?? {}), version: sql`${room.version} + 1` })
     .where(and(eq(room.code, r.code), eq(room.status, "lobby")));
   refresh();
 }
@@ -232,6 +237,7 @@ export async function playAgain(raw: string) {
   if (!r || r.status !== "playing" || r.game === "reel") return;
   const round = (r.version % 97) + 1;
   const dealt = await deal(r, round);
+  if (!dealt.deck.length) return; // the list is gone or private now: keep the round being played
   db.transaction((tx) => {
     const now = tx.select({ version: room.version }).from(room).where(eq(room.code, r.code)).get();
     if (!now || now.version !== r.version) return; // someone else already dealt again
