@@ -35,3 +35,18 @@ export async function PosterActions({ card, variant }: { card: Card; variant: "c
     </>
   );
 }
+
+/**
+ * The hover version of a poster's actions, laid over its corner. Put it next to the poster's link (a button inside a
+ * link is invalid), inside a `group relative` wrapper whose top is the poster. Same box and transform as the poster's
+ * `lift`, so it moves with it. Kept up while its list menu is open. Mouse and trackpad only, touch has the caption.
+ */
+export function PosterHoverActions({ card }: { card: Card }) {
+  return (
+    <div className="pointer-events-none absolute inset-x-0 top-0 hidden aspect-poster lift-follow pointer-fine:block">
+      <div className="pointer-events-auto absolute top-2.5 right-2.5 flex gap-1.5 opacity-0 transition-opacity duration-200 group-hover:opacity-100 focus-within:opacity-100 has-aria-expanded:opacity-100">
+        <PosterActions card={card} variant="overlay" />
+      </div>
+    </div>
+  );
+}

@@ -2,6 +2,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Section } from "@/components/ui/Section";
 import { getTopInCountry } from "@/lib/justwatch";
+import { PosterHoverActions } from "@/components/PosterActions";
 import { PosterCaption } from "@/components/PosterCaption";
 import { getTitle, img, titleToCard } from "@/lib/tmdb";
 import { getRegion } from "@/lib/region";
@@ -32,8 +33,8 @@ export async function TopTen() {
               >
                 {i + 1}
               </span>
-              {/* the caption (with its + button) sits under the link, never inside it */}
-              <div className="flex w-36 flex-col gap-2.5 sm:w-44">
+              {/* the caption and the hover buttons sit next to the link, never inside it */}
+              <div className="group relative flex w-36 flex-col gap-2.5 sm:w-44">
                 <Link
                   href={`/title/${type}/${t.id}`}
                   aria-label={`${i + 1}. ${t.title ?? t.name}`}
@@ -44,6 +45,7 @@ export async function TopTen() {
                   </div>
                   <span className="truncate text-label font-medium">{t.title ?? t.name}</span>
                 </Link>
+                <PosterHoverActions card={titleToCard(t, type)} />
                 <PosterCaption card={titleToCard(t, type)} />
               </div>
             </li>

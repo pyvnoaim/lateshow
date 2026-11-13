@@ -50,7 +50,7 @@ export function WatchlistPlus({
       }}
       className={
         variant === "overlay"
-          ? buttonStyles(on ? "accent" : "glass", "iconSm")
+          ? buttonStyles(on ? "deepOn" : "deep", "iconSm")
           : `-m-1.5 inline-flex shrink-0 press items-center gap-1 rounded-full p-1.5 transition-colors ${on ? "text-accent" : "text-muted hover:text-fg"}`
       }
     >

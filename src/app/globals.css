@@ -420,6 +420,15 @@
    invite card) or a field (glass holding an input) the highlight reads as a grey smudge. */
 /* Glass that floats over anything (the scroll island): the same blur and edge, over a dark tint, so grey text stays
    readable on bright pictures. */
+/* Small buttons over a poster: glass-deep with a much darker tint, so they read on bright and pale posters too */
+@utility glass-chip {
+  background: linear-gradient(180deg, var(--color-glass-hi), var(--color-glass-lo)), rgb(12 12 14 / 0.66);
+  backdrop-filter: blur(16px) saturate(1.6) brightness(0.7);
+  box-shadow:
+    inset 0 1px 0 0 rgb(255 255 255 / 0.3),
+    inset 0 0 0 1px var(--color-hairline),
+    0 6px 16px -6px rgb(0 0 0 / 0.7);
+}
 @utility glass-deep {
   background:
     radial-gradient(ellipse 60% 120% at 50% -20%, rgb(255 255 255 / 0.14), transparent 70%),

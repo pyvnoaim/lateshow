@@ -106,7 +106,7 @@ export function ListMenu({
           size === "button"
             ? buttonStyles(onAny ? "accent" : "glass", "icon")
             : size === "overlay"
-              ? buttonStyles(onAny ? "accent" : "glass", "iconSm")
+              ? buttonStyles(onAny ? "deepOn" : "deep", "iconSm")
               : `-m-1.5 inline-flex shrink-0 press items-center rounded-full p-1.5 transition-colors ${onAny ? "text-accent" : "text-muted hover:text-fg"}`
         }
       >
