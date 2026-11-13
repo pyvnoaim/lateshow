@@ -138,7 +138,7 @@ function Group({ id, title, children }: { id: string; title: string; children: R
 
 /**
  * One setting: label and a muted line on the left, the control on the right (from lg).
- * `stack` puts wide controls (service tiles, lists, the calendar link) under the label instead.
+ * `stack` puts wide controls (service tiles, lists) under the label instead.
  */
 function Row({
   title,
