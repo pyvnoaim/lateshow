@@ -9,8 +9,8 @@ const TOP = 32; // halfway through the bar dissolving (--spacing-handoff): the t
 
 /**
  * The bar, once you've scrolled past it: a compact glass island in the middle of the top edge, there in both
- * directions. It rises out of where the bar was (lower, a touch larger, no blur: a filter on glass smears what is behind it) as the bar dissolves (`bar-out`), so
- * the bar reads as condensing into it. Hidden (back at the top, where the full bar is) it can't be tabbed into.
+ * directions. It rises out of where the bar was (lower, a touch larger) as the bar fades (`bar-out`), so the bar
+ * reads as condensing into it. No blur: a filter on glass smears what is behind it. Hidden (back at the top, where the full bar is) it can't be tabbed into.
  */
 export function NavIsland({ account }: { account: ReactNode }) {
   const [shown, setShown] = useState(false);
