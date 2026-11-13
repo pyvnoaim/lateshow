@@ -3,6 +3,7 @@ import { SITE_URL } from "@/lib/site";
 import { Inter_Tight } from "next/font/google";
 import { AsciiScrollbar } from "@/components/AsciiScrollbar";
 import { GlassSheen } from "@/components/GlassSheen";
+import { Intro, INTRO_SCRIPT } from "@/components/Intro";
 import { Tooltips } from "@/components/Tooltips";
 import { UpdateBar } from "@/components/UpdateBar";
 import "./globals.css";
@@ -20,8 +21,13 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="en" className={interTight.variable}>
+    // the intro script sets data-intro before React hydrates
+    <html lang="en" className={interTight.variable} suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: INTRO_SCRIPT }} />
+      </head>
       <body className="relative min-h-dvh bg-bg text-fg">
+        <Intro />
         {children}
         <GlassSheen />
         <Tooltips />

@@ -82,6 +82,10 @@
   --duration-rise: 520ms;
   --duration-shimmer: 2200ms; /* one sweep of the skeleton light */
   --delay-skeleton: 150ms; /* skeletons only show if loading takes longer than this */
+  --duration-page-out: 140ms; /* page switch: the old page leaves fast */
+  --duration-page-in: 420ms; /* the new one rises in after it */
+  --duration-intro: 1100ms; /* first load: the light rises in the logo */
+  --duration-intro-out: 380ms; /* then the black lifts off the page (also the fade into a reload) */
   --duration-settle: 800ms; /* hero text coming in */
   --duration-slide: 7000ms; /* hero carousel: the dash fill is the timer */
 
@@ -707,5 +711,72 @@
   ::view-transition-group(*) {
     animation: none !important;
     transition: none !important;
+  }
+}
+
+/* Page switch (PageTransition): the old page fades out fast, the new one rises in after it */
+@layer base {
+  ::view-transition-old(.page-out) {
+    animation: page-out var(--duration-page-out) ease-in both;
+  }
+  ::view-transition-new(.page-in) {
+    animation: rise var(--duration-page-in) var(--ease-spring) var(--duration-page-out) both;
+  }
+}
+@keyframes page-out {
+  to {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
+/*
+ * Intro (Intro.tsx): black with the logo, its light rising, then the black lifts off. Once per tab session, the inline
+ * script in the root layout sets data-intro="off" before the first paint. data-outro (Reload on the update bar)
+ * brings the black back before the page reloads.
+ */
+@layer base {
+  /* layout here, not as utilities: utilities would win over the hide rules below */
+  .intro {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    animation: intro-out var(--duration-intro-out) ease-out var(--duration-intro) both;
+  }
+  .intro-mark {
+    animation: intro-mark var(--duration-intro) var(--ease-spring) both;
+  }
+  .intro-light {
+    animation: intro-light var(--duration-intro) var(--ease-spring) both;
+  }
+  :root[data-intro="off"] .intro {
+    display: none;
+  }
+  :root[data-outro] .intro {
+    display: flex;
+    animation: intro-out var(--duration-intro-out) ease-in reverse both;
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .intro {
+      display: none;
+    }
+  }
+}
+@keyframes intro-out {
+  to {
+    opacity: 0;
+    visibility: hidden;
+  }
+}
+@keyframes intro-mark {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+}
+@keyframes intro-light {
+  from {
+    opacity: 0;
+    transform: translateY(40px) scale(0.6);
   }
 }
