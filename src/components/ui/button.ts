@@ -4,8 +4,8 @@ const base =
 const tones = {
   /** Tinted (milky white) glass, the one main action on a screen. */
   primary: "glass-tint",
-  /** Frosted glass, secondary actions over images. */
-  glass: "glass",
+  /** Frosted glass, secondary actions over images. Own text color: inside a muted parent (a field pill) it went grey. */
+  glass: "glass text-fg",
   /** Icon only, no background until hover, then glass fades in (same as quiet links). */
   ghost: "glass-hover",
   /** Quiet text action (Sign out, Send again): grey, turns white on hover, nothing else moves or fills. */
