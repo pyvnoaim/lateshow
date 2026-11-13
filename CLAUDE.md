@@ -112,9 +112,9 @@ lists (/l/<id>, see Todo), /watchlist + /u/me redirects in `next.config.ts`, 404
       unpacks and reads them (fflate), only rows go to the server in batches of 150 (`lib/library/importActions.ts`),
       IMDb matches by id, Letterboxd by title + year (±1) across films and series (a watched series = every aired episode), unclear ones are picked by hand. Ratings come along (9+ love, 6+ like, 4 or less not for me).
 - [x] Lists (2026-11-12): `list` + `list_item`, the 16 char id is the link. Owner picks Only you / Friends / Anyone
-      with the link (signed out too), access in `canSeeList`. Add from the title page (list button), Lists tab on
+      with the link (signed out too), access in `canSeeList`. Add from the list icon on the title page and in every poster caption (once you have a list), Lists tab on
       profiles, /l/<id> (rename, copy link, delete, Remove under posters), "Pick one together" = a swipe room over the
-      list (`room.list_id`, the kind most titles are). Later maybe: add to list from poster captions, list OG image.
+      list (`room.list_id`, the kind most titles are). Later maybe: list OG image.
 - [ ] Later: genre/mood row, imports from TMDB account and Trakt (both have ids), Netflix CSV (titles only, weak).
 - [ ] Watch together = a browser extension (drafts on the canvas, approved 2026-11-11): syncs the streaming site's
       player for everyone in a room, on a laptop. Rejected: a manual 3-2-1 countdown flow without the extension.

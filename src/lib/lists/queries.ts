@@ -1,6 +1,7 @@
 import "server-only";
 import { and, asc, count, desc, eq, inArray, ne } from "drizzle-orm";
 import { cache } from "react";
+import { getSession } from "@/lib/auth";
 import { user } from "@/lib/db/auth-schema";
 import { db } from "@/lib/db/client";
 import { list, listItem } from "@/lib/db/schema";
@@ -79,3 +80,30 @@ export async function getMyListsFor(userId: string, type: "movie" | "tv", tmdbId
   const has = new Set(on.map((o) => o.id));
   return lists.map((l) => ({ ...l, has: has.has(l.id) }));
 }
+
+/**
+ * Your lists and which titles are on each ("movie-27205" -> list ids), for the list icon in every poster caption.
+ * Null signed out. One pair of queries per request, shared by every poster on the page.
+ */
+export const getMyListMembership = cache(async () => {
+  const session = await getSession();
+  if (!session) return null;
+  const [lists, items] = await Promise.all([
+    db
+      .select({ id: list.id, name: list.name })
+      .from(list)
+      .where(eq(list.userId, session.user.id))
+      .orderBy(desc(list.createdAt)),
+    db
+      .select({ id: listItem.listId, mediaType: listItem.mediaType, tmdbId: listItem.tmdbId })
+      .from(listItem)
+      .innerJoin(list, eq(list.id, listItem.listId))
+      .where(eq(list.userId, session.user.id)),
+  ]);
+  const on = new Map<string, Set<string>>();
+  for (const i of items) {
+    const key = `${i.mediaType}-${i.tmdbId}`;
+    on.set(key, (on.get(key) ?? new Set()).add(i.id));
+  }
+  return { lists, on };
+});

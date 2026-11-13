@@ -1,21 +1,25 @@
 import { BadgeCheck } from "lucide-react";
 import Image from "next/image";
 import { getMyWatchedKeys, getMyWatchlistKeys } from "@/lib/library/queries";
+import { createList, setInList } from "@/lib/lists/actions";
+import { getMyListMembership } from "@/lib/lists/queries";
 import { getRegion } from "@/lib/region";
 import { getMyServiceIds } from "@/lib/settings/queries";
 import { getGenreNames, getTitle, img, subscriptionServices, type Card } from "@/lib/tmdb";
+import { ListMenu } from "./library/ListMenu";
 import { WatchlistPlus } from "./library/WatchlistPlus";
 
 /**
  * The grey line under a poster title: "Movie · 2026 · Crime", plus a small app icon
- * when it streams on a subscription in your country, and (signed in) the + that saves it to your watchlist.
+ * when it streams on a subscription in your country, and (signed in) the + that saves it to your watchlist, with the
+ * list icon beside it once you have a list.
  * Watched it (a series: any episode)? A small icy "verified" badge leads the line, so a row shows it at a glance.
  */
 export async function PosterCaption({ card, plus = true }: { card: Card; plus?: boolean }) {
   const year = (card.release_date ?? card.first_air_date ?? "").slice(0, 4);
   const { code: country, lang } = await getRegion();
   // ponytail: one cached title lookup per poster (days, per language). Fine for rows of 12-24, a batch endpoint if TMDB limits bite.
-  const [genres, service, listed, seenMap] = await Promise.all([
+  const [genres, service, listed, seenMap, mine] = await Promise.all([
     getGenreNames(lang).catch(() => ({}) as Record<number, string>),
     Promise.all([getTitle(card.media_type, String(card.id), lang), getMyServiceIds()])
       .then(([t, mine]) => {
@@ -25,7 +29,15 @@ export async function PosterCaption({ card, plus = true }: { card: Card; plus?: 
       .catch(() => undefined),
     plus ? getMyWatchlistKeys() : null,
     getMyWatchedKeys(),
+    plus ? getMyListMembership() : null,
   ]);
+  const key = `${card.media_type}-${card.id}`;
+  const ref = {
+    type: card.media_type,
+    tmdbId: card.id,
+    title: card.title ?? card.name ?? "",
+    posterPath: card.poster_path,
+  };
   const seen = seenMap?.get(`${card.media_type}-${card.id}`);
   const seenLabel =
     seen === undefined
@@ -56,16 +68,17 @@ export async function PosterCaption({ card, plus = true }: { card: Card; plus?: 
         />
       )}
       {plus && listed && (
-        <span className="ml-auto flex pl-1">
-          <WatchlistPlus
-            titleRef={{
-              type: card.media_type,
-              tmdbId: card.id,
-              title: card.title ?? card.name ?? "",
-              posterPath: card.poster_path,
-            }}
-            initial={listed.has(`${card.media_type}-${card.id}`)}
-          />
+        <span className="ml-auto flex items-center gap-2.5 pl-1">
+          {mine && mine.lists.length > 0 && (
+            <ListMenu
+              size="caption"
+              name={ref.title}
+              lists={mine.lists.map((l) => ({ ...l, has: mine.on.get(key)?.has(l.id) ?? false }))}
+              toggle={setInList.bind(null, ref)}
+              create={createList.bind(null, ref)}
+            />
+          )}
+          <WatchlistPlus titleRef={ref} initial={listed.has(key)} />
         </span>
       )}
     </span>

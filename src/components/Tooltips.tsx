@@ -31,6 +31,8 @@ export function Tooltips() {
       current = el;
       clearTimeout(showTimer);
       const open = () => {
+        // a button whose menu is open by now (focus from the click that opened it): the tip would sit on the menu
+        if (el.getAttribute("aria-expanded") === "true") return;
         visible = true;
         setTip({ text, meta: el.dataset.tipMeta, keyCap: el.dataset.tipKey, anchor: el.getBoundingClientRect() });
       };

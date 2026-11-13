@@ -2,6 +2,7 @@ import { ArrowUpRight, Play, Star, Ticket } from "lucide-react";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import { LibraryToggle } from "@/components/library/LibraryToggle";
+import { ListMenu } from "@/components/library/ListMenu";
 import { RatingButtons } from "@/components/library/RatingButtons";
 import { PosterLink } from "@/components/PosterLink";
 import { BackdropHero, BackdropHeroSkeleton, heroTitle } from "@/components/BackdropHero";
@@ -30,7 +31,6 @@ import {
 } from "@/lib/tmdb";
 import { Episodes, type SeasonData } from "./components/Episodes";
 import { RatingsGrid } from "./components/RatingsGrid";
-import { AddToList } from "./components/AddToList";
 import { createList, setInList } from "@/lib/lists/actions";
 import { getMyListsFor } from "@/lib/lists/queries";
 import { Trailer } from "@/components/Trailer";
@@ -192,7 +192,8 @@ function Hero({
           toggle={setOnWatchlist.bind(null, library.ref)}
         />
         {library.lists && (
-          <AddToList
+          <ListMenu
+            name={library.ref.title}
             lists={library.lists}
             toggle={setInList.bind(null, library.ref)}
             create={createList.bind(null, library.ref)}
