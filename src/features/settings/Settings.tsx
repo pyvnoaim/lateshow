@@ -77,9 +77,11 @@ export async function Settings() {
           </Row>
         </Group>
         <Group {...GROUPS[2]}>
-          <Row stack title="Sign-in">
+          <Row title="Email" description="Sign-in codes go here.">
+            <p className="text-body">{session.user.email}</p>
+          </Row>
+          <Row title="Passkeys" description="Sign in with one tap.">
             <Passkeys
-              email={session.user.email}
               keys={passkeys.map((k) => ({
                 id: k.id,
                 name: k.name,
@@ -94,7 +96,7 @@ export async function Settings() {
               remove={removePasskey}
             />
           </Row>
-          <Row stack title="Import" description="Bring your history from Letterboxd or IMDb.">
+          <Row title="Import" description="Your history from Letterboxd or IMDb.">
             <ImportHistory />
           </Row>
           <Row title="Your data" description="Download or delete everything.">

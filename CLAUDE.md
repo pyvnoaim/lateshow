@@ -48,7 +48,7 @@ Hosting: Docker on the VPS behind Nginx Proxy Manager + Cloudflare, SSE for room
 ```
 src/app/         routes only: read params, call a feature, render. (main) group = TopBar + Footer
 src/features/    titles, discover, profile, auth, search. Own UI + logic
-src/components/  shared UI, ui/ = kit (Container, Section, PosterGrid, SegmentedTabs, ProgressBar, buttonStyles, field)
+src/components/  shared UI, ui/ = kit (Container, Section, PosterGrid, SegmentedTabs, ProgressBar, buttonStyles, field, Select = every dropdown)
 src/lib/         tmdb, justwatch, env, region, auth, db/, library/ (watched + watchlist: queries, actions, progress)
 ```
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { strFromU8, unzipSync } from "fflate";
-import { Upload } from "lucide-react";
+import { ChevronDown, Upload } from "lucide-react";
 import Image from "next/image";
 import { useState, type DragEvent } from "react";
 import { buttonStyles } from "@/components/ui/button";
@@ -166,25 +166,15 @@ export function ImportHistory() {
   };
 
   return (
-    <div className="flex flex-col gap-4">
-      <ul className="flex flex-col gap-2 text-small leading-normal text-muted">
-        <li>
-          <span className="text-fg">Letterboxd</span>: Settings, Import &amp; Export, Export your data. Drop the ZIP as
-          it comes.
-        </li>
-        <li>
-          <span className="text-fg">IMDb</span>: on your ratings or watchlist, the ⋯ menu, Export. Drop the CSV.
-        </li>
-      </ul>
-      <label
-        onDragOver={(e) => (e.preventDefault(), setOver(true))}
-        onDragLeave={() => setOver(false)}
-        onDrop={drop}
-        className={`flex cursor-pointer flex-col items-center justify-center gap-2 rounded-banner border border-dashed px-6 py-10 text-center transition-colors ${over ? "border-accent bg-accent/8" : "border-hairline hover:border-muted"}`}
-      >
-        <Upload size={22} strokeWidth={1.75} aria-hidden className="text-accent" />
-        <span className="text-label font-semibold">Drop your export here</span>
-        <span className="text-caption text-muted">or click to choose it</span>
+    <div
+      onDragOver={(e) => (e.preventDefault(), setOver(true))}
+      onDragLeave={() => setOver(false)}
+      onDrop={drop}
+      className="flex flex-col items-start gap-4"
+    >
+      <label className={`${buttonStyles("glass", "sm")} cursor-pointer ${over ? "ring-1 ring-accent" : ""}`}>
+        <Upload size={16} strokeWidth={2} aria-hidden />
+        {over ? "Drop it" : "Choose your export"}
         <input
           type="file"
           accept=".zip,.csv"
@@ -193,14 +183,32 @@ export function ImportHistory() {
           className="sr-only"
         />
       </label>
-      <p className="text-caption text-muted">
-        The file is read in your browser. Only the titles reach Lateshow. Importing twice adds nothing twice.
-      </p>
       {error && (
         <p role="alert" className="text-small text-danger">
           {error}
         </p>
       )}
+      <details className="group text-small text-muted">
+        <summary className="flex w-fit cursor-pointer list-none items-center gap-1 transition-colors hover:text-fg">
+          How to get it
+          <ChevronDown
+            size={14}
+            strokeWidth={2}
+            aria-hidden
+            className="transition-transform duration-200 group-open:rotate-180"
+          />
+        </summary>
+        <ul className="mt-3 flex flex-col gap-2 leading-normal">
+          <li>
+            <span className="text-fg">Letterboxd</span>: Settings, Import &amp; Export, Export your data. Drop the ZIP
+            as it comes.
+          </li>
+          <li>
+            <span className="text-fg">IMDb</span>: on your ratings or watchlist, the ⋯ menu, Export. Drop the CSV.
+          </li>
+          <li>The file is read in your browser. Only the titles reach Lateshow. Importing twice adds nothing twice.</li>
+        </ul>
+      </details>
     </div>
   );
 }

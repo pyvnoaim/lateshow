@@ -1,10 +1,9 @@
 "use client";
 
-import { ChevronDown } from "lucide-react";
 import { useOptimistic, useTransition } from "react";
-import { fieldStyles } from "@/components/ui/field";
+import { Select } from "@/components/ui/Select";
 
-/** Settings · Language: the native picker in a glass pill (a phone shows its own wheel). Saves on change. */
+/** Settings · Language: switches at once, saves in the background, the page then reloads its data. */
 export function LanguagePicker({
   choices,
   current,
@@ -17,26 +16,16 @@ export function LanguagePicker({
   const [shown, setShown] = useOptimistic(current);
   const [, startTransition] = useTransition();
   return (
-    <div className={`relative w-fit ${fieldStyles()}`}>
-      <select
-        aria-label="Language"
-        value={shown}
-        onChange={(e) => {
-          const code = e.target.value;
-          startTransition(async () => {
-            setShown(code);
-            await save(code);
-          });
-        }}
-        className="appearance-none bg-transparent pr-8 text-label text-fg outline-none"
-      >
-        {choices.map((l) => (
-          <option key={l.code} value={l.code} className="bg-bg">
-            {l.label}
-          </option>
-        ))}
-      </select>
-      <ChevronDown size={16} strokeWidth={2} aria-hidden className="pointer-events-none absolute right-4" />
-    </div>
+    <Select
+      label="Language"
+      value={shown}
+      options={choices.map((l) => ({ value: l.code, label: l.label }))}
+      onChange={(code) =>
+        startTransition(async () => {
+          setShown(code);
+          await save(code);
+        })
+      }
+    />
   );
 }

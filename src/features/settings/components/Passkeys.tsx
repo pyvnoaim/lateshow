@@ -9,27 +9,14 @@ import { forget, HAS_PASSKEY, remember } from "@/lib/passkeyHint";
 
 type Key = { id: string; name: string; added: string };
 
-/** Settings · Sign-in: where your code goes, your passkeys (remove), and Add a passkey. */
-export function Passkeys({
-  email,
-  keys,
-  remove,
-}: {
-  email: string;
-  keys: Key[];
-  remove: (id: string) => Promise<void>;
-}) {
+/** Settings · Passkeys: the ones you have (remove) and Add a passkey. */
+export function Passkeys({ keys, remove }: { keys: Key[]; remove: (id: string) => Promise<void> }) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState("");
   const router = useRouter();
   return (
-    <div className="flex max-w-reading flex-col gap-5">
-      <p className="text-body leading-normal text-muted">
-        Codes go to <span className="text-fg">{email}</span>. Passkeys sign you in with one tap.
-      </p>
-      {keys.length === 0 ? (
-        <p className="text-body text-muted">No passkeys yet. You sign in with a code.</p>
-      ) : (
+    <div className="flex flex-col gap-4">
+      {keys.length > 0 && (
         <ul className="flex flex-col gap-3">
           {keys.map((k) => (
             <li key={k.id} className="flex items-center gap-4 rounded-banner glass-cell px-5 py-3.5">
@@ -59,32 +46,29 @@ export function Passkeys({
           ))}
         </ul>
       )}
-      <div className="flex flex-wrap items-center gap-5">
-        <button
-          type="button"
-          disabled={pending}
-          onClick={() =>
-            startTransition(async () => {
-              setError("");
-              const res = await authClient.passkey.addPasskey();
-              if (res?.error)
-                setError(
-                  "code" in res.error && res.error.code === "SESSION_NOT_FRESH"
-                    ? "For your safety, sign out and back in first. Then add it right away."
-                    : "No passkey saved. Your device may have cancelled it.",
-                );
-              else {
-                remember(HAS_PASSKEY);
-                router.refresh();
-              }
-            })
-          }
-          className={buttonStyles("glass", "sm")}
-        >
-          Add a passkey
-        </button>
-        <span className="text-caption text-muted">One per device, or one that syncs (iCloud Keychain, Google).</span>
-      </div>
+      <button
+        type="button"
+        disabled={pending}
+        onClick={() =>
+          startTransition(async () => {
+            setError("");
+            const res = await authClient.passkey.addPasskey();
+            if (res?.error)
+              setError(
+                "code" in res.error && res.error.code === "SESSION_NOT_FRESH"
+                  ? "For your safety, sign out and back in first. Then add it right away."
+                  : "No passkey saved. Your device may have cancelled it.",
+              );
+            else {
+              remember(HAS_PASSKEY);
+              router.refresh();
+            }
+          })
+        }
+        className={`self-start ${buttonStyles("glass", "sm")}`}
+      >
+        Add a passkey
+      </button>
       {error && (
         <p role="alert" className="text-caption text-danger">
           {error}
