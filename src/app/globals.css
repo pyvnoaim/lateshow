@@ -66,6 +66,8 @@
   --spacing-handoff: 64px; /* scroll distance over which the top bar dissolves into the island (NavIsland TOP is inside it) */
   --spacing-page-top: 120px; /* top padding of pages without a hero */
   --spacing-section: 72px; /* rhythm between sections */
+  --spacing-side-nav: 180px; /* Settings: the sticky group links beside the page */
+  --spacing-setting-label: 280px; /* Settings: the label column of a row */
   --spacing-swipe-chrome: 360px; /* top bar, room line, faces and the buttons around a swipe card */
   --spacing-hero: 600px;
   --spacing-hero-sm: 520px;

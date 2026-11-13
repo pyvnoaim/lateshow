@@ -42,7 +42,7 @@ export function ServicePicker({
   }
 
   return (
-    <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4">
+    <ul className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
       {choices.map((s) => {
         const on = mine.has(s.id);
         return (
