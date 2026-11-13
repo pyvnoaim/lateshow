@@ -42,7 +42,7 @@ export async function Settings() {
       <div className="flex max-w-reading min-w-0 flex-1 flex-col gap-section">
         <h1 className="rise text-page leading-none font-bold">Settings</h1>
         <Group {...GROUPS[0]}>
-          <Row title="Username" description="Everyone sees it. It's also your profile's address.">
+          <Row title="Username" description="Your name and profile address.">
             <TextSetting
               id="username"
               label="Username"
@@ -56,19 +56,12 @@ export async function Settings() {
           <Row title="Picture">
             <AvatarPicker name={shownName(session.user)} current={session.user.image ?? null} save={setAvatar} />
           </Row>
-          <Row
-            title="Share with friends"
-            description="Your history, ratings and lists. Off, friends only see your name."
-          >
+          <Row title="Share with friends" description="Your history, ratings and lists.">
             <Toggle label="Share with friends" on={session.user.shareActivity !== false} save={setShareActivity} />
           </Row>
         </Group>
         <Group {...GROUPS[1]}>
-          <Row
-            stack
-            title="Your services"
-            description={`The ones you pay for in ${region.name}. Trending gets a My services tab and picks come only from these.`}
-          >
+          <Row stack title="Your services" description={`Picks come only from the ones you pay for.`}>
             {choices.length === 0 ? (
               <p className="text-body text-muted">Couldn&apos;t load the services right now. Try again in a minute.</p>
             ) : (
@@ -79,7 +72,7 @@ export async function Settings() {
               />
             )}
           </Row>
-          <Row title="Language" description="For titles, descriptions and posters. The rest stays in English.">
+          <Row title="Language" description="For titles, descriptions and posters.">
             <LanguagePicker choices={LANGUAGES} current={region.lang} save={setLanguage} />
           </Row>
         </Group>
@@ -104,7 +97,7 @@ export async function Settings() {
           <Row stack title="Import" description="Bring your history from Letterboxd or IMDb.">
             <ImportHistory />
           </Row>
-          <Row title="Your data" description="Everything you track, as a spreadsheet. Or remove it all.">
+          <Row title="Your data" description="Download or delete everything.">
             <DeleteAccount remove={deleteAccount}>
               {/* a plain link: the browser downloads the file */}
               <a href="/api/export" download className={buttonStyles("glass", "sm")}>
