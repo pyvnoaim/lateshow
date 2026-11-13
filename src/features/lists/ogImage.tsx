@@ -45,6 +45,8 @@ export async function listOgImage(id: string) {
       </div>
       <div style={{ position: "absolute", right: 60, bottom: 50, fontSize: 28, color: "#86868b" }}>Lateshow</div>
     </div>,
-    ogSize,
+    // not the default year-long immutable cache: a list made private must drop its card within minutes, at
+    // Cloudflare too
+    { ...ogSize, headers: { "Cache-Control": "public, max-age=300, must-revalidate" } },
   );
 }
