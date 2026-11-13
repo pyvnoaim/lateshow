@@ -103,26 +103,32 @@ export function StartForm({
       <div className="flex flex-wrap items-center justify-between gap-x-10 gap-y-6">
         <div className="flex flex-wrap items-center gap-x-10 gap-y-4">
           {friends.length > 0 && (
-            <ul aria-label="Invite friends" className="flex flex-wrap gap-2">
-              {friends.map((f) => {
-                const inv = invited.includes(f.id);
-                return (
-                  <li key={f.id}>
-                    <button
-                      type="button"
-                      aria-pressed={inv}
-                      onClick={() => setInvited(inv ? invited.filter((x) => x !== f.id) : [...invited, f.id])}
-                      data-tip={inv ? "Invited" : "Invite"}
-                      className={`flex h-10 press items-center gap-2 rounded-full pr-4 pl-1 text-label ${inv ? "glass-tint" : "glass"}`}
-                    >
-                      <Avatar name={f.username} image={f.image} size="sm" />
-                      {f.username}
-                      {inv && <Check size={14} strokeWidth={3} aria-hidden />}
-                    </button>
-                  </li>
-                );
-              })}
-            </ul>
+            // a label in front: a lone name chip didn't read as "invite this friend"
+            <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+              <span id="invite-label" className="text-label text-muted">
+                Invite
+              </span>
+              <ul aria-labelledby="invite-label" className="flex flex-wrap gap-2">
+                {friends.map((f) => {
+                  const inv = invited.includes(f.id);
+                  return (
+                    <li key={f.id}>
+                      <button
+                        type="button"
+                        aria-pressed={inv}
+                        onClick={() => setInvited(inv ? invited.filter((x) => x !== f.id) : [...invited, f.id])}
+                        data-tip={inv ? "Invited" : "Invite"}
+                        className={`flex h-10 press items-center gap-2 rounded-full pr-4 pl-1 text-label ${inv ? "glass-tint" : "glass"}`}
+                      >
+                        <Avatar name={f.username} image={f.image} size="sm" />
+                        {f.username}
+                        {inv && <Check size={14} strokeWidth={3} aria-hidden />}
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            </div>
           )}
         </div>
         {needsUsername ? (
