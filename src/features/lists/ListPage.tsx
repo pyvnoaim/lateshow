@@ -2,10 +2,18 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Avatar } from "@/components/Avatar";
 import { PosterLink } from "@/components/PosterLink";
-import { buttonStyles } from "@/components/ui/button";
 import { PosterGrid, PosterGridSkeleton } from "@/components/ui/PosterGrid";
 import { getSession } from "@/lib/auth";
-import { deleteList, renameList, setInList, setListVisibility, swipeList } from "@/lib/lists/actions";
+import { AddTitle } from "@/components/library/AddTitle";
+import {
+  addToListFromSearch,
+  deleteList,
+  findForList,
+  renameList,
+  setInList,
+  setListVisibility,
+  swipeList,
+} from "@/lib/lists/actions";
 import { getList } from "@/lib/lists/queries";
 import { VISIBILITY } from "@/lib/lists/rules";
 import { pool } from "@/lib/pool";
@@ -30,7 +38,7 @@ export async function ListPage({ id }: { id: string }) {
       .then((t) => titleToCard(t, i.mediaType))
       .catch(() => ({ id: i.tmdbId, media_type: i.mediaType, title: i.title, poster_path: i.posterPath })),
   );
-  const count = `${l.items.length} ${l.items.length === 1 ? "title" : "titles"}`;
+  const count = l.items.length ? `${l.items.length} ${l.items.length === 1 ? "title" : "titles"}.` : "Empty for now.";
 
   return (
     <div className="flex flex-col gap-section">
@@ -42,7 +50,7 @@ export async function ListPage({ id }: { id: string }) {
         <h1 className="text-page leading-none font-bold text-balance">
           {l.name}
           <br />
-          <span className="text-muted">{count}.</span>
+          <span className="text-muted">{count}</span>
         </h1>
         <div className="flex flex-wrap items-center gap-3">
           {session && l.items.length > 1 && <SwipeListButton start={swipeList.bind(null, l.id)} />}
@@ -54,27 +62,21 @@ export async function ListPage({ id }: { id: string }) {
               setVisibility={setListVisibility.bind(null, l.id)}
               rename={renameList.bind(null, l.id)}
               remove={deleteList.bind(null, l.id)}
+              add={<AddTitle find={findForList.bind(null, l.id)} add={addToListFromSearch.bind(null, l.id)} />}
             />
           )}
         </div>
       </div>
       {l.items.length === 0 ? (
-        <div className="flex flex-col items-start gap-5">
-          <p className="text-body text-muted">
-            Nothing on it yet.
-            {mine && (
-              <>
-                <br />
-                On any title page, the list button adds it here.
-              </>
-            )}
-          </p>
+        <p className="text-body text-muted">
+          Nothing on it yet.
           {mine && (
-            <Link href="/search" className={buttonStyles("primary", "sm")}>
-              Find something
-            </Link>
+            <>
+              <br />
+              Add a title above, or tap the list icon under any poster.
+            </>
           )}
-        </div>
+        </p>
       ) : (
         <PosterGrid>
           {cards.map((c, i) => (

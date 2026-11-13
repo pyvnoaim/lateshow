@@ -1,13 +1,16 @@
 "use client";
 
-import { useOptimistic, useState, useTransition, type FormEvent } from "react";
+import { useOptimistic, useState, useTransition, type FormEvent, type ReactNode } from "react";
 import { buttonStyles } from "@/components/ui/button";
 import { fieldInputStyles, fieldStyles } from "@/components/ui/field";
 import { SegmentedTabs } from "@/components/ui/SegmentedTabs";
 import { useCopy } from "@/components/useCopy";
 import type { Visibility } from "@/lib/lists/rules";
 
-/** The owner's controls on a list: who sees it, Copy link (once it isn't private), Rename, Delete (asks first). */
+/**
+ * The owner's controls on a list: who sees it, then one row with Add a title (`add`) on the left and the list's own
+ * actions as matching pills on the right: Copy link (once it isn't private), Rename, Delete (asks first).
+ */
 export function ListOwnerBar({
   name,
   visibility,
@@ -15,6 +18,7 @@ export function ListOwnerBar({
   setVisibility,
   rename,
   remove,
+  add,
 }: {
   name: string;
   visibility: Visibility;
@@ -22,6 +26,7 @@ export function ListOwnerBar({
   setVisibility: (v: Visibility) => Promise<void>;
   rename: (name: string) => Promise<void>;
   remove: () => Promise<void>;
+  add: ReactNode;
 }) {
   const [shown, setShown] = useOptimistic(visibility);
   const [pending, startTransition] = useTransition();
@@ -63,23 +68,26 @@ export function ListOwnerBar({
         {shown === "link" && "Anyone with the link can open it, without an account."}
       </p>
       {mode !== "delete" && (
-        <div className="flex flex-wrap items-center gap-6">
-          {shown !== "private" && (
-            <button
-              type="button"
-              onClick={() => void copy(window.location.href)}
-              className={buttonStyles("glass", "sm")}
-            >
-              {copied ? "Copied" : "Copy link"}
+        <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-4">
+          {add}
+          <div className="flex flex-wrap items-center gap-3">
+            {shown !== "private" && (
+              <button
+                type="button"
+                onClick={() => void copy(window.location.href)}
+                className={buttonStyles("glass", "sm")}
+              >
+                {copied ? "Copied" : "Copy link"}
+              </button>
+            )}
+            <button type="button" onClick={() => setMode("rename")} className={buttonStyles("glass", "sm")}>
+              Rename
             </button>
-          )}
-          <button type="button" onClick={() => setMode("rename")} className={buttonStyles("text", "text")}>
-            Rename
-          </button>
-          {/* same as Delete account in Settings: red glass, then a confirm step in its place */}
-          <button type="button" onClick={() => setMode("delete")} className={buttonStyles("danger", "sm")}>
-            Delete list
-          </button>
+            {/* same as Delete account in Settings: red glass, then a confirm step in its place */}
+            <button type="button" onClick={() => setMode("delete")} className={buttonStyles("danger", "sm")}>
+              Delete list
+            </button>
+          </div>
         </div>
       )}
       {mode === "rename" && (

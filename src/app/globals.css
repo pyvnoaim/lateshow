@@ -476,6 +476,15 @@
 }
 /* Lift: posters and cards rise a little, get a deeper shadow and a touch brighter. Reacts to the whole card
    (`group` on the link), so hovering the title counts too. Hover only where a real pointer exists. */
+/* Something laid over a lift card (its hover buttons): the same move on the same hover, without the shadow */
+@utility lift-follow {
+  transition: transform var(--duration-lift) var(--ease-spring);
+  @media (hover: hover) {
+    :where(.group):hover & {
+      transform: translateY(-4px) scale(1.03);
+    }
+  }
+}
 @utility lift {
   transition:
     transform var(--duration-lift) var(--ease-spring),

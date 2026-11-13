@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ViewTransition, type CSSProperties } from "react";
 import { img, type Card } from "@/lib/tmdb";
+import { PosterActions } from "./PosterActions";
 import { PosterCaption } from "./PosterCaption";
 import { TmdbImage } from "./TmdbImage";
 
@@ -43,10 +44,10 @@ export function PosterLink({
       )}
     </div>
   );
-  // The caption sits outside the link: it holds the watchlist + button, and a button inside a link is invalid.
+  // The caption and the hover buttons sit outside the link: a button inside a link is invalid.
   return (
     <div
-      className="flex rise flex-col gap-2.5"
+      className="group relative flex rise flex-col gap-2.5"
       style={{ animationDelay: `${Math.min(index, 12) * 80}ms` } as CSSProperties}
     >
       <Link
@@ -63,6 +64,15 @@ export function PosterLink({
         )}
         <span className="text-label font-medium">{name}</span>
       </Link>
+      {plus && (
+        // mouse and trackpad: the actions float over the poster's corner on hover and lift with it (same box, same
+        // transform). Kept up while its list menu is open. Touch screens have them in the caption instead.
+        <div className="pointer-events-none absolute inset-x-0 top-0 hidden aspect-poster lift-follow pointer-fine:block">
+          <div className="pointer-events-auto absolute top-2.5 right-2.5 flex gap-1.5 opacity-0 transition-opacity duration-200 group-hover:opacity-100 focus-within:opacity-100 has-aria-expanded:opacity-100">
+            <PosterActions card={card} variant="overlay" />
+          </div>
+        </div>
+      )}
       {caption && <PosterCaption card={card} plus={plus} />}
     </div>
   );

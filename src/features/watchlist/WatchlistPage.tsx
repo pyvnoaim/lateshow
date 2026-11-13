@@ -13,7 +13,7 @@ import { SORTS, sortShelf, type Sort } from "@/lib/library/shelves";
 import { getWatchlistView, type WatchlistItem } from "@/lib/library/watchlistView";
 import { getRegion } from "@/lib/region";
 import { img } from "@/lib/tmdb";
-import { AddTitle } from "./components/AddTitle";
+import { AddTitle } from "@/components/library/AddTitle";
 import { ItemActions } from "./components/ItemActions";
 import { PickOne } from "./components/PickOne";
 

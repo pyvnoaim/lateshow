@@ -74,7 +74,9 @@ pure logic extracted with a `*.test.ts` beside it, no barrel files, move code to
   (#b4c8ea, primary #eef1f6). Logo = `src/app/icon.svg` (dark glass screen, icy light rising),
   used by `Logo`, apple-icon.png rendered from it.
 - Premium comes from states, glass, motion and type, never decoration motifs.
-- Switchers are plain text (active white, rest grey). Posters stay clean, extra actions go in the caption line.
+- Switchers are plain text (active white, rest grey). Posters stay clean at rest: with a mouse their actions (list, +)
+  show as small glass buttons in the poster's corner on hover (`PosterActions` overlay, chosen 2026-11-13), on touch
+  screens they sit at the end of the caption line.
 - Top bar scrolls away (absolute) and fades up with the scroll (`bar-out`, scroll-driven) while a compact glass island rises in at the top (`NavIsland`, chosen
   2026-11-11 over a fixed bar). Inputs are glass pills like search.
 - Rejected, don't bring back: white pill switchers, a dock nav at the bottom, a full-width frosted bar fixed on scroll, poster glow, cinema motifs,

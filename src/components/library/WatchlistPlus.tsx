@@ -2,13 +2,23 @@
 
 import { Check, Plus } from "lucide-react";
 import { useOptimistic, useState, useTransition } from "react";
+import { buttonStyles } from "@/components/ui/button";
 import { setOnWatchlist, type TitleRef } from "@/lib/library/actions";
 
 /**
- * The quiet + at the end of a poster's caption line (posters stay clean, actions live in the caption). Flips at once
+ * The quiet + at the end of a poster's caption line (touch screens), or a small glass button over the poster on hover (mouse). Flips at once
  * to an accent ✓ and saves in the background.
  */
-export function WatchlistPlus({ titleRef, initial }: { titleRef: TitleRef; initial: boolean }) {
+export function WatchlistPlus({
+  titleRef,
+  initial,
+  variant = "caption",
+}: {
+  titleRef: TitleRef;
+  initial: boolean;
+  /** caption: quiet icon in the caption line. overlay: small glass button over the poster (hover) */
+  variant?: "caption" | "overlay";
+}) {
   const [saved, setSaved] = useState(initial);
   const [seen, setSeen] = useState(initial);
   if (seen !== initial) {
@@ -38,7 +48,11 @@ export function WatchlistPlus({ titleRef, initial }: { titleRef: TitleRef; initi
           }
         });
       }}
-      className={`-m-1.5 inline-flex shrink-0 press items-center gap-1 rounded-full p-1.5 transition-colors ${on ? "text-accent" : "text-muted hover:text-fg"}`}
+      className={
+        variant === "overlay"
+          ? buttonStyles(on ? "accent" : "glass", "iconSm")
+          : `-m-1.5 inline-flex shrink-0 press items-center gap-1 rounded-full p-1.5 transition-colors ${on ? "text-accent" : "text-muted hover:text-fg"}`
+      }
     >
       {on ? (
         <Check size={14} strokeWidth={2.5} aria-hidden className="pop" />

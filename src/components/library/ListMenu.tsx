@@ -16,7 +16,8 @@ const EDGE = 16; // the page gutter: the card never touches the screen edge
  * Your lists for one title: tap one to put the title on it or take it off (saved in the background), or name a new
  * one. A native popover (top layer), so poster rows that scroll sideways can't clip it. It sits above the button
  * when there's room, else below, and closes on Esc, a tap outside, or scrolling.
- * `size`: the round glass button of a title page, or the quiet icon of a poster caption (next to the +).
+ * `size`: the round glass button of a title page, the quiet icon of a poster caption (next to the +), or the small
+ * glass button over a poster on hover.
  */
 export function ListMenu({
   lists,
@@ -30,7 +31,7 @@ export function ListMenu({
   create: (name: string) => Promise<string>;
   /** the title, for screen readers */
   name: string;
-  size?: "button" | "caption";
+  size?: "button" | "caption" | "overlay";
 }) {
   const [shown, setShown] = useOptimistic(lists, (all, { id, has }: { id: string; has: boolean }) =>
     all.map((l) => (l.id === id ? { ...l, has } : l)),
@@ -104,7 +105,9 @@ export function ListMenu({
         className={
           size === "button"
             ? buttonStyles(onAny ? "accent" : "glass", "icon")
-            : `-m-1.5 inline-flex shrink-0 press items-center rounded-full p-1.5 transition-colors ${onAny ? "text-accent" : "text-muted hover:text-fg"}`
+            : size === "overlay"
+              ? buttonStyles(onAny ? "accent" : "glass", "iconSm")
+              : `-m-1.5 inline-flex shrink-0 press items-center rounded-full p-1.5 transition-colors ${onAny ? "text-accent" : "text-muted hover:text-fg"}`
         }
       >
         <ListPlus

@@ -8,7 +8,10 @@ import { getSession } from "@/lib/auth";
 import { db } from "@/lib/db/client";
 import { list, listItem } from "@/lib/db/schema";
 import { newInviteCode } from "@/lib/friends/rules";
+import type { AddResult } from "@/lib/library/actions";
+import { getLanguage } from "@/lib/region";
 import { createRoom } from "@/lib/rooms/actions";
+import { img, searchTitles } from "@/lib/tmdb";
 import { getList } from "./queries";
 
 const name = z.string().trim().min(1).max(60);
@@ -102,4 +105,30 @@ export async function swipeList(listId: string): Promise<{ error: string } | und
   const made = await createRoom({ kind, game: "swipe", friends: [], listId: l.id });
   if ("error" in made) return made;
   redirect(`/rooms/${made.code}`);
+}
+
+/** "Add a title" on your list: search results, each with whether it's on this list already (`listed`). */
+export async function findForList(listId: string, raw: string): Promise<AddResult[]> {
+  const userId = await requireUserId();
+  const query = z.string().trim().min(2).max(100).safeParse(raw);
+  const l = await getList(id.parse(listId), userId);
+  if (!query.success || !l || l.userId !== userId) return [];
+  const on = new Set(l.items.map((i) => `${i.mediaType}-${i.tmdbId}`));
+  const cards = await searchTitles(query.data, await getLanguage()).catch(() => []);
+  return cards.slice(0, 5).map((c) => ({
+    type: c.media_type,
+    id: c.id,
+    title: c.title ?? c.name ?? "",
+    meta: [c.media_type === "tv" ? "Series" : "Movie", (c.release_date ?? c.first_air_date ?? "").slice(0, 4)]
+      .filter(Boolean)
+      .join(" · "),
+    poster: img(c.poster_path, "w92"),
+    posterPath: c.poster_path,
+    listed: on.has(`${c.media_type}-${c.id}`),
+  }));
+}
+
+/** A search result picked in "Add a title" goes on the list. */
+export async function addToListFromSearch(listId: string, r: AddResult) {
+  await setInList({ type: r.type, tmdbId: r.id, title: r.title, posterPath: r.posterPath }, listId, true);
 }

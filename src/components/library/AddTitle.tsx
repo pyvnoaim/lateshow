@@ -63,29 +63,32 @@ export function AddTitle({
         className={fieldInputStyles}
       />
       {shown.length > 0 && (
-        <ul className="absolute inset-x-0 top-full z-30 mt-2 flex pop flex-col rounded-banner p-1.5 glass">
-          {shown.map((r) => {
-            const on = r.listed || added.includes(keyOf(r));
-            return (
-              <li key={keyOf(r)}>
-                <button
-                  type="button"
-                  onClick={() => put(r)}
-                  className="flex h-14 w-full items-center gap-3 rounded-thumb px-2.5 text-left transition-colors hover:bg-fg/8"
-                >
-                  <span className="relative h-11 w-7.5 shrink-0 overflow-hidden rounded-sm bg-raised">
-                    {r.poster && <Image src={r.poster} alt="" fill sizes="30px" className="object-cover" />}
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-label">{r.title}</span>
-                    <span className="block text-caption text-muted">{r.meta}</span>
-                  </span>
-                  <span className={`text-caption ${on ? "text-accent" : "text-muted"}`}>{on ? "Added" : "Add"}</span>
-                </button>
-              </li>
-            );
-          })}
-        </ul>
+        // solid backing like the other floating cards: see-through glass let the page's text read through the results
+        <div className="absolute inset-x-0 top-full z-30 mt-2 pop rounded-banner bg-bg shadow-2xl">
+          <ul className="flex flex-col rounded-banner p-1.5 glass">
+            {shown.map((r) => {
+              const on = r.listed || added.includes(keyOf(r));
+              return (
+                <li key={keyOf(r)}>
+                  <button
+                    type="button"
+                    onClick={() => put(r)}
+                    className="flex h-14 w-full items-center gap-3 rounded-thumb px-2.5 text-left transition-colors hover:bg-fg/8"
+                  >
+                    <span className="relative h-11 w-7.5 shrink-0 overflow-hidden rounded-sm bg-raised">
+                      {r.poster && <Image src={r.poster} alt="" fill sizes="30px" className="object-cover" />}
+                    </span>
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-label">{r.title}</span>
+                      <span className="block text-caption text-muted">{r.meta}</span>
+                    </span>
+                    <span className={`text-caption ${on ? "text-accent" : "text-muted"}`}>{on ? "Added" : "Add"}</span>
+                  </button>
+                </li>
+              );
+            })}
+          </ul>
+        </div>
       )}
     </form>
   );
