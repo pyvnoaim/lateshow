@@ -227,11 +227,3 @@ export const listItem = sqliteTable(
   },
   (t) => [primaryKey({ columns: [t.listId, t.mediaType, t.tmdbId] })],
 );
-
-/** Your calendar link's version: New link raises it, which retires the old link. No row = 0 (the first link). */
-export const calendarFeed = sqliteTable("calendar_feed", {
-  userId: text("user_id")
-    .primaryKey()
-    .references(() => user.id, { onDelete: "cascade" }),
-  version: integer("version").notNull().default(0),
-});

@@ -109,9 +109,6 @@ export default function PrivacyPage() {
             <strong>lang</strong> remembers the language you picked. 1 year.
           </li>
           <li>
-            <strong>spoilers</strong> remembers whether episode titles stay hidden. 1 year.
-          </li>
-          <li>
             <strong>room_guest</strong> remembers you when you join a room as a guest. 30 days.
           </li>
           <li>

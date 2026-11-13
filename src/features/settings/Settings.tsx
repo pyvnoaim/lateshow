@@ -7,36 +7,32 @@ import { shownName } from "@/lib/username";
 import { getRegion } from "@/lib/region";
 import {
   deleteAccount,
-  newCalendarLink,
   setAvatar,
   setLanguage,
   setMyService,
   setShareActivity,
-  setSpoilerGuard,
   setUsername,
   removePasskey,
 } from "@/lib/settings/actions";
-import { getMyPasskeys, getMyServiceIds, getSpoilerGuard } from "@/lib/settings/queries";
+import { getMyPasskeys, getMyServiceIds } from "@/lib/settings/queries";
 import { getServiceChoices, img } from "@/lib/tmdb";
-import { calendarUrl } from "./calendarFeed";
 import { AvatarPicker } from "./components/AvatarPicker";
-import { CalendarLink } from "./components/CalendarLink";
-import { ChoicePicker } from "./components/ChoicePicker";
+import { LanguagePicker } from "./components/LanguagePicker";
 import { DeleteAccount } from "./components/DeleteAccount";
 import { ImportHistory } from "./components/ImportHistory";
 import { TextSetting } from "./components/TextSetting";
 import { Passkeys } from "./components/Passkeys";
 import { ServicePicker } from "./components/ServicePicker";
+import { Toggle } from "./components/Toggle";
 import { SettingsNav } from "./components/SettingsNav";
 
 export async function Settings() {
   const session = await getSession();
   if (!session) redirect(`/login?next=${encodeURIComponent("/settings")}`);
   const region = await getRegion();
-  const [choices, mine, guard, passkeys] = await Promise.all([
+  const [choices, mine, passkeys] = await Promise.all([
     getServiceChoices(region.code).catch(() => []),
     getMyServiceIds(),
-    getSpoilerGuard(),
     getMyPasskeys(),
   ]);
 
@@ -60,16 +56,11 @@ export async function Settings() {
           <Row title="Picture">
             <AvatarPicker name={shownName(session.user)} current={session.user.image ?? null} save={setAvatar} />
           </Row>
-          <Row title="Friends see" description="Off, they only see your name.">
-            <ChoicePicker
-              label="Share with friends"
-              choices={[
-                { value: "share", label: "My activity" },
-                { value: "private", label: "Only my name" },
-              ]}
-              current={session.user.shareActivity === false ? "private" : "share"}
-              save={setShareActivity}
-            />
+          <Row
+            title="Share with friends"
+            description="Your history, ratings and lists. Off, friends only see your name."
+          >
+            <Toggle label="Share with friends" on={session.user.shareActivity !== false} save={setShareActivity} />
           </Row>
         </Group>
         <Group {...GROUPS[1]}>
@@ -89,30 +80,7 @@ export async function Settings() {
             )}
           </Row>
           <Row title="Language" description="For titles, descriptions and posters. The rest stays in English.">
-            <ChoicePicker
-              label="Language"
-              choices={LANGUAGES.map((l) => ({ value: l.code, label: l.label }))}
-              current={region.lang}
-              save={setLanguage}
-            />
-          </Row>
-          <Row title="Episode titles" description="They can give the story away.">
-            <ChoicePicker
-              label="Episode titles"
-              choices={[
-                { value: "show", label: "Show" },
-                { value: "hide", label: "Hide until watched" },
-              ]}
-              current={guard ? "hide" : "show"}
-              save={setSpoilerGuard}
-            />
-          </Row>
-          <Row
-            stack
-            title="Calendar"
-            description="New episodes and release days from your list, in Apple or Google Calendar. Anyone with this link sees your schedule."
-          >
-            <CalendarLink url={await calendarUrl(session.user.id)} renew={newCalendarLink} />
+            <LanguagePicker choices={LANGUAGES} current={region.lang} save={setLanguage} />
           </Row>
         </Group>
         <Group {...GROUPS[2]}>

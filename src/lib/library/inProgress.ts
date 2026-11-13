@@ -1,5 +1,4 @@
 import "server-only";
-import { getSpoilerGuard } from "@/lib/settings/queries";
 import { getLanguage } from "@/lib/region";
 import { getWatchLinks } from "@/lib/justwatch";
 import { nextEpisode, parseEpisodeKeys, showProgress } from "@/lib/library/progress";
@@ -31,12 +30,11 @@ async function loadShow(userId: string, tmdbId: number, fallbackName: string, co
   const next = nextEpisode(seasons, watched);
   if (!next) return null;
   const name = t.name ?? fallbackName;
-  const [[season], allLinks, guard, myIds] = await Promise.all([
+  const [[season], allLinks, myIds] = await Promise.all([
     getSeasons(String(t.id), [next.season], lang),
     getEnglishName("tv", t.id)
       .catch(() => name)
       .then((en) => getWatchLinks("tv", t.id, en, country)),
-    getSpoilerGuard(),
     getMyServiceIds(),
   ]);
   const links = yourServicesFirst(allLinks, t, country, myIds);
@@ -46,8 +44,7 @@ async function loadShow(userId: string, tmdbId: number, fallbackName: string, co
     backdropPath: t.backdrop_path,
     logo: pickLogo(t, lang),
     next,
-    // the next episode is unwatched by definition, so the spoiler guard hides its title
-    episodeName: guard ? undefined : season?.episodes.find((e) => e.episode_number === next.episode)?.name,
+    episodeName: season?.episodes.find((e) => e.episode_number === next.episode)?.name,
     percent: showProgress(seasons, watched).percent,
     link: links[0],
   };

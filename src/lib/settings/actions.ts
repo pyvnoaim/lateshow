@@ -1,6 +1,6 @@
 "use server";
 
-import { and, eq, ne, sql } from "drizzle-orm";
+import { and, eq, ne } from "drizzle-orm";
 import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
@@ -8,24 +8,12 @@ import { z } from "zod";
 import { getSession } from "@/lib/auth";
 import { db } from "@/lib/db/client";
 import { passkey, user } from "@/lib/db/auth-schema";
-import { calendarFeed, roomMember, roomMood, roomPick, roomVote, userServices } from "@/lib/db/schema";
+import { roomMember, roomMood, roomPick, roomVote, userServices } from "@/lib/db/schema";
 import { LANGUAGE_COOKIE, LANGUAGES } from "@/lib/languages";
-import { SPOILER_COOKIE } from "@/lib/settings/queries";
 import { checkUsername } from "@/lib/username";
 import { isAvatarValue } from "@/lib/avatar";
 
 const providerId = z.number().int().positive();
-
-/** New calendar link: the version goes up, so the old link stops working at once (calendars need the new one). */
-export async function newCalendarLink() {
-  const session = await getSession();
-  if (!session) throw new Error("Sign in first.");
-  await db
-    .insert(calendarFeed)
-    .values({ userId: session.user.id, version: 1 })
-    .onConflictDoUpdate({ target: calendarFeed.userId, set: { version: sql`${calendarFeed.version} + 1` } });
-  refresh();
-}
 
 /** Adds or removes one streaming service from the signed in user's services. */
 export async function setMyService(id: number, on: boolean) {
@@ -50,12 +38,6 @@ export async function setLanguage(code: string) {
 }
 
 const PREFERENCE = { path: "/", maxAge: 60 * 60 * 24 * 365, sameSite: "lax", httpOnly: true } as const;
-
-/** Spoiler guard: "hide" titles of unwatched episodes or "show" them (cookie, like the language). */
-export async function setSpoilerGuard(value: "show" | "hide") {
-  (await cookies()).set(SPOILER_COOKIE, z.enum(["show", "hide"]).parse(value), PREFERENCE);
-  refresh();
-}
 
 /** What a text setting's save returns: the value as stored, or what went wrong. */
 export type Saved = { value: string } | { error: string };
@@ -112,10 +94,10 @@ export async function deleteAccount() {
 }
 
 /** Whether friends see your history, watchlist and stats. */
-export async function setShareActivity(value: "share" | "private") {
+export async function setShareActivity(on: boolean) {
   const session = await getSession();
   if (!session) throw new Error("Sign in first.");
-  const share = z.enum(["share", "private"]).parse(value) === "share";
+  const share = z.boolean().parse(on);
   await db.update(user).set({ shareActivity: share, updatedAt: new Date() }).where(eq(user.id, session.user.id));
   refresh();
 }
