@@ -62,19 +62,26 @@ export function ListOwnerBar({
         {shown === "friends" && "Your friends can open it, signed in."}
         {shown === "link" && "Anyone with the link can open it, without an account."}
       </p>
-      <div className="flex flex-wrap items-center gap-6">
-        {shown !== "private" && (
-          <button type="button" onClick={() => void copy(window.location.href)} className={buttonStyles("glass", "sm")}>
-            {copied ? "Copied" : "Copy link"}
+      {mode !== "delete" && (
+        <div className="flex flex-wrap items-center gap-6">
+          {shown !== "private" && (
+            <button
+              type="button"
+              onClick={() => void copy(window.location.href)}
+              className={buttonStyles("glass", "sm")}
+            >
+              {copied ? "Copied" : "Copy link"}
+            </button>
+          )}
+          <button type="button" onClick={() => setMode("rename")} className={buttonStyles("text", "text")}>
+            Rename
           </button>
-        )}
-        <button type="button" onClick={() => setMode("rename")} className={buttonStyles("text", "text")}>
-          Rename
-        </button>
-        <button type="button" onClick={() => setMode("delete")} className={buttonStyles("text", "text")}>
-          Delete
-        </button>
-      </div>
+          {/* same as Delete account in Settings: red glass, then a confirm step in its place */}
+          <button type="button" onClick={() => setMode("delete")} className={buttonStyles("danger", "sm")}>
+            Delete list
+          </button>
+        </div>
+      )}
       {mode === "rename" && (
         <form onSubmit={save} className={`${fieldStyles()} max-w-form`}>
           <label htmlFor="list-name" className="sr-only">
@@ -95,19 +102,25 @@ export function ListOwnerBar({
         </form>
       )}
       {mode === "delete" && (
-        <div className="flex flex-wrap items-center gap-4">
-          <span className="text-small text-muted">Delete this list? The titles stay where they are.</span>
-          <button
-            type="button"
-            disabled={pending}
-            onClick={() => startTransition(() => remove())}
-            className={buttonStyles("dangerConfirm", "sm")}
-          >
-            Delete list
-          </button>
-          <button type="button" onClick={() => setMode("idle")} className={buttonStyles("text", "text")}>
-            Keep it
-          </button>
+        <div className="flex flex-col items-start gap-4">
+          <p className="text-body text-fg">
+            The list goes, your watched titles and watchlist stay.
+            <br />
+            <span className="text-muted">This can&apos;t be undone.</span>
+          </p>
+          <div className="flex items-center gap-6">
+            <button
+              type="button"
+              disabled={pending}
+              onClick={() => startTransition(() => remove())}
+              className={buttonStyles("dangerConfirm", "sm")}
+            >
+              {pending ? "Deleting" : "Delete for good"}
+            </button>
+            <button type="button" onClick={() => setMode("idle")} className={buttonStyles("text", "text")}>
+              Keep the list
+            </button>
+          </div>
         </div>
       )}
     </div>
