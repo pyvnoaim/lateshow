@@ -714,7 +714,7 @@
   }
 }
 
-/* Page switch (PageTransition): the old page fades out fast, the new one rises in after it */
+/* Page switch ((main)/template.tsx): the old page fades out fast, the new one rises in after it */
 @layer base {
   ::view-transition-old(.page-out) {
     animation: page-out var(--duration-page-out) ease-in both;

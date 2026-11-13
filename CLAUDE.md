@@ -67,8 +67,8 @@ pure logic extracted with a `*.test.ts` beside it, no barrel files, move code to
   Never animate `filter` (blur) on glass or on a parent of glass: it smears the backdrop behind it. Fade and move instead.
 - Motion utilities: `press` (buttons), `lift` (cards in a `group`), `sk` (skeleton shimmer), `rise`, `stagger`.
 - Intro (`Intro.tsx`, chosen 2026-11-13): black, the logo's light rises, the black lifts. Once per tab (inline script sets
-  `data-intro="off"` before paint), Reload on the update bar fades back into it. Page switch: `PageTransition` keyed
-  by path, old page out fast, new one rises in. Layout of `.intro` lives in its CSS rule, not utilities (they beat the hide rule).
+  `data-intro="off"` before paint), Reload on the update bar fades back into it. Page switch: `(main)/template.tsx` (remounts per
+  route, a pathname hook there breaks the build), old page out fast, new one rises in. Layout of `.intro` lives in its CSS rule, not utilities (they beat the hide rule).
 - Tooltips: never `title`. Use `data-tip` (+ `data-tip-meta`, `data-tip-key` for a shortcut), one global `Tooltips`. Icon-only buttons always get one.
 
 ## Design
