@@ -33,6 +33,14 @@
   --color-danger-hi: rgb(255 69 58 / 0.95);
   --color-danger-lo: rgb(215 45 38 / 0.85);
   --color-hairline: rgb(255 255 255 / 0.08);
+  /* import screen: a dark screen, an icy glow under the current month, bars lit icy to white */
+  --color-screen-top: #1a1f2a;
+  --color-screen-low: #0e1117;
+  --color-sun: rgb(169 194 234 / 0.42);
+  --color-sun-deep: rgb(61 100 176 / 0.12);
+  --color-bar-low: rgb(180 200 234 / 0.35);
+  --color-bar-top: rgb(238 241 246 / 0.85);
+  --color-bar-glow: rgb(180 200 234 / 0.8);
 
   --font-sans: var(--font-inter-tight), -apple-system, system-ui, sans-serif;
   --font-mono: ui-monospace, "SF Mono", Menlo, Consolas, monospace; /* the ASCII page scrollbar */
@@ -88,6 +96,8 @@
   --duration-intro-out: 380ms; /* then the black lifts off the page (also the fade into a reload) */
   --duration-settle: 800ms; /* hero text coming in */
   --duration-slide: 7000ms; /* hero carousel: the dash fill is the timer */
+  --duration-import-step: 240ms; /* import: one title in the reel (ImportProgress STEP_MS matches) */
+  --duration-import-fill: 700ms; /* import: the light rising to the next step */
 
   /* shape */
   --aspect-poster: 2 / 3;
@@ -279,6 +289,45 @@
 }
 @utility reel-fade {
   mask-image: linear-gradient(to bottom, transparent, black 30%, black 70%, transparent);
+}
+/* Import (ImportProgress): a dark screen, the glow sits under the current month (--x) and grows with progress (--o) */
+@utility import-screen {
+  background: linear-gradient(180deg, var(--color-screen-top), var(--color-screen-low) 70%);
+  box-shadow:
+    inset 0 1px 0 0 var(--color-hairline),
+    inset 0 0 0 1px var(--color-hairline);
+}
+@utility import-light {
+  background: radial-gradient(
+    ellipse 55% 75% at var(--x, 0%) 115%,
+    var(--color-sun),
+    var(--color-sun-deep) 55%,
+    transparent 75%
+  );
+  opacity: var(--o, 0.25);
+  transition: opacity var(--duration-import-fill) ease-out;
+}
+/* one month: dim, lit (icy to white) or now (white, glowing) */
+@utility import-bar {
+  border-radius: 3px 3px 1px 1px;
+  background: var(--color-glass-lo);
+  transition:
+    background var(--duration-hover) ease-out,
+    box-shadow var(--duration-hover) ease-out;
+  &[data-state="lit"] {
+    background: linear-gradient(to top, var(--color-bar-low), var(--color-bar-top));
+  }
+  &[data-state="now"] {
+    background: var(--color-fg);
+    box-shadow: 0 0 14px 1px var(--color-bar-glow);
+  }
+}
+/* the title being matched rises in, one per step */
+@utility import-title {
+  animation: rise var(--duration-import-step) var(--ease-spring) both;
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
 }
 /* A wrong sign-in code: a short, settling shake (reduced motion: none) */
 @keyframes shake {

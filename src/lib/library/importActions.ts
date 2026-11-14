@@ -48,7 +48,15 @@ const pick = z.object({
 /** `poster` is the small image to show, `posterPath` what gets stored */
 export type Candidate = Hit & { type: "movie" | "tv"; posterPath: string | null; poster: string | null };
 export type Unsure = { row: ImportRow; candidates: Candidate[] };
-export type BatchResult = { watched: number; watchlist: number; missed: number; notFound: number; unsure: Unsure[] };
+export type Saved = {
+  watched: number;
+  films: number;
+  series: number;
+  episodes: number;
+  watchlist: number;
+  missed: number;
+};
+export type BatchResult = Saved & { notFound: number; unsure: Unsure[] };
 type Match = { row: ImportRow; id: number; type: "movie" | "tv"; title: string; posterPath: string | null };
 
 const yearOf = (date?: string) => (date ? Number(date.slice(0, 4)) || undefined : undefined);
@@ -110,7 +118,7 @@ async function match(r: ImportRow): Promise<Match | Unsure | null> {
  * A watched series means all of it: every episode aired so far, unless the row lists its episodes (Netflix).
  * Ratings come along (loved, liked, not for me). `missed`: Netflix episodes whose name TMDB doesn't know.
  */
-async function save(userId: string, matches: Match[]) {
+async function save(userId: string, matches: Match[]): Promise<Saved> {
   const seen = matches.filter((m) => m.row.list === "watched");
   const listed = matches.filter((m) => m.row.list === "watchlist");
   // runtimes so imported titles count in your hours (cached, most are looked up once)
@@ -127,7 +135,10 @@ async function save(userId: string, matches: Match[]) {
       return placed.placed;
     },
   );
-  let w = 0;
+  // what came over: films, series and their episodes (watched = films + series)
+  let films = 0;
+  let series = 0;
+  let episodes = 0;
   let l = 0;
   db.transaction((tx) => {
     seen.forEach((m, i) => {
@@ -150,7 +161,11 @@ async function save(userId: string, matches: Match[]) {
         )
         .onConflictDoNothing()
         .run().changes;
-      if (added) w++;
+      if (added && m.type === "movie") films++;
+      else if (added) {
+        series++;
+        episodes += added;
+      }
       // a rating from the export, unless you already rated it here
       const value = m.row.score ? fromScore(m.row.score) : undefined;
       if (value)
@@ -181,7 +196,7 @@ async function save(userId: string, matches: Match[]) {
         .run().changes;
     }
   });
-  return { watched: w, watchlist: l, missed };
+  return { watched: films + series, films, series, episodes, watchlist: l, missed };
 }
 
 async function requireUserId() {
@@ -205,9 +220,7 @@ export async function importBatch(raw: ImportRow[]): Promise<BatchResult> {
   const saved = await save(userId, matches);
   refresh();
   return {
-    watched: saved.watched,
-    watchlist: saved.watchlist,
-    missed: saved.missed,
+    ...saved,
     notFound: results.filter((r) => r === null).length,
     unsure,
   };

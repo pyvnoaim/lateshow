@@ -5,16 +5,27 @@ import { Upload } from "lucide-react";
 import Image from "next/image";
 import { useState, type DragEvent } from "react";
 import { buttonStyles } from "@/components/ui/button";
-import type { BatchResult, Candidate, Unsure } from "@/lib/library/importActions";
+import type { BatchResult, Candidate, Saved, Unsure } from "@/lib/library/importActions";
 import { importBatch, importPick } from "@/lib/library/importActions";
 import { readExport, type ImportRow } from "@/lib/library/importing";
+import { CountUp, ImportProgress } from "./ImportProgress";
 
 // ponytail: one size for all. A Netflix series row fetches every season, so batches stay small.
 const BATCH = 40;
 // the server takes at most 6000 episodes per call (Netflix), a batch also ends here
 const EPISODES = 3000;
 
-type Totals = { watched: number; watchlist: number; notFound: number; skipped: number; missed: number };
+type Totals = Saved & { notFound: number; skipped: number };
+const EMPTY: Saved = { watched: 0, films: 0, series: 0, episodes: 0, watchlist: 0, missed: 0 };
+const add = (a: Totals, b: Saved): Totals => ({
+  ...a,
+  watched: a.watched + b.watched,
+  films: a.films + b.films,
+  series: a.series + b.series,
+  episodes: a.episodes + b.episodes,
+  watchlist: a.watchlist + b.watchlist,
+  missed: a.missed + b.missed,
+});
 
 /** The files you picked or dropped, as text. A ZIP (Letterboxd) is unpacked right here, nothing is uploaded. */
 async function readFiles(list: FileList) {
@@ -28,14 +39,24 @@ async function readFiles(list: FileList) {
   return out;
 }
 
+/** What the file says about an unclear title: its episodes, its year, or (Netflix films) when you watched it. */
+function fileNote(row: ImportRow) {
+  if (row.episodes) return `${row.episodes.length} episode${row.episodes.length === 1 ? "" : "s"} in your file`;
+  if (row.year) return `${row.year} in your file`;
+  if (row.date)
+    return `Watched ${new Date(`${row.date}T12:00:00Z`).toLocaleDateString("en", { month: "short", year: "numeric" })}`;
+  return "No year in your file";
+}
+
 /**
  * Settings › Import: drop a Letterboxd export ZIP, IMDb CSVs or Netflix's viewing history. Rows go to the server in batches (progress shown),
  * clear matches are saved, unclear ones are listed to pick from.
  */
 export function ImportHistory() {
   const [phase, setPhase] = useState<"idle" | "working" | "done">("idle");
-  const [progress, setProgress] = useState({ done: 0, total: 0 });
-  const [totals, setTotals] = useState<Totals>({ watched: 0, watchlist: 0, notFound: 0, skipped: 0, missed: 0 });
+  const [rows, setRows] = useState<ImportRow[]>([]);
+  const [progress, setProgress] = useState({ done: 0, until: 0 });
+  const [totals, setTotals] = useState<Totals>({ ...EMPTY, notFound: 0, skipped: 0 });
   const [unsure, setUnsure] = useState<Unsure[]>([]);
   const [error, setError] = useState("");
   const [over, setOver] = useState(false);
@@ -57,9 +78,12 @@ export function ImportHistory() {
       );
       return;
     }
+    // oldest first, so the import screen's title, month and bars move together (undated rows last)
+    rows.sort((a, b) => (a.date ?? "9").localeCompare(b.date ?? "9"));
+    setRows(rows);
     setPhase("working");
-    setProgress({ done: 0, total: rows.length });
-    const sum: Totals = { watched: 0, watchlist: 0, notFound: 0, skipped, missed: 0 };
+    setProgress({ done: 0, until: 0 });
+    let sum: Totals = { ...EMPTY, notFound: 0, skipped };
     const open: Unsure[] = [];
     for (let i = 0; i < rows.length;) {
       let end = i;
@@ -67,6 +91,7 @@ export function ImportHistory() {
         eps += rows[end].episodes?.length ?? 0;
         if (eps > EPISODES && end > i) break;
       }
+      setProgress({ done: i, until: end });
       let r: BatchResult;
       try {
         r = await importBatch(rows.slice(i, end));
@@ -74,12 +99,9 @@ export function ImportHistory() {
         setError(`Stopped after ${i} of ${rows.length}. Drop the file again to continue, nothing is added twice.`);
         break;
       }
-      sum.watched += r.watched;
-      sum.watchlist += r.watchlist;
+      sum = add(sum, r);
       sum.notFound += r.notFound;
-      sum.missed += r.missed;
       open.push(...r.unsure);
-      setProgress({ done: end, total: rows.length });
       i = end;
     }
     setTotals(sum);
@@ -96,38 +118,55 @@ export function ImportHistory() {
       title: c.title,
       posterPath: c.posterPath,
     }).catch(() => null);
-    if (saved)
-      setTotals((t) => ({ ...t, watched: t.watched + saved.watched, watchlist: t.watchlist + saved.watchlist }));
+    if (saved) setTotals((t) => add(t, saved));
   }
 
-  if (phase === "working") {
-    return (
-      <p className="text-body text-muted" aria-live="polite">
-        Matching your titles <span className="text-fg nums">{progress.done}</span> of{" "}
-        <span className="nums">{progress.total}</span>
-      </p>
-    );
-  }
+  if (phase === "working") return <ImportProgress rows={rows} done={progress.done} until={progress.until} />;
 
   if (phase === "done") {
+    const stats = [
+      { n: totals.episodes, label: totals.episodes === 1 ? "episode" : "episodes" },
+      { n: totals.series, label: "series" },
+      { n: totals.films, label: totals.films === 1 ? "film" : "films" },
+      { n: totals.watchlist, label: "on your watchlist" },
+    ].filter((s) => s.n > 0);
+    const lost = totals.notFound + totals.skipped;
     return (
       <div className="flex flex-col gap-6">
-        <p className="text-body leading-normal text-muted" aria-live="polite">
-          <span className="text-fg nums">{totals.watched}</span> watched and{" "}
-          <span className="text-fg nums">{totals.watchlist}</span> on your watchlist came over.
-          <br />
-          {totals.notFound + totals.skipped > 0 && (
-            <>
-              <span className="nums">{totals.notFound + totals.skipped}</span> couldn&apos;t be found or placed.{" "}
-            </>
+        <div className="flex flex-col gap-5" aria-live="polite">
+          <p className="text-body font-semibold text-balance">
+            {stats.length ? "Your history is in" : "Nothing new, it was all here already"}
+          </p>
+          {stats.length > 0 && (
+            <div className="flex flex-wrap gap-x-10 gap-y-4">
+              {stats.map((s, i) => (
+                <div key={s.label} className="flex rise flex-col" style={{ animationDelay: `${i * 150}ms` }}>
+                  <span className="text-section leading-none font-semibold tracking-tight nums">
+                    <CountUp to={s.n} delay={i * 150} />
+                  </span>
+                  <span className="text-small text-muted">{s.label}</span>
+                </div>
+              ))}
+            </div>
           )}
-          {totals.missed > 0 && (
-            <>
-              <span className="nums">{totals.missed}</span> episodes had names TMDB doesn&apos;t know.{" "}
-            </>
+          {(lost > 0 || totals.missed > 0) && (
+            <p
+              className="rise text-small text-pretty text-muted"
+              style={{ animationDelay: `${stats.length * 150 + 300}ms` }}
+            >
+              {lost > 0 && (
+                <>
+                  <span className="nums">{lost}</span> couldn&apos;t be found or placed.{" "}
+                </>
+              )}
+              {totals.missed > 0 && (
+                <>
+                  <span className="nums">{totals.missed}</span> episodes had names TMDB doesn&apos;t know.
+                </>
+              )}
+            </p>
           )}
-          Ratings came along as loved, liked or not for me. Reviews stay where they were.
-        </p>
+        </div>
         {error && <p className="text-small text-danger">{error}</p>}
         {unsure.length > 0 && (
           <div className="flex flex-col gap-3">
@@ -135,41 +174,41 @@ export function ImportHistory() {
               <span className="nums">{unsure.length}</span> need a look. Same name, different title.
             </p>
             {unsure.slice(0, 20).map((u) => (
-              <div
-                key={`${u.row.title}-${u.row.year}`}
-                className="flex flex-wrap items-center gap-3 rounded-banner glass-cell p-3"
-              >
-                <span className="min-w-0 flex-1 basis-40 pl-2">
-                  <span className="block truncate text-label font-medium">{u.row.title}</span>
-                  <span className="block text-caption text-muted">
-                    {u.row.episodes
-                      ? `${u.row.episodes.length} episode${u.row.episodes.length === 1 ? "" : "s"}`
-                      : (u.row.year ?? "no year")}{" "}
-                    in your file
+              <div key={`${u.row.title}-${u.row.year}`} className="flex flex-col gap-2 rounded-banner glass-cell p-3">
+                <div className="flex items-start justify-between gap-3 pt-1 pl-2">
+                  <span className="min-w-0">
+                    <span className="block text-label font-medium text-balance">{u.row.title}</span>
+                    <span className="block text-caption text-muted">{fileNote(u.row)}</span>
                   </span>
-                </span>
-                {u.candidates.map((c) => (
                   <button
-                    key={`${c.type}-${c.id}`}
                     type="button"
-                    onClick={() => void choose(u, c)}
-                    className="glass-hover flex press items-center gap-2.5 rounded-thumb p-1.5 pr-3 text-left"
+                    onClick={() => void choose(u, null)}
+                    className={`${buttonStyles("text", "text")} shrink-0`}
                   >
-                    <span className="relative aspect-poster w-8 shrink-0 overflow-hidden rounded-sm bg-raised">
-                      {c.poster && <Image src={c.poster} alt="" fill sizes="32px" className="object-cover" />}
-                    </span>
-                    <span className="text-small">
-                      {c.title}
-                      <span className="block text-caption text-muted">
-                        {c.type === "tv" ? "Series · " : ""}
-                        {c.year ?? "Year unknown"}
-                      </span>
-                    </span>
+                    Skip
                   </button>
-                ))}
-                <button type="button" onClick={() => void choose(u, null)} className={buttonStyles("text", "text")}>
-                  Skip
-                </button>
+                </div>
+                <div className="grid gap-1 sm:grid-cols-2">
+                  {u.candidates.map((c) => (
+                    <button
+                      key={`${c.type}-${c.id}`}
+                      type="button"
+                      onClick={() => void choose(u, c)}
+                      className="glass-hover flex press items-center gap-2.5 rounded-thumb p-1.5 pr-3 text-left"
+                    >
+                      <span className="relative aspect-poster w-8 shrink-0 overflow-hidden rounded-sm bg-raised">
+                        {c.poster && <Image src={c.poster} alt="" fill sizes="32px" className="object-cover" />}
+                      </span>
+                      <span className="min-w-0 text-small">
+                        {c.title}
+                        <span className="block text-caption text-muted">
+                          {c.type === "tv" ? "Series · " : ""}
+                          {c.year ?? "Year unknown"}
+                        </span>
+                      </span>
+                    </button>
+                  ))}
+                </div>
               </div>
             ))}
           </div>

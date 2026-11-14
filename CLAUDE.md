@@ -117,6 +117,8 @@ lists (/l/<id>, see Todo), update bar after a deploy (`UpdateBar`: build id from
       unpacks and reads them (fflate), only rows go to the server in batches of 40 (`lib/library/importActions.ts`),
       IMDb matches by id, Letterboxd by title + year (±1) across films and series (a watched series = every aired episode), unclear ones are picked by hand. Ratings come along (9+ love, 6+ like, 4 or less not for me). Netflix viewing history CSV (2026-11-14): episodes placed by name per season (brackets ignored),
       each with its day, remakes decided by which show's episodes fit, yearless films = top hit released by the watch day.
+      Import screen (`ImportProgress`, chosen 2026-11-14, drafts on https://claude.ai/artifact/LxPuaPpsbjm7vRJehUkRmX): dark screen,
+      a bar per month lit oldest first (rows go oldest first), icy glow under the current month, the title rises in. The result counts up.
 - [x] Lists (2026-11-12): `list` + `list_item`, the 16 char id is the link. Owner picks Only you / Friends / Anyone
       with the link (signed out too), access in `canSeeList`. Add from the list icon on the title page and in every poster caption (once you have a list), Lists tab on
       profiles, /l/<id> (rename, copy link, delete, Remove under posters), "Pick one together" = a swipe room over the

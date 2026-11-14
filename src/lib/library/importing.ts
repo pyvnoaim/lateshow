@@ -272,3 +272,31 @@ export function pickMatch<H extends Hit>(
   } else if (same.length === 1) return { match: same[0] };
   return { candidates: pool.slice(0, 3) };
 }
+
+/**
+ * How much of an import you watched each month, oldest first, every month in between included (an empty month is
+ * a gap in the import screen's bars). Films count once, a series once per episode with its own day. Watchlist rows
+ * and rows without a day are left out.
+ */
+export function watchMonths(rows: ImportRow[]): { month: string; count: number }[] {
+  const counts = new Map<string, number>();
+  const add = (d?: string) => d && counts.set(d.slice(0, 7), (counts.get(d.slice(0, 7)) ?? 0) + 1);
+  for (const r of rows) {
+    if (r.list !== "watched") continue;
+    if (r.episodes) r.episodes.forEach((e) => add(e.date ?? r.date));
+    else add(r.date);
+  }
+  const keys = [...counts.keys()].sort();
+  if (!keys.length) return [];
+  const out: { month: string; count: number }[] = [];
+  let [y, m] = keys[0].split("-").map(Number);
+  for (let key = keys[0]; key <= keys[keys.length - 1];) {
+    out.push({ month: key, count: counts.get(key) ?? 0 });
+    if (++m > 12) {
+      m = 1;
+      y++;
+    }
+    key = `${y}-${String(m).padStart(2, "0")}`;
+  }
+  return out;
+}

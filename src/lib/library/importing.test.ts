@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { norm, parseCsv, pickMatch, placeEpisodes, readExport } from "./importing";
+import { norm, parseCsv, pickMatch, placeEpisodes, readExport, watchMonths } from "./importing";
 
 describe("parseCsv", () => {
   it("handles quotes, commas, escaped quotes, CRLF and a BOM", () => {
@@ -157,5 +157,32 @@ describe("Netflix", () => {
     ]);
     expect(placed[1].date).toBe("2024-01-01");
     expect(missed).toBe(1);
+  });
+});
+
+describe("watchMonths", () => {
+  it("counts films once and episodes by their own day, fills empty months, skips the watchlist", () => {
+    expect(
+      watchMonths([
+        { title: "Heat", type: "movie", list: "watched", date: "2023-11-04" },
+        { title: "Alien", type: "movie", list: "watchlist", date: "2023-12-01" },
+        {
+          title: "Dark",
+          type: "tv",
+          list: "watched",
+          date: "2024-02-02",
+          episodes: [
+            { season: 1, name: "Secrets", date: "2024-02-01" },
+            { season: 1, name: "Lies", date: "2024-02-02" },
+          ],
+        },
+      ]),
+    ).toEqual([
+      { month: "2023-11", count: 1 },
+      { month: "2023-12", count: 0 },
+      { month: "2024-01", count: 0 },
+      { month: "2024-02", count: 2 },
+    ]);
+    expect(watchMonths([{ title: "Alien", type: "movie", list: "watchlist" }])).toEqual([]);
   });
 });
