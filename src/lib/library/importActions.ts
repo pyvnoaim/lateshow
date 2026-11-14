@@ -193,7 +193,12 @@ async function requireUserId() {
 /** One batch of rows from an export: matched ones are saved, unclear ones come back with candidates. */
 export async function importBatch(raw: ImportRow[]): Promise<BatchResult> {
   const userId = await requireUserId();
-  const rows = z.array(row).max(200).parse(raw);
+  // a batch holds at most 6000 episodes in all, so one call can't keep the server matching names for long
+  const rows = z
+    .array(row)
+    .max(200)
+    .refine((rs) => rs.reduce((n, r) => n + (r.episodes?.length ?? 0), 0) <= 6000)
+    .parse(raw);
   const results = await pool(rows, 8, match);
   const matches = results.filter((r): r is Match => r !== null && "id" in r);
   const unsure = results.filter((r): r is Unsure => r !== null && "candidates" in r);

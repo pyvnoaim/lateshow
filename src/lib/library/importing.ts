@@ -219,13 +219,14 @@ export function placeEpisodes<A extends { season: number; episode: number; name:
   episodes: NetflixEpisode[],
   aired: A[],
 ): { placed: (A & { date?: string })[]; missed: number } {
+  const names = new Map(aired.map((a) => [a, loose(a.name)])); // once, not per lookup
   const placed: (A & { date?: string })[] = [];
   let missed = 0;
   for (const e of episodes) {
     const n = loose(e.name);
     // an arc instead of a season ("Dragon's Judgement: The Ten Commandments"): the name after it counts too
     const tail = e.season === undefined ? loose(e.name.split(": ").slice(1).join(": ")) : "";
-    const same = (a: A) => loose(a.name) === n || (!!tail && loose(a.name) === tail);
+    const same = (a: A) => names.get(a) === n || (!!tail && names.get(a) === tail);
     const num = /^episode (\d+)$/.exec(n);
     const hit =
       aired.find((a) => a.season === e.season && same(a)) ??

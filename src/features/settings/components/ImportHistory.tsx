@@ -11,6 +11,8 @@ import { readExport, type ImportRow } from "@/lib/library/importing";
 
 // ponytail: one size for all. A Netflix series row fetches every season, so batches stay small.
 const BATCH = 40;
+// the server takes at most 6000 episodes per call (Netflix), a batch also ends here
+const EPISODES = 3000;
 
 type Totals = { watched: number; watchlist: number; notFound: number; skipped: number; missed: number };
 
@@ -59,10 +61,15 @@ export function ImportHistory() {
     setProgress({ done: 0, total: rows.length });
     const sum: Totals = { watched: 0, watchlist: 0, notFound: 0, skipped, missed: 0 };
     const open: Unsure[] = [];
-    for (let i = 0; i < rows.length; i += BATCH) {
+    for (let i = 0; i < rows.length;) {
+      let end = i;
+      for (let eps = 0; end < rows.length && end - i < BATCH; end++) {
+        eps += rows[end].episodes?.length ?? 0;
+        if (eps > EPISODES && end > i) break;
+      }
       let r: BatchResult;
       try {
-        r = await importBatch(rows.slice(i, i + BATCH));
+        r = await importBatch(rows.slice(i, end));
       } catch {
         setError(`Stopped after ${i} of ${rows.length}. Drop the file again to continue, nothing is added twice.`);
         break;
@@ -72,7 +79,8 @@ export function ImportHistory() {
       sum.notFound += r.notFound;
       sum.missed += r.missed;
       open.push(...r.unsure);
-      setProgress({ done: Math.min(i + BATCH, rows.length), total: rows.length });
+      setProgress({ done: end, total: rows.length });
+      i = end;
     }
     setTotals(sum);
     setUnsure(open);
