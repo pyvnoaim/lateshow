@@ -96,7 +96,7 @@ export async function Settings() {
               remove={removePasskey}
             />
           </Row>
-          <Row title="Import" description="Your history from Letterboxd or IMDb.">
+          <Row title="Import" description="Your history from Letterboxd, IMDb or Netflix.">
             <ImportHistory />
           </Row>
           <Row title="Your data" description="Download or delete everything.">

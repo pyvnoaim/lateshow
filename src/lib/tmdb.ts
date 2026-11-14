@@ -602,7 +602,7 @@ export async function getAiredEpisodes(id: number) {
   return seasons.flatMap((s) =>
     s.episodes
       .filter((e) => e.air_date && e.air_date <= today)
-      .map((e) => ({ season: s.number, episode: e.episode_number, minutes: e.runtime ?? 0 })),
+      .map((e) => ({ season: s.number, episode: e.episode_number, name: e.name, minutes: e.runtime ?? 0 })),
   );
 }
 

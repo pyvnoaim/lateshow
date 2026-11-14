@@ -8,10 +8,11 @@ import { db } from "@/lib/db/client";
 import { rating, watched, watchlist } from "@/lib/db/schema";
 import { findByImdbId, getAiredEpisodes, getRuntime, img, searchForImport } from "@/lib/tmdb";
 import { pool } from "@/lib/pool";
-import { pickMatch, type Hit, type ImportRow } from "./importing";
+import { norm, pickMatch, placeEpisodes, type Hit, type ImportRow } from "./importing";
 import { fromScore } from "./rating";
 
 // The browser sends rows read from your export, never the file. Batches stay small so each call is a few seconds.
+const day = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
 const row = z.object({
   title: z.string().trim().min(1).max(300),
   year: z.number().int().min(1870).max(2100).optional(),
@@ -21,11 +22,18 @@ const row = z.object({
     .optional(),
   type: z.enum(["movie", "tv"]),
   list: z.enum(["watched", "watchlist"]),
-  date: z
-    .string()
-    .regex(/^\d{4}-\d{2}-\d{2}$/)
-    .optional(),
+  date: day.optional(),
   score: z.number().min(0).max(10).optional(),
+  episodes: z
+    .array(
+      z.object({
+        season: z.number().int().min(0).max(500).optional(),
+        name: z.string().trim().min(1).max(300),
+        date: day.optional(),
+      }),
+    )
+    .max(5000)
+    .optional(),
 });
 const pick = z.object({
   id: z.number().int().positive(),
@@ -40,7 +48,7 @@ const pick = z.object({
 /** `poster` is the small image to show, `posterPath` what gets stored */
 export type Candidate = Hit & { type: "movie" | "tv"; posterPath: string | null; poster: string | null };
 export type Unsure = { row: ImportRow; candidates: Candidate[] };
-export type BatchResult = { watched: number; watchlist: number; notFound: number; unsure: Unsure[] };
+export type BatchResult = { watched: number; watchlist: number; missed: number; notFound: number; unsure: Unsure[] };
 type Match = { row: ImportRow; id: number; type: "movie" | "tv"; title: string; posterPath: string | null };
 
 const yearOf = (date?: string) => (date ? Number(date.slice(0, 4)) || undefined : undefined);
@@ -52,7 +60,8 @@ async function match(r: ImportRow): Promise<Match | Unsure | null> {
     if (!t) return null;
     return { row: r, id: t.id, type: t.media_type, title: t.title ?? t.name ?? r.title, posterPath: t.poster_path };
   }
-  const hits = await searchForImport(r.title).catch(() => []);
+  // Netflix episodes only fit a series
+  const hits = (await searchForImport(r.title).catch(() => [])).filter((h) => !r.episodes || h.type === "tv");
   if (!hits.length) return null;
   const m = pickMatch(
     r,
@@ -61,6 +70,27 @@ async function match(r: ImportRow): Promise<Match | Unsure | null> {
   if ("match" in m) {
     const h = m.match;
     return { row: r, id: h.id, type: h.type, title: h.title, posterPath: h.posterPath };
+  }
+  // Netflix has no year, but its episode names tell remakes apart: the one show whose episodes fit wins
+  if (r.episodes) {
+    const fits = await Promise.all(
+      m.candidates.map(
+        async (c) => placeEpisodes(r.episodes!, await getAiredEpisodes(c.id).catch(() => [])).placed.length,
+      ),
+    );
+    const best = Math.max(...fits);
+    if (best > 0 && fits.filter((f) => f === best).length === 1) {
+      const h = m.candidates[fits.indexOf(best)];
+      return { row: r, id: h.id, type: h.type, title: h.title, posterPath: h.posterPath };
+    }
+  }
+  // ponytail: no year at all (Netflix): TMDB's top hit with that exact name that was out when you watched it.
+  // Mostly right (Knives Out 2019, not 2016), a wrong one is fixed on the title page. Ask instead if it bites.
+  if (!r.year && r.date) {
+    const seen = yearOf(r.date)!;
+    const h = m.candidates.find((c) => !c.year || c.year <= seen);
+    if (h && norm(h.title) === norm(r.title))
+      return { row: r, id: h.id, type: h.type, title: h.title, posterPath: h.posterPath };
   }
   return {
     row: r,
@@ -77,16 +107,25 @@ async function match(r: ImportRow): Promise<Match | Unsure | null> {
 
 /**
  * Saves matches. Already there stays as it is, so importing twice adds nothing. Watched beats watchlist.
- * A watched series means all of it: every episode aired so far. Ratings come along (loved, liked, not for me).
+ * A watched series means all of it: every episode aired so far, unless the row lists its episodes (Netflix).
+ * Ratings come along (loved, liked, not for me). `missed`: Netflix episodes whose name TMDB doesn't know.
  */
 async function save(userId: string, matches: Match[]) {
   const seen = matches.filter((m) => m.row.list === "watched");
   const listed = matches.filter((m) => m.row.list === "watchlist");
   // runtimes so imported titles count in your hours (cached, most are looked up once)
-  const parts = await pool(seen, 8, async (m) =>
-    m.type === "movie"
-      ? [{ season: 0, episode: 0, minutes: await getRuntime(m.id).catch(() => 0) }]
-      : await getAiredEpisodes(m.id).catch(() => []),
+  let missed = 0;
+  const parts: { season: number; episode: number; minutes: number; date?: string }[][] = await pool(
+    seen,
+    8,
+    async (m) => {
+      if (m.type === "movie") return [{ season: 0, episode: 0, minutes: await getRuntime(m.id).catch(() => 0) }];
+      const aired = await getAiredEpisodes(m.id).catch(() => []);
+      if (!m.row.episodes) return aired;
+      const placed = placeEpisodes(m.row.episodes, aired);
+      missed += placed.missed;
+      return placed.placed;
+    },
   );
   let w = 0;
   let l = 0;
@@ -106,7 +145,7 @@ async function save(userId: string, matches: Match[]) {
             title: m.title,
             posterPath: m.posterPath,
             minutes: Math.min(p.minutes, 1000),
-            ...(m.row.date ? { watchedAt: new Date(`${m.row.date}T12:00:00Z`) } : {}),
+            ...((p.date ?? m.row.date) ? { watchedAt: new Date(`${p.date ?? m.row.date}T12:00:00Z`) } : {}),
           })),
         )
         .onConflictDoNothing()
@@ -142,7 +181,7 @@ async function save(userId: string, matches: Match[]) {
         .run().changes;
     }
   });
-  return { watched: w, watchlist: l };
+  return { watched: w, watchlist: l, missed };
 }
 
 async function requireUserId() {
@@ -160,7 +199,13 @@ export async function importBatch(raw: ImportRow[]): Promise<BatchResult> {
   const unsure = results.filter((r): r is Unsure => r !== null && "candidates" in r);
   const saved = await save(userId, matches);
   refresh();
-  return { ...saved, notFound: results.filter((r) => r === null).length, unsure };
+  return {
+    watched: saved.watched,
+    watchlist: saved.watchlist,
+    missed: saved.missed,
+    notFound: results.filter((r) => r === null).length,
+    unsure,
+  };
 }
 
 /** You picked which title an unclear row meant. */

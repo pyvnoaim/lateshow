@@ -1,5 +1,5 @@
 /**
- * Import from Letterboxd (export ZIP) and IMDb (ratings / watchlist CSV). Pure, runs in the browser (reading the
+ * Import from Letterboxd (export ZIP), IMDb (ratings / watchlist CSV) and Netflix (viewing history CSV). Pure, runs in the browser (reading the
  * files) and on the server (matching to TMDB). Only these rows ever leave the browser, never the file.
  */
 
@@ -14,7 +14,11 @@ export type ImportRow = {
   date?: string;
   /** your score out of 10 (IMDb as is, Letterboxd stars doubled), becomes a rating via `fromScore` */
   score?: number;
+  /** Netflix: the episodes you watched of this series (season unknown when Netflix names an arc, not a number) */
+  episodes?: NetflixEpisode[];
 };
+
+export type NetflixEpisode = { season?: number; name: string; date?: string };
 
 /** Reads CSV: quoted fields, "" inside quotes, commas and newlines in titles, CRLF, a leading BOM. */
 export function parseCsv(text: string): string[][] {
@@ -93,6 +97,10 @@ export function readExport(files: { name: string; text: string }[]): { rows: Imp
           score: Number(r.Rating) * 2 || undefined,
         });
       }
+    } else if (cols.includes("Title") && cols.includes("Date") && !cols.includes("Const")) {
+      const read = readNetflix(recs);
+      rows.push(...read.rows);
+      skipped += read.skipped;
     } else if (cols.includes("Const")) {
       // ratings.csv has "Date Rated" (rated means watched), a list export (watchlist) has "Created"
       const rated = cols.includes("Your Rating");
@@ -129,6 +137,106 @@ export function readExport(files: { name: string; text: string }[]): { rows: Imp
     return true;
   });
   return { rows: unique, skipped };
+}
+
+// "Season 2", "Part 2", "Series 2", "Staffel 2", "2nd Season", "Limited Series" (= 1)
+function seasonOf(label: string, series: string): number | undefined {
+  const m =
+    /^(?:season|series|part|staffel|volume|book|collection) (\d+)$/i.exec(label) ??
+    /^(\d+)(?:st|nd|rd|th) season$/i.exec(label);
+  if (m) return Number(m[1]);
+  if (/^(limited series|miniseries|mini-series)$/i.test(label)) return 1;
+  // Stranger Things: "Stranger Things 4: Chapter One"
+  const rest = label.toLowerCase().startsWith(`${series.toLowerCase()} `) ? label.slice(series.length + 1) : "";
+  return /^\d+$/.test(rest) ? Number(rest) : undefined;
+}
+
+/**
+ * Netflix only gives "Series: Season 1: Episode name" or a film's title, and the day. A title with colons is a series
+ * when one of its rows has two colons or names a season, or its first part comes up 3 times or more (else "Hotel Transylvania 3: Summer
+ * Vacation" is a film). Dates are M/D/YY in US exports, D/M/YYYY or D.M.YY elsewhere: a first part over 12 decides.
+ */
+function readNetflix(recs: Record<string, string>[]): { rows: ImportRow[]; skipped: number } {
+  const parsed = recs.map((r) => {
+    const parts = r.Title.split(": ");
+    // "The Office (U.S.)": TMDB knows it as "The Office", the episodes pick the right one
+    const series = parts[0].replace(/\s*\((?:U\.S\.|U\.K\.|US|UK)\)$/, "").trim();
+    const season = parts.length > 2 ? seasonOf(parts[1].trim(), series) : undefined;
+    const name = parts
+      .slice(season === undefined ? 1 : 2)
+      .join(": ")
+      .trim();
+    return { title: r.Title.trim(), series, season, name, deep: parts.length > 2, rawDate: r.Date };
+  });
+  const dayFirst = parsed.some((p) => Number(p.rawDate.split(/[/.]/)[0]) > 12 || p.rawDate.includes("."));
+  const date = (s: string) => {
+    const [a, b, c] = s.split(/[/.]/).map(Number);
+    if (!a || !b || !c) return undefined;
+    const [m, d] = dayFirst ? [b, a] : [a, b];
+    const y = c < 100 ? 2000 + c : c;
+    return `${y}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
+  };
+  const count = new Map<string, number>();
+  const labelled = new Set<string>();
+  for (const p of parsed) {
+    if (p.name) count.set(p.series, (count.get(p.series) ?? 0) + 1);
+    if (p.season !== undefined || p.deep) labelled.add(p.series);
+  }
+  const shows = new Map<string, ImportRow>();
+  const films: ImportRow[] = [];
+  let skipped = 0;
+  // the file is newest first: walking it backwards keeps the first time you saw each episode
+  for (const p of parsed.reverse()) {
+    if (!p.title) continue;
+    if (!p.series) {
+      skipped++; // Netflix sometimes leaves the series name out (" : Episode 3")
+      continue;
+    }
+    const isShow = p.name && (labelled.has(p.series) || (count.get(p.series) ?? 0) >= 3);
+    if (!isShow) {
+      films.push({ title: p.title, type: "movie", list: "watched", date: date(p.rawDate) });
+      continue;
+    }
+    let show = shows.get(p.series);
+    if (!show) shows.set(p.series, (show = { title: p.series, type: "tv", list: "watched", episodes: [] }));
+    show.date = date(p.rawDate); // latest day, the row shows when you last watched
+    const eps = show.episodes!;
+    if (!eps.some((e) => e.season === p.season && norm(e.name) === norm(p.name)))
+      eps.push({ season: p.season, name: p.name, date: date(p.rawDate) });
+  }
+  return { rows: [...shows.values(), ...films], skipped };
+}
+
+// brackets don't count: Netflix "The Freelancer (No. 145)" is TMDB "The Freelancer"
+const loose = (s: string) => norm(s.replace(/\([^)]*\)/g, " "));
+
+/**
+ * Netflix episodes to TMDB numbers by name: in the season the file names, then in any season (Netflix "Part 2" can be
+ * TMDB season 1). "Episode 5" with a season falls back to the number. A name after an arc label counts too. Unknown names are counted as missed.
+ * ponytail: exact names only. Anime arcs ("Dragon's Judgement") and renamed episodes miss, fuzzy matching if it matters.
+ */
+export function placeEpisodes<A extends { season: number; episode: number; name: string }>(
+  episodes: NetflixEpisode[],
+  aired: A[],
+): { placed: (A & { date?: string })[]; missed: number } {
+  const placed: (A & { date?: string })[] = [];
+  let missed = 0;
+  for (const e of episodes) {
+    const n = loose(e.name);
+    // an arc instead of a season ("Dragon's Judgement: The Ten Commandments"): the name after it counts too
+    const tail = e.season === undefined ? loose(e.name.split(": ").slice(1).join(": ")) : "";
+    const same = (a: A) => loose(a.name) === n || (!!tail && loose(a.name) === tail);
+    const num = /^episode (\d+)$/.exec(n);
+    const hit =
+      aired.find((a) => a.season === e.season && same(a)) ??
+      aired.find(same) ??
+      (num && e.season !== undefined
+        ? aired.find((a) => a.season === e.season && a.episode === Number(num[1]))
+        : undefined);
+    if (hit) placed.push({ ...hit, date: e.date });
+    else missed++;
+  }
+  return { placed, missed };
 }
 
 /** Lowercase, no accents, no punctuation: "Amélie" and "Amelie", "Se7en" and "Se7en." compare equal. */

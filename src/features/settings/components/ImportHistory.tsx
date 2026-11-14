@@ -9,9 +9,10 @@ import type { BatchResult, Candidate, Unsure } from "@/lib/library/importActions
 import { importBatch, importPick } from "@/lib/library/importActions";
 import { readExport, type ImportRow } from "@/lib/library/importing";
 
-const BATCH = 150;
+// ponytail: one size for all. A Netflix series row fetches every season, so batches stay small.
+const BATCH = 40;
 
-type Totals = { watched: number; watchlist: number; notFound: number; skipped: number };
+type Totals = { watched: number; watchlist: number; notFound: number; skipped: number; missed: number };
 
 /** The files you picked or dropped, as text. A ZIP (Letterboxd) is unpacked right here, nothing is uploaded. */
 async function readFiles(list: FileList) {
@@ -26,13 +27,13 @@ async function readFiles(list: FileList) {
 }
 
 /**
- * Settings › Import: drop a Letterboxd export ZIP or IMDb CSVs. Rows go to the server in batches (progress shown),
+ * Settings › Import: drop a Letterboxd export ZIP, IMDb CSVs or Netflix's viewing history. Rows go to the server in batches (progress shown),
  * clear matches are saved, unclear ones are listed to pick from.
  */
 export function ImportHistory() {
   const [phase, setPhase] = useState<"idle" | "working" | "done">("idle");
   const [progress, setProgress] = useState({ done: 0, total: 0 });
-  const [totals, setTotals] = useState<Totals>({ watched: 0, watchlist: 0, notFound: 0, skipped: 0 });
+  const [totals, setTotals] = useState<Totals>({ watched: 0, watchlist: 0, notFound: 0, skipped: 0, missed: 0 });
   const [unsure, setUnsure] = useState<Unsure[]>([]);
   const [error, setError] = useState("");
   const [over, setOver] = useState(false);
@@ -49,12 +50,14 @@ export function ImportHistory() {
       return;
     }
     if (!rows.length) {
-      setError("No films found. Pick the Letterboxd ZIP, or IMDb's ratings or watchlist CSV.");
+      setError(
+        "No titles found. Pick the Letterboxd ZIP, IMDb's ratings or watchlist CSV, or Netflix's viewing history.",
+      );
       return;
     }
     setPhase("working");
     setProgress({ done: 0, total: rows.length });
-    const sum: Totals = { watched: 0, watchlist: 0, notFound: 0, skipped };
+    const sum: Totals = { watched: 0, watchlist: 0, notFound: 0, skipped, missed: 0 };
     const open: Unsure[] = [];
     for (let i = 0; i < rows.length; i += BATCH) {
       let r: BatchResult;
@@ -67,6 +70,7 @@ export function ImportHistory() {
       sum.watched += r.watched;
       sum.watchlist += r.watchlist;
       sum.notFound += r.notFound;
+      sum.missed += r.missed;
       open.push(...r.unsure);
       setProgress({ done: Math.min(i + BATCH, rows.length), total: rows.length });
     }
@@ -109,6 +113,11 @@ export function ImportHistory() {
               <span className="nums">{totals.notFound + totals.skipped}</span> couldn&apos;t be found or placed.{" "}
             </>
           )}
+          {totals.missed > 0 && (
+            <>
+              <span className="nums">{totals.missed}</span> episodes had names TMDB doesn&apos;t know.{" "}
+            </>
+          )}
           Ratings came along as loved, liked or not for me. Reviews stay where they were.
         </p>
         {error && <p className="text-small text-danger">{error}</p>}
@@ -124,7 +133,12 @@ export function ImportHistory() {
               >
                 <span className="min-w-0 flex-1 basis-40 pl-2">
                   <span className="block truncate text-label font-medium">{u.row.title}</span>
-                  <span className="block text-caption text-muted">{u.row.year ?? "no year"} in your file</span>
+                  <span className="block text-caption text-muted">
+                    {u.row.episodes
+                      ? `${u.row.episodes.length} episode${u.row.episodes.length === 1 ? "" : "s"}`
+                      : (u.row.year ?? "no year")}{" "}
+                    in your file
+                  </span>
                 </span>
                 {u.candidates.map((c) => (
                   <button
