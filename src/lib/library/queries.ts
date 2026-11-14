@@ -59,6 +59,23 @@ export async function getWatchTimes(userId: string, since: Date) {
     .where(and(eq(watched.userId, userId), gte(watched.watchedAt, since)));
 }
 
+/** The last titles watched, each once (a binge of one show is one title), most recent first. */
+export async function getRecentTitles(userId: string, limit = 12) {
+  const last = max(watched.watchedAt);
+  return db
+    .select({
+      mediaType: watched.mediaType,
+      tmdbId: watched.tmdbId,
+      title: watched.title,
+      posterPath: watched.posterPath,
+    })
+    .from(watched)
+    .where(eq(watched.userId, userId))
+    .groupBy(watched.mediaType, watched.tmdbId)
+    .orderBy(desc(last))
+    .limit(limit);
+}
+
 /** Shows you watched episodes of, most recent first. */
 export async function getRecentShows(userId: string, limit = 5) {
   const last = max(watched.watchedAt);

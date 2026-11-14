@@ -18,7 +18,7 @@ import { createList } from "@/lib/lists/actions";
 import { getListsOf } from "@/lib/lists/queries";
 import { VISIBILITY } from "@/lib/lists/rules";
 import { shownName } from "@/lib/username";
-import { getHistory, getStats, getWatchlist, getWatchTimes } from "@/lib/library/queries";
+import { getHistory, getRecentTitles, getStats, getWatchlist, getWatchTimes } from "@/lib/library/queries";
 import { getLanguage } from "@/lib/region";
 import { getTitle, img, titleToCard, type Card } from "@/lib/tmdb";
 import { TmdbImage } from "@/components/TmdbImage";
@@ -26,7 +26,9 @@ import { SignOutButton } from "./components/SignOutButton";
 import { YearHeatmap } from "./components/YearHeatmap";
 import { NewListForm } from "./components/NewListForm";
 import { yearGrid } from "./yearGrid";
+import { episodesLabel, historyEntries } from "./history";
 
+const HISTORY_PAGE = 300;
 const TABS = ["overview", "history", "watchlist", "lists", "friends"] as const;
 type Tab = (typeof TABS)[number];
 
@@ -75,7 +77,7 @@ export async function Profile({
   base = "/u/me",
   owner: friend,
 }: {
-  searchParams: Promise<{ tab?: string | string[] }>;
+  searchParams: Promise<{ tab?: string | string[]; more?: string | string[] }>;
   base?: string;
   owner?: Owner;
 }) {
@@ -91,12 +93,14 @@ export async function Profile({
   };
   // yours: the watchlist has its own page (/watchlist). A friend's: their watchlist is a tab here.
   const tabs = TABS.filter((t) => (self ? t !== "watchlist" : t !== "friends"));
-  const { tab: raw } = await searchParams;
+  const { tab: raw, more } = await searchParams;
   // /u/me is only a shortcut for links: with a username you land on /u/yourname, the address you can share
   if (self && base === "/u/me" && owner.username) {
     redirect(`/u/${owner.username}${typeof raw === "string" ? `?tab=${encodeURIComponent(raw)}` : ""}`);
   }
   const tab: Tab = tabs.find((t) => t === raw) ?? "overview";
+  // History pages by "Show older", each one adds HISTORY_PAGE rows (they render from the db alone, no TMDB calls)
+  const pages = tab === "history" ? Math.min(Math.max(Number(more) || 1, 1), 50) : 1;
 
   const uid = owner.id;
   const now = new Date();
@@ -107,7 +111,7 @@ export async function Profile({
   const none = Promise.resolve([] as never[]);
   const [stats, history, watchlist, times, friendCount, friends] = await Promise.all([
     hidden ? { movies: 0, episodes: 0, minutes: 0 } : getStats(uid),
-    hidden ? none : getHistory(uid, 60),
+    hidden || tab !== "history" ? none : getHistory(uid, pages * HISTORY_PAGE + 1),
     hidden ? none : getWatchlist(uid),
     hidden ? none : getWatchTimes(uid, new Date(now.getTime() - 380 * 24 * 60 * 60 * 1000)),
     self ? getFriendCount(uid) : 0,
@@ -120,7 +124,7 @@ export async function Profile({
                 ? await Promise.all([
                     getMatch(uid, f.id, lang).then((m) => m.percent),
                     // their last few titles, so each friend shows as posters, not just a line of text
-                    getHistory(f.id, 30).then((h) => fullCards(uniqueTitles(h).slice(0, 6), lang)),
+                    getRecentTitles(f.id, 6).then((rows) => fullCards(rows, lang)),
                   ])
                 : [null, []];
               return { ...f, match, recent };
@@ -134,7 +138,7 @@ export async function Profile({
   // full TMDB cards (poster, year, genre) for the shared titles, the stored rows only have a title
   const [both, recent, listCards, lists] = await Promise.all([
     fullCards((match?.both ?? []).slice(0, 12), lang),
-    fullCards(uniqueTitles(history).slice(0, 12), lang),
+    hidden || tab !== "overview" ? [] : getRecentTitles(uid, 12).then((rows) => fullCards(rows, lang)),
     tab === "watchlist" ? fullCards(watchlist, lang) : [],
     tab === "lists" && !hidden ? getListsOf(uid, session.user.id) : [],
   ]);
@@ -261,7 +265,7 @@ export async function Profile({
             >
               <YearHeatmap days={yearGrid(times, now)} />
             </Section>
-            {history.length > 0 && (
+            {recent.length > 0 && (
               <Section title="Recently watched">
                 <PosterGrid>
                   {recent.map((c, i) => (
@@ -279,11 +283,11 @@ export async function Profile({
             <Empty text="Nothing watched yet." action={self} />
           ) : (
             <div className="flex max-w-reading flex-col gap-8">
-              {byWhen(history, now).map(([day, rows]) => (
+              {historyEntries(history.slice(0, pages * HISTORY_PAGE), (d) => dayLabel(d, now)).map(([day, entries]) => (
                 <section key={day} className="flex flex-col gap-1">
                   <h2 className="text-small font-medium text-muted">{day}</h2>
                   <ol className="flex flex-col">
-                    {rows.map((r) => {
+                    {entries.map(({ row: r, episodes }) => {
                       const poster = img(r.posterPath, "w92");
                       return (
                         <li key={r.id}>
@@ -296,9 +300,7 @@ export async function Profile({
                             </span>
                             <span className="min-w-0 flex-1">
                               <span className="block truncate text-body font-medium">{r.title}</span>
-                              <span className="block text-small text-muted nums">
-                                {r.mediaType === "movie" ? "Movie" : `Season ${r.season}, episode ${r.episode}`}
-                              </span>
+                              <span className="block text-small text-muted nums">{episodesLabel(episodes)}</span>
                             </span>
                           </Link>
                         </li>
@@ -307,6 +309,15 @@ export async function Profile({
                   </ol>
                 </section>
               ))}
+              {history.length > pages * HISTORY_PAGE && (
+                <Link
+                  href={`${base}?tab=history&more=${pages + 1}`}
+                  scroll={false}
+                  className={buttonStyles("text", "text", "self-start")}
+                >
+                  Show older
+                </Link>
+              )}
             </div>
           ))}
 
@@ -412,26 +423,6 @@ export async function Profile({
       </div>
     </div>
   );
-}
-
-function uniqueTitles(rows: Row[]) {
-  const seen = new Set<string>();
-  return rows.filter((r) => {
-    const key = `${r.mediaType}-${r.tmdbId}`;
-    if (seen.has(key)) return false;
-    seen.add(key);
-    return true;
-  });
-}
-
-/** History rows grouped under "Today", "Yesterday", "Nov 9", then "October", newest first (rows come sorted). */
-function byWhen<T extends { watchedAt: Date }>(rows: T[], now: Date) {
-  const groups = new Map<string, T[]>();
-  for (const r of rows) {
-    const day = dayLabel(r.watchedAt, now);
-    groups.set(day, [...(groups.get(day) ?? []), r]);
-  }
-  return [...groups];
 }
 
 function Empty({ text, action }: { text: string; action: boolean }) {
