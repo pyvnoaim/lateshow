@@ -27,6 +27,9 @@ Read `node_modules/next/dist/docs/` before using Next APIs (see AGENTS.md).
   history into import rows (`readPrimeHistory` in lib/library/importing.ts, tested there), the popup opens
   /settings?import=extension and a content script hands the rows to ImportHistory (page says ready, script posts once).
   No API route, no extension sign-in yet (comes with sync).
+  Signed for keeps (Firefox): `pnpm ext:zip` makes extension/lateshow-extension.zip, upload it at
+  addons.mozilla.org › Submit a New Add-on › On your own (unlisted, signed for free, not public), install the signed
+  .xpi from about:addons › gear › Install Add-on From File. Raise "version" in manifest.template.json before each upload.
 - Private repo github.com/pyvnoaim/lateshow (main). Commit often, push only when the user says so, via push-gate.
 
 ## Copy rules (visible text)

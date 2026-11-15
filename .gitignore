@@ -46,3 +46,4 @@ next-env.d.ts
 
 # the built extension (pnpm ext:build)
 /extension/dist
+/extension/*.zip

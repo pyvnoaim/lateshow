@@ -14,6 +14,7 @@
     "db:generate": "drizzle-kit generate",
     "ext:build": "node extension/build.mjs",
     "ext:dev": "node extension/build.mjs --dev",
+    "ext:zip": "node extension/build.mjs && rm -f extension/lateshow-extension.zip && cd extension/dist && zip -qr ../lateshow-extension.zip .",
     "db:migrate": "mkdir -p data && drizzle-kit migrate"
   },
   "dependencies": {
