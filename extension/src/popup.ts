@@ -3,9 +3,13 @@
 // where the card does the reading).
 
 const PRIME = "https://www.primevideo.com";
-const HISTORY = `${PRIME}/settings/watch-history`;
-const ORIGINS = [`${PRIME}/*`, `${__LATESHOW_MATCH__}/*`];
 const SITE = "Prime Video";
+// where each site keeps your history, the card on that page reads it
+const HISTORIES = [
+  { site: "Prime Video", url: `${PRIME}/settings/watch-history` },
+  { site: "Crunchyroll", url: "https://www.crunchyroll.com/history" },
+];
+const ORIGINS = [`${PRIME}/*`, "https://www.crunchyroll.com/*", `${__LATESHOW_MATCH__}/*`];
 
 type Settings = { autoMark?: Partial<Record<string, boolean>>; profiles?: Partial<Record<string, string>> };
 
@@ -84,7 +88,7 @@ async function main() {
       await chrome.permissions.request({ origins: ORIGINS });
       await main();
     });
-    app.append(el("p", "", "To import from Prime Video and to talk to your Lateshow account."), allow);
+    app.append(el("p", "", "To import from Prime Video and Crunchyroll and to talk to your Lateshow account."), allow);
     return;
   }
 
@@ -133,17 +137,21 @@ async function main() {
     app.append(row(CHECK, "Mark what I finish", "Connect this browser to your account", connect));
   }
 
-  // import: the card on the watch history page does the reading
+  // import: the card on each site's history page does the reading
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  if (tab?.url?.startsWith(HISTORY))
-    app.append(row(IMPORT, "Import history", "Use the Lateshow card at the bottom right. Closed it? Reload the page."));
-  else {
+  for (const h of HISTORIES) {
+    if (tab?.url?.startsWith(h.url)) {
+      app.append(
+        row(IMPORT, `Import from ${h.site}`, "Use the Lateshow card at the bottom right. Closed it? Reload the page."),
+      );
+      continue;
+    }
     const chevron = el("span", "chevron");
     chevron.append(icon(CHEVRON, 16));
     app.append(
-      row(IMPORT, "Import history", `From your ${SITE} watch history`, chevron, async () => {
-        if (tab?.id) await chrome.tabs.update(tab.id, { url: HISTORY });
-        else await chrome.tabs.create({ url: HISTORY });
+      row(IMPORT, `Import from ${h.site}`, "Opens your watch history there", chevron, async () => {
+        if (tab?.id) await chrome.tabs.update(tab.id, { url: h.url });
+        else await chrome.tabs.create({ url: h.url });
         window.close();
       }),
     );

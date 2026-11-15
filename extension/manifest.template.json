@@ -1,16 +1,47 @@
 {
   "manifest_version": 3,
   "name": "Lateshow",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "Brings your watch history from streaming sites into Lateshow.",
-  "icons": { "128": "icon-128.png" },
-  "action": { "default_popup": "popup.html", "default_icon": { "128": "icon-128.png" } },
+  "icons": {
+    "128": "icon-128.png"
+  },
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "128": "icon-128.png"
+    }
+  },
   "permissions": ["storage", "activeTab", "alarms"],
-  "background": { "service_worker": "background.js", "scripts": ["background.js"] },
-  "host_permissions": ["https://www.primevideo.com/*", "__LATESHOW__/*"],
+  "background": {
+    "service_worker": "background.js",
+    "scripts": ["background.js"]
+  },
+  "host_permissions": ["https://www.primevideo.com/*", "https://www.crunchyroll.com/*", "__LATESHOW__/*"],
   "content_scripts": [
-    { "matches": ["https://www.primevideo.com/*"], "js": ["prime.js"] },
-    { "matches": ["__LATESHOW__/*"], "js": ["lateshow.js"] }
+    {
+      "matches": ["https://www.primevideo.com/*"],
+      "js": ["prime.js"]
+    },
+    {
+      "matches": ["https://www.crunchyroll.com/*"],
+      "js": ["crunchyroll-main.js"],
+      "world": "MAIN",
+      "run_at": "document_start"
+    },
+    {
+      "matches": ["https://www.crunchyroll.com/*"],
+      "js": ["crunchyroll.js"]
+    },
+    {
+      "matches": ["__LATESHOW__/*"],
+      "js": ["lateshow.js"]
+    }
   ],
-  "browser_specific_settings": { "gecko": { "id": "extension@lateshow.pyvno.xyz", "strict_min_version": "121.0" } }
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "extension@lateshow.pyvno.xyz",
+      "strict_min_version": "128.0"
+    }
+  }
 }

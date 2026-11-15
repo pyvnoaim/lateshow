@@ -2,7 +2,7 @@
 // while you click around, unlike the toolbar popup, which closes on any click outside it. Its own closed shadow DOM, so
 // the site's styles can't reach it and it touches nothing of the site.
 import type { ImportRow } from "@/lib/library/importing";
-import type { Progress } from "./prime";
+import type { Progress } from "./reader";
 
 type Read = (onProgress: (p: Progress) => void, since: number) => Promise<{ rows: ImportRow[]; oldest: string }>;
 

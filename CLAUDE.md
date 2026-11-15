@@ -29,7 +29,9 @@ Read `node_modules/next/dist/docs/` before using Next APIs (see AGENTS.md).
   Imports need no API route (the page imports). Read new: after an import the extension remembers its newest watch per site (`synced`), the card then pages only back to it. Auto-marking groundwork (2026-11-15): Settings › Extension connects a browser (own key `ls_<id>_<secret>`,
   hashed, /api/extension/mark + /me, Bearer only, no cookie), `background.ts` queues marks and retries, `watch.ts`
   follows the main <video> with `lib/watchProgress.ts` (tested) and asks through a site Adapter (what's playing, ad,
-  credits, profile), `toast.ts` shows Marked · Undo or Which one?. The Prime adapter waits for the player snippet.
+  credits, profile), `toast.ts` shows Marked · Undo or Which one?. The Prime adapter waits for the player snippet. Crunchyroll (2026-11-15): `crunchyroll-main.ts` runs in the page's world
+  (document_start) and notes the token Crunchyroll's app sends to its API, `crunchyroll.ts` pages through
+  content/v2/<account>/watch-history and fills bare entries from cms/objects. `reader.ts` is what all site readers share.
   Signed for keeps (Firefox): `pnpm ext:zip` makes extension/lateshow-extension.zip, upload it at
   addons.mozilla.org › Submit a New Add-on › On your own (unlisted, signed for free, not public), install the signed
   .xpi from about:addons › gear › Install Add-on From File. Raise "version" in manifest.template.json before each upload.
