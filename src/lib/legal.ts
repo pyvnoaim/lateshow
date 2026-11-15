@@ -22,4 +22,4 @@ export const HOSTING = {
 };
 
 /** The date the privacy page last changed. */
-export const PRIVACY_UPDATED = "November 11, 2026";
+export const PRIVACY_UPDATED = "November 15, 2026";

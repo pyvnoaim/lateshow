@@ -144,7 +144,7 @@ export async function Settings() {
               />
             </div>
           </Row>
-          <Row title="Extension" description="Marks what you finish on Prime Video, with the real time.">
+          <Row title="Extension" description="Lets the Lateshow extension mark what you finish, with the real time.">
             <ExtensionKeys
               connected={keys.map((k) => ({
                 id: k.id,

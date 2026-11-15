@@ -79,6 +79,17 @@ export default function PrivacyPage() {
             settings.
           </li>
           <li>
+            <strong>Imports</strong>: which service each import came from and when, so you can remove one again, and the
+            streaming site&apos;s own ids of titles you matched, so the next import finds them without searching. The
+            export file itself never leaves your browser, only the rows read from it.
+          </li>
+          <li>
+            <strong>The Lateshow extension</strong>, if you connect it: a key for that browser (we keep only a
+            fingerprint of it) and when it was last used. It sends a title only once you finished watching it, with the
+            time and the streaming service. Your progress, pauses or what you started but didn&apos;t finish stay in
+            your browser. Disconnect it any time in Settings.
+          </li>
+          <li>
             <strong>Friends</strong>: who you are friends with and the invite links you made.
           </li>
           <li>
