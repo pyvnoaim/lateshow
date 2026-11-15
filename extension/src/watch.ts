@@ -115,7 +115,7 @@ export function watch(site: Adapter) {
   window.setInterval(async () => {
     const framed = site.clock?.() ?? null;
     const v = framed ?? ownVideo();
-    const now = v ? (framed ? "the player frame" : "this page's video") : "";
+    const now = v ? (framed ? "the site's player" : "this page's video") : "";
     if (now && now !== source) log(`following ${site.via} playback from ${now}`);
     source = now;
     if (!v || v.paused) return;

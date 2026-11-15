@@ -5,7 +5,7 @@
 import { readNetflixHistory, type ImportRow, type NetflixViewed } from "@/lib/library/importing";
 import { showCard } from "./card";
 import { getJson, pageFetch, pause, reader, type ReadHistory } from "./reader";
-import { watch } from "./watch";
+import { watch, type Clock } from "./watch";
 
 type Ids = { guid: string | null; build: string | null; name?: string | null };
 type Answer = {
@@ -159,17 +159,32 @@ function lookUp(): Promise<Playing | null> {
   return looked.get(id)!.then((p) => (current = p));
 }
 
+// the episode's position from Netflix's player API (netflix-main.ts), a few seconds old at most
+let clock: { clock: Clock; at: number } | null = null;
+window.addEventListener("message", (e) => {
+  const d = e.data as ({ type?: string } & Partial<Clock>) | null;
+  if (e.source !== window || d?.type !== "lateshow:nf-tick") return;
+  clock = {
+    clock: { at: Number(d.at), duration: Number(d.duration), rate: Number(d.rate) || 1, paused: Boolean(d.paused) },
+    at: Date.now(),
+  };
+});
+const now = () => (clock && Date.now() - clock.at < 3000 ? clock.clock : null);
+
 let profile: string | null = null;
 if (location.pathname.startsWith("/watch/")) void ask().then((ids) => (profile = ids.name ?? null));
 
 watch({
   via: SOURCE,
   playing: async () => (await lookUp())?.row ?? null,
+  clock: now,
+  // an ad break (plans with ads): its seconds aren't watching
+  ad: () => Boolean(document.querySelector('[data-uia="ads-info-container"]')),
   // Netflix's own "watched to the end" point (just before the credits): past it counts like the credits starting
   credits: () => {
     void lookUp();
-    const v = document.querySelector("video");
-    return Boolean(v && current?.end && v.currentTime >= current.end);
+    const at = now()?.at;
+    return Boolean(at !== undefined && current?.end && at >= current.end);
   },
   profile: () => profile,
 });
