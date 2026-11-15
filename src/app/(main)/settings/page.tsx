@@ -1,13 +1,13 @@
 import { Suspense } from "react";
 import { Container } from "@/components/ui/Container";
-import { Settings } from "@/features/settings/Settings";
+import { Settings, SettingsSkeleton } from "@/features/settings/Settings";
 
 export const metadata = { title: "Settings · Lateshow" };
 
 export default function SettingsPage() {
   return (
     <Container as="main" className="pt-page-top">
-      <Suspense>
+      <Suspense fallback={<SettingsSkeleton />}>
         <Settings />
       </Suspense>
     </Container>

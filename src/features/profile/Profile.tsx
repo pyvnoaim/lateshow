@@ -320,11 +320,12 @@ export async function Profile({
           (history.length === 0 ? (
             <Empty text="Nothing watched yet." action={self} />
           ) : (
-            <div className="flex max-w-reading flex-col gap-8">
+            <div className="flex flex-col gap-6">
               {historyEntries(history.slice(0, pages * HISTORY_PAGE), (d) => dayLabel(d, now)).map(([day, entries]) => (
-                <section key={day} className="flex flex-col gap-1">
-                  <h2 className="text-small font-medium text-muted">{day}</h2>
-                  <ol className="flex flex-col">
+                // wide screens: the day in a left column, its titles side by side, so a day is one band, not a tall list
+                <section key={day} className="flex flex-col gap-1 md:flex-row md:gap-8">
+                  <h2 className="text-small font-medium text-muted md:w-28 md:shrink-0 md:pt-3">{day}</h2>
+                  <ol className="grid flex-1 gap-x-8 lg:grid-cols-2 2xl:grid-cols-3">
                     {entries.map(({ row: r, episodes }) => {
                       const poster = img(r.posterPath, "w92");
                       return (
@@ -472,6 +473,26 @@ function Empty({ text, action }: { text: string; action: boolean }) {
           Find something to watch
         </Link>
       )}
+    </div>
+  );
+}
+
+/** Shaped like the profile (avatar line, headline, tabs, a section), so the switch in isn't a black page. */
+export function ProfileSkeleton() {
+  return (
+    <div className="flex flex-col gap-section">
+      <div className="flex flex-col gap-10">
+        <div className="flex items-center gap-5">
+          <div className="size-16 sk rounded-full" />
+          <div className="flex flex-col gap-2">
+            <div className="h-5 w-32 sk rounded-full" />
+            <div className="h-4 w-44 sk rounded-full" />
+          </div>
+        </div>
+        <div className="h-24 w-2/3 sk rounded-poster" />
+        <div className="h-6 w-72 sk rounded-full" />
+      </div>
+      <div className="h-48 sk rounded-poster" />
     </div>
   );
 }

@@ -96,7 +96,16 @@ export async function Settings() {
               remove={removePasskey}
             />
           </Row>
-          <Row title="Import" description="Your history from Letterboxd, IMDb or Netflix.">
+          <Row
+            title="Import"
+            description={
+              <>
+                Your history from <Source name="Letterboxd" where="Settings › Data › Export your data" file="ZIP" />,{" "}
+                <Source name="IMDb" where="Your ratings or Watchlist › ⋯ › Export" file="CSV" /> or{" "}
+                <Source name="Netflix" where="Account › Profile › Viewing activity › Download all" file="CSV" />.
+              </>
+            }
+          >
             <ImportHistory />
           </Row>
           <Row title="Your data" description="Download or delete everything.">
@@ -135,6 +144,13 @@ function Group({ id, title, children }: { id: string; title: string; children: R
  * One setting: label and a muted line on the left, the control on the right (from lg).
  * `stack` puts wide controls (service tiles, lists) under the label instead.
  */
+/** A service the import reads, lit up, with where to download its export as the tooltip (hover or Tab). */
+const Source = ({ name, where, file }: { name: string; where: string; file: string }) => (
+  <span tabIndex={0} data-tip={where} data-tip-meta={`Then drop the ${file} here`} className="cursor-help text-fg">
+    {name}
+  </span>
+);
+
 function Row({
   title,
   description,
@@ -142,7 +158,7 @@ function Row({
   children,
 }: {
   title: string;
-  description?: string;
+  description?: ReactNode;
   stack?: boolean;
   children: ReactNode;
 }) {
@@ -153,6 +169,26 @@ function Row({
         {description && <p className="text-label text-pretty text-muted">{description}</p>}
       </div>
       <div className="min-w-0 flex-1">{children}</div>
+    </div>
+  );
+}
+
+/** Shaped like the page (heading, then label and control rows), so the switch in isn't a black page. */
+export function SettingsSkeleton() {
+  return (
+    <div className="flex justify-center gap-section">
+      <div className="flex max-w-reading min-w-0 flex-1 flex-col gap-section">
+        <div className="h-16 w-56 sk rounded-poster" />
+        {[0, 1, 2, 3, 4].map((i) => (
+          <div key={i} className="flex items-center justify-between gap-6">
+            <div className="flex flex-col gap-2">
+              <div className="h-5 w-32 sk rounded-full" />
+              <div className="h-4 w-48 sk rounded-full" />
+            </div>
+            <div className="h-10 w-40 sk rounded-full" />
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
