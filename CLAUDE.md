@@ -20,6 +20,7 @@ Read `node_modules/next/dist/docs/` before using Next APIs (see AGENTS.md).
   Dev prints the code in the terminal (`Sign in code for <email>: 123456`). Prod sends through Resend
   (`RESEND_API_KEY`, `MAIL_FROM`, `MAIL_REPLY_TO`, see .env.example). Passkey table is hand-written in auth-schema.ts.
 - Gotcha: Turbopack serves stale CSS after editing `@utility`/`@theme`. Stop server, `rm -rf .next`, restart, check served CSS.
+- Gotcha: dev pages reloading themselves in a loop (empty page, "server could not finish this Suspense boundary") = stale Turbopack HMR state, every HMR connect sends an update it can only apply by a full reload. Same fix: stop, `rm -rf .next`, restart. Dev only, production has no HMR.
 - Private repo github.com/pyvnoaim/lateshow (main). Commit often, push only when the user says so, via push-gate.
 
 ## Copy rules (visible text)
