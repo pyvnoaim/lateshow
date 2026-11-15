@@ -201,13 +201,16 @@ export async function importSkip(rawRow: ImportRow, rawImportId: string) {
 const openKey = (r: ImportRow) => `${r.type}|${r.title}|${r.year ?? ""}|${r.date ?? ""}`;
 
 /** Changes the unclear rows an import keeps waiting (the import must be yours, checked by the caller) */
+// one synchronous transaction: picks clicked in quick succession can't overwrite each other's change
 async function keepOpen(importId: string, change: (open: Unsure[]) => Unsure[]) {
-  const b = await db.select({ open: imports.open }).from(imports).where(eq(imports.id, importId)).get();
-  const next = change((b?.open ?? []) as Unsure[]);
-  await db
-    .update(imports)
-    .set({ open: next.length ? next : null })
-    .where(eq(imports.id, importId));
+  db.transaction((tx) => {
+    const b = tx.select({ open: imports.open }).from(imports).where(eq(imports.id, importId)).get();
+    const next = change((b?.open ?? []) as Unsure[]);
+    tx.update(imports)
+      .set({ open: next.length ? next : null })
+      .where(eq(imports.id, importId))
+      .run();
+  });
 }
 
 /**
