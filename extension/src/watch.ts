@@ -63,6 +63,7 @@ async function send(via: Via, row: ImportRow, at: string, pick?: Candidate) {
 }
 
 function show(via: Via, row: ImportRow, at: string, a: Answer) {
+  log("Lateshow answered", a.status);
   if (a.status === "marked")
     toast({
       title: "Marked as watched",
@@ -93,6 +94,9 @@ function show(via: Via, row: ImportRow, at: string, a: Answer) {
   // "unknown": Lateshow doesn't know this title, nothing to say mid-film
 }
 
+// a few console lines, so marking that doesn't happen says where it stopped
+const log = (...args: unknown[]) => console.info("[Lateshow]", ...args);
+
 /** Starts following playback on this page for one site. Checks once a second, does nothing without a key. */
 export function watch(site: Adapter) {
   let p: Progress = start();
@@ -100,8 +104,14 @@ export function watch(site: Adapter) {
     const v = mainVideo();
     return v && { at: v.currentTime, duration: v.duration, rate: v.playbackRate, paused: v.paused };
   };
+  let source = "";
+  let lastLog = 0;
   window.setInterval(async () => {
-    const v = site.clock?.() ?? ownVideo();
+    const framed = site.clock?.() ?? null;
+    const v = framed ?? ownVideo();
+    const now = v ? (framed ? "the player frame" : "this page's video") : "";
+    if (now && now !== source) log(`following ${site.via} playback from ${now}`);
+    source = now;
     if (!v || v.paused) return;
     const was = p.finished;
     p = tick(p, {
@@ -111,10 +121,18 @@ export function watch(site: Adapter) {
       ad: site.ad?.() ?? false,
       credits: site.credits?.() ?? false,
     });
+    if (Date.now() - lastLog > 120_000) {
+      lastLog = Date.now();
+      log(
+        `watched ${Math.round(p.watched / 60)} of ${Math.round(p.duration / 60)} min, at ${Math.round(v.at / 60)} min`,
+      );
+    }
     if (was || !p.finished) return;
+    log("finished, marking");
     const s = (await chrome.storage.local.get("settings")).settings as Settings | undefined;
     const key = (await chrome.storage.local.get("key")).key;
-    if (!key || s?.autoMark?.[site.via] === false) return;
+    if (!key) return log("not connected to Lateshow, nothing marked (popup › Connect)");
+    if (s?.autoMark?.[site.via] === false) return log(`marking is off for ${site.via} (popup switch)`);
     // your profile: the first one that finishes something here, changeable in the popup
     const profile = site.profile?.() ?? null;
     if (profile) {
@@ -124,6 +142,7 @@ export function watch(site: Adapter) {
         await chrome.storage.local.set({ settings: { ...s, profiles: { ...s?.profiles, [site.via]: profile } } });
     }
     const row = await site.playing();
+    log(row ? `it's ${row.title}` : "couldn't tell what's playing, nothing marked");
     if (row) void send(site.via, row, new Date().toISOString());
   }, 1000);
 }
