@@ -3,6 +3,9 @@
 // when it last synced, Sync (background.ts reads and imports, see there) and the switch that marks what you finish.
 import type { Recent, SyncState } from "./background";
 
+// as background.ts: a sync job older than this is over (types only from there, its code must not run here)
+const STALE = 5 * 60_000;
+
 const PRIME = "https://www.primevideo.com";
 const SITES = [
   { site: "Netflix", badge: "N", color: "#e50914", url: "https://www.netflix.com/settings/viewed" },
@@ -269,13 +272,13 @@ async function render() {
     store<Record<string, number>>("synced"),
     store<SyncState>("syncState"),
     store<Recent[]>("recent"),
-    store<unknown>("job"),
+    store<{ started?: number }>("job"),
   ]);
   const running = state && (state.phase === "reading" || state.phase === "importing");
   if (state && (running || Date.now() - state.at < SHOW_DONE)) app.append(syncCard(state));
   const marks = recentList(recent ?? []);
   if (marks) app.append(marks);
-  app.append(...siteList(settings ?? {}, synced ?? {}, Boolean(job)));
+  app.append(...siteList(settings ?? {}, synced ?? {}, Boolean(job && Date.now() - (job.started ?? 0) < STALE)));
 }
 
 // the sync, a mark or a switch changes storage: the popup follows, one render after another

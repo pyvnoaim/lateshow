@@ -148,6 +148,10 @@ lists (/l/<id>, see Todo), update bar after a deploy (`UpdateBar`: build id from
       with the link (signed out too), access in `canSeeList`. Add from the list icon on the title page and in every poster caption (once you have a list), Lists tab on
       profiles, /l/<id> (rename, copy link, delete, Remove under posters), "Pick one together" = a swipe room over the
       list (`room.list_id`, the kind most titles are). Link preview (OG) only for "Anyone with the link" lists, the rest get a plain card.
+- [ ] Chrome Web Store (developer fee paid 2026-11-15, non-trader account): list the extension as Unlisted with
+      `pnpm ext:chrome` (extension/lateshow-chrome.zip, no Firefox keys), store text, screenshots 1280×800, privacy
+      policy /privacy (add an extension section), permission justifications, then automate uploads in CI (Web Store
+      API, OAuth client + refresh token as secrets) like AMO. Then Settings › Extension gets "Add to Chrome".
 - [ ] Later: genre/mood row, imports from TMDB account and Trakt (both have ids).
 - [ ] Watch together = a browser extension (drafts on the canvas, approved 2026-11-11): syncs the streaming site's
       player for everyone in a room, on a laptop. Rejected: a manual 3-2-1 countdown flow without the extension.

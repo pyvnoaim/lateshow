@@ -69,7 +69,9 @@ export type SyncState = {
   message?: string;
   at: number;
 };
-type Job = { site: string; tabId: number; since: number };
+type Job = { site: string; tabId: number; since: number; started: number };
+// a job older than this is over (a suspended background may never have run its timeout)
+const STALE = 5 * 60_000; // popup.ts keeps the same
 
 const HISTORY: Record<string, string> = {
   Netflix: "https://www.netflix.com/settings/viewed",
@@ -87,11 +89,15 @@ async function endJob(job: Job | undefined) {
 }
 
 async function startSync(site: string) {
-  if (!HISTORY[site] || (await local<Job>("job"))) return;
+  const running = await local<Job>("job");
+  if (!HISTORY[site] || (running && Date.now() - running.started < STALE)) return;
+  if (running) await endJob(running);
   const synced = (await local<Record<string, number>>("synced")) ?? {};
   const tab = await chrome.tabs.create({ url: HISTORY[site], active: false });
   if (!tab.id) return setState({ site, phase: "error", message: "The history page didn't open." });
-  await chrome.storage.local.set({ job: { site, tabId: tab.id, since: synced[site] ?? 0 } satisfies Job });
+  await chrome.storage.local.set({
+    job: { site, tabId: tab.id, since: synced[site] ?? 0, started: Date.now() } satisfies Job,
+  });
   await setState({ site, phase: "reading", read: 0 });
   // a page that never answers (signed out there, the site changed) doesn't keep the sync running forever
   setTimeout(async () => {
