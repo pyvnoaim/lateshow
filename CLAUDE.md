@@ -36,7 +36,10 @@ Read `node_modules/next/dist/docs/` before using Next APIs (see AGENTS.md).
   all_frames, posts only to the Crunchyroll page). No credits signal yet (90%), no profile check yet. Netflix import (2026-11-15): `netflix.ts` on /settings/viewed asks Netflix's AUI API (`["aui","viewingActivity",page,50]`, form `param={"guid":<profile>}`, the page's `x-netflix.request.routing` headers or its edge answers BLOCKED), `netflix-main.ts` (page world) hands over the profile and build id, `readNetflixHistory` (tested) places episodes by name per season (Netflix gives no numbers).
   Signed for keeps (Firefox): `pnpm ext:zip` makes extension/lateshow-extension.zip, upload it at
   addons.mozilla.org › Submit a New Add-on › On your own (unlisted, signed for free, not public), install the signed
-  .xpi from about:addons › gear › Install Add-on From File. Raise "version" in manifest.template.json before each upload.
+  .xpi from about:addons › gear › Install Add-on From File. Raise "version" in manifest.template.json before each upload. `pnpm ext:zip` also makes
+  extension/lateshow-extension-source.zip (git archive of HEAD, so commit first, build steps in extension/SOURCE.md):
+  AMO asks for source since esbuild bundles, answer Yes and upload it. AMO needs `data_collection_permissions` in the
+  gecko settings (what leaves the browser, Firefox 140+ asks on install), keep it true when the extension sends more.
 - Private repo github.com/pyvnoaim/lateshow (main). Commit often, push only when the user says so, via push-gate.
 
 ## Copy rules (visible text)
