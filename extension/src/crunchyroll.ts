@@ -152,9 +152,27 @@ async function done(): Promise<boolean | null> {
   }
 }
 
+// your active Crunchyroll profile's name (its multiprofile API marks the selected one), asked until it answers
+let profile: string | null = null;
+async function loadProfile() {
+  const { auth } = await ask();
+  if (!auth) return;
+  const res = (await getJson("/accounts/v1/me/multiprofile", { authorization: auth })) as {
+    profiles?: { profile_name?: string; is_selected?: boolean }[];
+  };
+  profile = res.profiles?.find((p) => p.is_selected)?.profile_name ?? null;
+}
+// on every page: Crunchyroll changes pages without reloading, an episode may start from anywhere
+const retry = window.setInterval(() => {
+  if (profile) return window.clearInterval(retry);
+  void loadProfile().catch(() => {});
+}, 5000);
+
 watch({
   via: SOURCE,
   playing,
   done,
+  // only your profile is marked (the first that finishes something here, changeable in the popup)
+  profile: () => profile,
   clock: () => (frame && Date.now() - frame.at < 3000 ? frame.clock : null),
 });

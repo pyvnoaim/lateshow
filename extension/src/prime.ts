@@ -144,11 +144,38 @@ function playing(): ImportRow | null {
   };
 }
 
+/** Your active Prime profile's name from the page's own data (a profile switch reloads the page) */
+function activeProfile(): string | null {
+  const find = (o: unknown, seen: Set<object>): string | null => {
+    if (!o || typeof o !== "object" || seen.has(o)) return null;
+    seen.add(o);
+    const p = (o as { activeProfile?: { name?: string } }).activeProfile;
+    if (typeof p?.name === "string") return p.name;
+    for (const v of Object.values(o)) {
+      const hit = find(v, seen);
+      if (hit) return hit;
+    }
+    return null;
+  };
+  for (const s of document.querySelectorAll('script[type="application/json"]')) {
+    try {
+      const hit = find(JSON.parse(s.textContent ?? ""), new Set());
+      if (hit) return hit;
+    } catch {
+      continue;
+    }
+  }
+  return null;
+}
+let profile: string | null | undefined;
+
 watch({
   via: SOURCE,
   playing,
   clock,
   ad,
+  // only your profile is marked (the first that finishes something here, changeable in the popup)
+  profile: () => (profile ??= activeProfile()),
   // Prime's own "next up" point (where the credits start)
   credits: () => {
     const next = lengths.get(current)?.nextUpMs;
