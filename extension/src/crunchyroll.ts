@@ -82,7 +82,8 @@ const readHistory: ReadHistory = async (onProgress, since) => {
 };
 
 const SOURCE = "Crunchyroll";
-if (location.pathname.startsWith("/history")) showCard(SOURCE, reader(SOURCE, readHistory));
+// the address may carry a language (/de/history)
+if (/^(\/[a-z]{2}(-[a-z]{2})?)?\/history/.test(location.pathname)) showCard(SOURCE, reader(SOURCE, readHistory));
 
 // --- marking what you finish
 

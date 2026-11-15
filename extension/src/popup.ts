@@ -3,8 +3,8 @@
 // where the card does the reading).
 
 const PRIME = "https://www.primevideo.com";
-// the sites that mark what you finish so far (Prime Video follows once its player is known)
-const MARKING = ["Crunchyroll", "Netflix"];
+// the sites that mark what you finish
+const MARKING = ["Crunchyroll", "Netflix", "Prime Video"];
 // where each site keeps your history, the card on that page reads it
 const HISTORIES = [
   { site: "Prime Video", url: `${PRIME}/settings/watch-history` },

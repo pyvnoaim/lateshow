@@ -16,6 +16,7 @@ await build({
   entryPoints: [
     "popup",
     "prime",
+    "prime-main",
     "crunchyroll",
     "crunchyroll-main",
     "frame-video",

@@ -27,6 +27,12 @@
   "content_scripts": [
     {
       "matches": ["https://www.primevideo.com/*"],
+      "js": ["prime-main.js"],
+      "world": "MAIN",
+      "run_at": "document_start"
+    },
+    {
+      "matches": ["https://www.primevideo.com/*"],
       "js": ["prime.js"]
     },
     {
