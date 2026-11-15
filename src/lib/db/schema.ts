@@ -26,6 +26,8 @@ export const watched = sqliteTable(
     watchedAt: integer("watched_at", { mode: "timestamp_ms" }).default(now),
     /** the import that added it (import_batch.id), null when you marked it yourself: Remove undoes only those */
     importId: text("import_id"),
+    /** where the extension saw you finish it ("Prime Video"), null when you or an import marked it */
+    via: text("via"),
   },
   (t) => [
     uniqueIndex("watched_once").on(t.userId, t.mediaType, t.tmdbId, t.season, t.episode),
@@ -51,6 +53,24 @@ export const titleLink = sqliteTable(
     posterPath: text("poster_path"),
   },
   (t) => [primaryKey({ columns: [t.userId, t.ref] })],
+);
+
+/**
+ * The Lateshow extension's own key, one per browser you connect it in. It can only mark watches, it's stored as a hash
+ * (the key itself exists once, in that browser), and Settings can disconnect it.
+ */
+export const extensionKey = sqliteTable(
+  "extension_key",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    hash: text("hash").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).default(now).notNull(),
+    usedAt: integer("used_at", { mode: "timestamp_ms" }),
+  },
+  (t) => [index("extension_key_by_user").on(t.userId)],
 );
 
 /** One run of Settings › Import (a file or the extension), so it can be removed again as a whole. */
