@@ -125,16 +125,22 @@ export function ImportHistory() {
   // Rows are checked again on the server like a file's.
   useEffect(() => {
     const take = (e: MessageEvent) => {
-      const d = e.data as { type?: string; rows?: unknown; skipped?: unknown } | null;
+      const d = e.data as { type?: string; rows?: unknown; skipped?: unknown; count?: unknown } | null;
       // this window only. Not checked: the origin, Firefox stamps an extension script's messages with its own
       if (e.source !== window) return;
       // the script may start after this page said ready: it says hello, the page answers (and shows it's coming)
       if (d?.type === "lateshow:import-hello") {
+        if (d.count === 0) {
+          setError("The extension has nothing waiting. Read your history on the streaming site again.");
+          return;
+        }
         setIncoming(true);
         window.postMessage({ type: "lateshow:import-ready" }, location.origin);
       }
       if (d?.type !== "lateshow:import-rows") return;
       if (!Array.isArray(d.rows) || d.rows.length > 20000) return;
+      // the extension forgets them only now, so a handoff that fails can be tried again
+      window.postMessage({ type: "lateshow:import-received" }, location.origin);
       void run(d.rows as ImportRow[], typeof d.skipped === "number" ? d.skipped : 0);
     };
     window.addEventListener("message", take);
