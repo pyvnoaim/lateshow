@@ -3,8 +3,8 @@
   "name": "Lateshow",
   "version": "0.1.0",
   "description": "Brings your watch history from streaming sites into Lateshow.",
-  "icons": { "128": "icon.png" },
-  "action": { "default_popup": "popup.html", "default_icon": { "128": "icon.png" } },
+  "icons": { "128": "icon-128.png" },
+  "action": { "default_popup": "popup.html", "default_icon": { "128": "icon-128.png" } },
   "permissions": ["storage", "activeTab"],
   "host_permissions": ["https://www.primevideo.com/*", "__LATESHOW__/*"],
   "content_scripts": [

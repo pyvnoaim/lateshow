@@ -24,5 +24,5 @@ const manifest = (await readFile(`${dir}manifest.template.json`, "utf8")).replac
 await writeFile(`${out}manifest.json`, manifest);
 await copyFile(`${dir}popup.html`, `${out}popup.html`);
 // icon.png: src/app/icon.svg rendered once at 128 px with a transparent background (apple-icon.png is opaque, iOS)
-await copyFile(`${dir}icon.png`, `${out}icon.png`);
+await copyFile(`${dir}icon.png`, `${out}icon-128.png`); // a new name: Firefox kept showing the old icon.png
 console.log(`Built extension/dist for ${lateshow}`);
