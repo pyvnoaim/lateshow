@@ -285,7 +285,7 @@ export function ImportHistory() {
           </div>
         )}
         <button type="button" onClick={() => setPhase("idle")} className={`${buttonStyles("text", "text")} w-fit`}>
-          Import another file
+          Import more
         </button>
       </div>
     );

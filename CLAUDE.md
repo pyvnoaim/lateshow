@@ -33,7 +33,7 @@ Read `node_modules/next/dist/docs/` before using Next APIs (see AGENTS.md).
   (document_start) and notes the token Crunchyroll's app sends to its API, `crunchyroll.ts` pages through
   content/v2/<account>/watch-history and fills bare entries from cms/objects. `reader.ts` is what all site readers share. Crunchyroll marks what you finish (2026-11-15): the episode from /watch/<id>, its details from
   cms/objects, the video's position from `frame-video.ts` in Crunchyroll's player frame (static.crunchyroll.com,
-  all_frames, posts only to the Crunchyroll page). No credits signal yet (90%), no profile check yet.
+  all_frames, posts only to the Crunchyroll page). No credits signal yet (90%), no profile check yet. Netflix import (2026-11-15): `netflix.ts` on /settings/viewed asks Netflix's AUI API (`["aui","viewingActivity",page,50]`, form `param={"guid":<profile>}`, the page's `x-netflix.request.routing` headers or its edge answers BLOCKED), `netflix-main.ts` (page world) hands over the profile and build id, `readNetflixHistory` (tested) places episodes by name per season (Netflix gives no numbers).
   Signed for keeps (Firefox): `pnpm ext:zip` makes extension/lateshow-extension.zip, upload it at
   addons.mozilla.org › Submit a New Add-on › On your own (unlisted, signed for free, not public), install the signed
   .xpi from about:addons › gear › Install Add-on From File. Raise "version" in manifest.template.json before each upload.
@@ -158,7 +158,7 @@ lists (/l/<id>, see Todo), update bar after a deploy (`UpdateBar`: build id from
       site (title, season, episode, day). It also sets up the extension's Lateshow sign-in that sync needs.
       Prime Video first: port the community exporter (Unlicense, public domain, reviewed 2026-11-15), read the page's
       data (ids, real season and episode numbers) instead of display text. Then Crunchyroll (no export of its own, its
-      site calls a watch history API with series, season, episode), then Netflix (skips the CSV and its name-only
+      site calls a watch history API with series, season, episode), then Netflix (done 2026-11-15, reads its API, still name-only
       episodes). Disney+ and Apple TV+ show no history, nothing to read.
       Chrome and Firefox (Zen) from day one (decided 2026-11-15): one codebase, one MV3 manifest listing both
       `background.service_worker` and `background.scripts`, `chrome.*` APIs, a fixed gecko id, a "Allow access to this
@@ -171,9 +171,8 @@ lists (/l/<id>, see Todo), update bar after a deploy (`UpdateBar`: build id from
       4 remembered ids: a confirmed match stores the site's id (Amazon gti, Netflix id, Crunchyroll series) so the
       next import and auto-marking skip the search. Anime: air date and absolute number help place episodes ·
       5 auto-marking: an episode past ~90% on Netflix, Prime or Crunchyroll is marked with its real time, a toast
-      "Marked The Boys S1E5 · Undo", a switch per site. Shares the player detection with sync. Drafts (2026-11-15):
-      https://claude.ai/artifact/McTTWW8rZiPmt9aYLtoqBd (marked toast, "Which one?" pick that is remembered, popup
-      switches, History "21:40 on Prime Video"). Decided: the extension gets its own key when you connect (hashed,
+      "Marked The Boys S1E5 · Undo", a switch per site. Shares the player detection with sync.
+      Decided: the extension gets its own key when you connect (hashed,
       can only mark, Disconnect in Settings), not the login cookie (Firefox isolates cookies per site) · only your
       Prime profile is marked · real watched seconds count (seeking doesn't, ads pause it), credits = the site's Skip
       Credits / Next episode overlay, else ~90%, and at least half actually watched · marks queue in the extension
