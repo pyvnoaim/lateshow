@@ -6,6 +6,7 @@ import {
   placeEpisodes,
   primeSince,
   primeTitle,
+  readCrunchyrollHistory,
   readExport,
   readPrimeHistory,
   watchMonths,
@@ -367,5 +368,76 @@ describe("primeTitle", () => {
     ]);
     expect(rows).toEqual([]);
     expect(skipped).toBe(1);
+  });
+});
+
+describe("Crunchyroll history (the extension)", () => {
+  // shaped like content/v2/<account>/watch-history, trimmed from a real answer (ids kept short)
+  const ep = (id: string, n: number, title: string, played: string, extra: Record<string, unknown> = {}) => ({
+    id,
+    date_played: played,
+    fully_watched: true,
+    panel: {
+      type: "episode",
+      title,
+      episode_metadata: {
+        series_id: "GP5HJ84P7",
+        series_title: "Gachiakuta",
+        season_number: 1,
+        episode_number: n,
+        sequence_number: n,
+        episode_air_date: `2025-07-${String(5 + n).padStart(2, "0")}T00:00:00Z`,
+        identifier: `GP5HJ84P7|S00352501|E${n}`,
+        ...extra,
+      },
+    },
+  });
+  const bulk = "2025-10-06T21:34:07Z";
+
+  it("keeps every dub of an episode once, only finished ones, and dates a season marked at once as unknown", () => {
+    const { rows, skipped } = readCrunchyrollHistory([
+      ...[1, 2, 3, 4, 5].map((n) => ep(`G${n}de`, n, `Episode ${n}`, bulk)),
+      ep("G3en", 3, "The Ground", bulk), // the English dub of episode 3
+      ep("G6", 6, "One Good Strike!!", "2025-10-08T20:00:00Z"),
+      { ...ep("G7", 7, "A Score to Settle", "2025-10-09T20:00:00Z"), fully_watched: false },
+      { id: "GX", date_played: bulk, fully_watched: true }, // no details
+      { id: "M1", date_played: "2025-09-01T19:00:00Z", fully_watched: true, panel: { type: "movie", title: "Suzume" } },
+    ]);
+    expect(skipped).toBe(1);
+    const show = rows.find((r) => r.type === "tv")!;
+    expect(show).toMatchObject({ title: "Gachiakuta", refs: ["crunchyroll:GP5HJ84P7"], date: "2025-10-08" });
+    expect(show.episodes?.map((e) => [e.episode, e.undated ?? e.date])).toEqual([
+      [1, true],
+      [2, true],
+      [3, true],
+      [4, true],
+      [5, true],
+      [6, "2025-10-08"],
+    ]);
+    expect(show.episodes?.[5]).toMatchObject({ season: 1, airDate: "2025-07-11", absolute: 6 });
+    expect(rows.find((r) => r.type === "movie")).toMatchObject({ title: "Suzume", date: "2025-09-01" });
+  });
+
+  it("places by air date first, a day off still counts when it's the only one, then by absolute number", () => {
+    const aired = [
+      { season: 1, episode: 1, name: "The Sphere", airDate: "2025-07-06" },
+      { season: 1, episode: 2, name: "The Inhabited", airDate: "2025-07-13" },
+      { season: 2, episode: 1, name: "Penta", airDate: "2026-01-11" },
+      { season: 2, episode: 2, name: "Amo", airDate: "2026-01-25" },
+      { season: 2, episode: 3, name: "Riyo", airDate: "2026-01-25" }, // a double episode, one day
+    ];
+    const { placed, missed } = placeEpisodes(
+      [
+        // Crunchyroll calls it season 1 episode 14, TMDB season 2 episode 1: the date decides
+        { season: 1, episode: 14, name: "Penta: The Desert", airDate: "2026-01-11" },
+        { season: 1, episode: 2, name: "Bewohnt", airDate: "2025-07-12" }, // a day off, still the only one
+        { season: 1, episode: 16, name: "Riyo", airDate: "2026-01-25" }, // two that day: the name picks
+        { season: 1, episode: 99, name: "x", airDate: "2030-01-01", absolute: 1 }, // only the absolute number fits
+        { season: 1, episode: 98, name: "y", airDate: "2030-02-01" },
+      ],
+      aired,
+    );
+    expect(placed.map((p) => `${p.season}x${p.episode}`)).toEqual(["2x1", "1x2", "2x3", "1x1"]);
+    expect(missed).toBe(1);
   });
 });

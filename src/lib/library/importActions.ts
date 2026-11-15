@@ -35,7 +35,7 @@ async function save(userId: string, matches: Match[], importId: string): Promise
   const listed = matches.filter((m) => m.row.list === "watchlist");
   // runtimes so imported titles count in your hours (cached, most are looked up once)
   let missed = 0;
-  const parts: { season: number; episode: number; minutes: number; date?: string }[][] = await pool(
+  const parts: { season: number; episode: number; minutes: number; date?: string; undated?: true }[][] = await pool(
     seen,
     8,
     async (m) => {
@@ -69,7 +69,12 @@ async function save(userId: string, matches: Match[], importId: string): Promise
             posterPath: m.posterPath,
             minutes: Math.min(p.minutes, 1000),
             importId,
-            ...((p.date ?? m.row.date) ? { watchedAt: new Date(`${p.date ?? m.row.date}T12:00:00Z`) } : {}),
+            // undated: a season marked watched in one go, the day isn't known ("A while ago")
+            ...(p.undated
+              ? { watchedAt: null }
+              : (p.date ?? m.row.date)
+                ? { watchedAt: new Date(`${p.date ?? m.row.date}T12:00:00Z`) }
+                : {}),
           })),
         )
         .onConflictDoNothing()
@@ -122,7 +127,7 @@ async function requireUserId() {
   return session.user.id;
 }
 
-const SOURCES = ["Prime Video", "Letterboxd", "IMDb", "Netflix"] as const satisfies ImportSource[];
+const SOURCES = ["Prime Video", "Letterboxd", "IMDb", "Netflix", "Crunchyroll"] as const satisfies ImportSource[];
 
 /** Starts an import run: everything it adds carries this id, so Settings can remove it again as a whole. */
 export async function startImport(source: ImportSource): Promise<string> {

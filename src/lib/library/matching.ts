@@ -35,6 +35,9 @@ export const row = z.object({
         episode: z.number().int().min(0).max(100000).optional(),
         name: z.string().trim().min(1).max(300),
         date: day.optional(),
+        airDate: day.optional(),
+        absolute: z.number().int().min(1).max(100000).optional(),
+        undated: z.literal(true).optional(),
       }),
     )
     .max(5000)

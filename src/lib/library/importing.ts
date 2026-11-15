@@ -25,10 +25,22 @@ export type ImportRow = {
 };
 
 /** Where an import came from: shown with it in Settings, so it can be removed as a whole */
-export type ImportSource = "Prime Video" | "Letterboxd" | "IMDb" | "Netflix";
+export type ImportSource = "Prime Video" | "Letterboxd" | "IMDb" | "Netflix" | "Crunchyroll";
 
-/** `episode`: the number when the file gives one (Prime Video), placed by it when the name doesn't match */
-export type NetflixEpisode = { season?: number; episode?: number; name: string; date?: string };
+/**
+ * One watched episode as a site names it. `episode`: its number when the site gives one. `airDate` (Crunchyroll):
+ * when it first aired, the surest way to place anime whose seasons TMDB splits differently. `absolute`: its number
+ * counted through all seasons. `undated`: watched, but the day isn't known (a season marked watched in one go).
+ */
+export type NetflixEpisode = {
+  season?: number;
+  episode?: number;
+  name: string;
+  date?: string;
+  airDate?: string;
+  absolute?: number;
+  undated?: true;
+};
 
 /** Reads CSV: quoted fields, "" inside quotes, commas and newlines in titles, CRLF, a leading BOM. */
 export function parseCsv(text: string): string[][] {
@@ -298,6 +310,93 @@ function readPrime(recs: Record<string, string>[]): { rows: ImportRow[]; skipped
   return { rows: [...shows.values(), ...films.values()], skipped };
 }
 
+/** One entry of Crunchyroll's watch history API (content/v2/<account>/watch-history), the parts that matter */
+export type CrunchyrollEntry = {
+  id: string;
+  date_played?: string;
+  fully_watched?: boolean;
+  panel?: {
+    type?: string; // "episode", "movie"
+    title?: string;
+    episode_metadata?: {
+      series_id?: string;
+      series_title?: string;
+      season_number?: number;
+      episode_number?: number | null;
+      sequence_number?: number;
+      episode_air_date?: string;
+      identifier?: string; // "GP5HJ84P7|S00352501|E3", the same for every dub of an episode
+    };
+    movie_metadata?: { movie_listing_title?: string };
+  };
+};
+
+// this many episodes of one show in the very same second: a season marked watched in one go, not watched like that
+const BULK = 5;
+
+/**
+ * Crunchyroll's watch history into rows: only what you watched to the end, every dub of an episode once (each
+ * language is its own entry), the first time you watched it. A season marked watched in one go has no real day, its
+ * episodes come in undated ("A while ago") instead of piling hours onto one heatmap day. Entries without details
+ * (`panel`) are counted as skipped (the extension fills them in before).
+ */
+export function readCrunchyrollHistory(entries: CrunchyrollEntry[]): { rows: ImportRow[]; skipped: number } {
+  const done = entries.filter((e) => e.fully_watched);
+  const meta = (e: CrunchyrollEntry) => e.panel?.episode_metadata;
+  const key = (e: CrunchyrollEntry) =>
+    meta(e)?.identifier ?? `${meta(e)?.series_id}|${meta(e)?.season_number}|${meta(e)?.episode_number}`;
+  const stamps = new Map<string, Set<string>>();
+  for (const e of done) {
+    const m = meta(e);
+    if (!m?.series_id || !e.date_played) continue;
+    const k = `${m.series_id}|${e.date_played}`;
+    (stamps.get(k) ?? stamps.set(k, new Set()).get(k)!).add(key(e));
+  }
+  const shows = new Map<string, ImportRow>();
+  const seen = new Set<string>(); // episodes you have, across dubs
+  const films = new Map<string, ImportRow>();
+  let skipped = 0;
+  // oldest first: the first time you watched each one wins
+  for (const e of done.toSorted((a, b) => (a.date_played ?? "").localeCompare(b.date_played ?? ""))) {
+    const date = day(e.date_played);
+    if (e.panel?.type === "movie") {
+      const title = e.panel.movie_metadata?.movie_listing_title ?? e.panel.title;
+      if (title && !films.has(norm(title))) films.set(norm(title), { title, type: "movie", list: "watched", date });
+      continue;
+    }
+    const m = meta(e);
+    if (!m?.series_id || !m.series_title) {
+      skipped++;
+      continue;
+    }
+    let show = shows.get(m.series_id);
+    if (!show)
+      shows.set(
+        m.series_id,
+        (show = {
+          title: m.series_title,
+          type: "tv",
+          list: "watched",
+          refs: [`crunchyroll:${m.series_id}`],
+          episodes: [],
+        }),
+      );
+    if (seen.has(key(e))) continue; // another dub of one you have
+    seen.add(key(e));
+    const undated = (stamps.get(`${m.series_id}|${e.date_played}`)?.size ?? 0) >= BULK;
+    if (!undated) show.date = date; // latest day
+    show.episodes!.push({
+      season: m.season_number,
+      episode: m.episode_number ?? undefined,
+      name: e.panel?.title || `Episode ${m.episode_number ?? ""}`.trim(),
+      ...(undated ? { undated: true as const } : { date }),
+      airDate: day(m.episode_air_date),
+      ...(Number.isInteger(m.sequence_number) && { absolute: m.sequence_number }),
+    });
+  }
+  return { rows: [...shows.values(), ...films.values()], skipped };
+}
+
 /** One title in Prime Video's own watch history data (the page's watch-history widget and its paging API). */
 export type PrimeTitle = {
   titleType?: string; // "movie", "season", "episode"
@@ -363,24 +462,36 @@ const loose = (s: string) => norm(s.replace(/\([^)]*\)/g, " "));
  * label counts too. Unknown names are counted as missed.
  * ponytail: exact names only. Anime arcs ("Dragon's Judgement") and renamed episodes miss, fuzzy matching if it matters.
  */
-export function placeEpisodes<A extends { season: number; episode: number; name: string }>(
+export function placeEpisodes<A extends { season: number; episode: number; name: string; airDate?: string }>(
   episodes: NetflixEpisode[],
   aired: A[],
-): { placed: (A & { date?: string })[]; missed: number } {
+): { placed: (A & { date?: string; undated?: true })[]; missed: number } {
   const names = new Map(aired.map((a) => [a, loose(a.name)])); // once, not per lookup
-  const placed: (A & { date?: string })[] = [];
+  // in airing order without specials: where an absolute number lands
+  const regular = aired.filter((a) => a.season > 0).toSorted((x, y) => x.season - y.season || x.episode - y.episode);
+  const placed: (A & { date?: string; undated?: true })[] = [];
   let missed = 0;
   for (const e of episodes) {
+    // the air date first, if exactly one episode aired that day (or, across time zones, within a day)
+    const near = (days: number) =>
+      e.airDate
+        ? aired.filter(
+            (a) => a.airDate && Math.abs(Date.parse(a.airDate) - Date.parse(e.airDate!)) <= days * 86_400_000,
+          )
+        : [];
+    const dated = [near(0), near(1)].find((l) => l.length === 1)?.[0];
     const n = loose(e.name);
     // an arc instead of a season ("Dragon's Judgement: The Ten Commandments"): the name after it counts too
     const tail = e.season === undefined ? loose(e.name.split(": ").slice(1).join(": ")) : "";
     const same = (a: A) => names.get(a) === n || (!!tail && names.get(a) === tail);
     const num = e.episode ?? Number(/^episode (\d+)$/.exec(n)?.[1] ?? NaN);
     const hit =
+      dated ??
       aired.find((a) => a.season === e.season && same(a)) ??
       aired.find(same) ??
-      (e.season !== undefined ? aired.find((a) => a.season === e.season && a.episode === num) : undefined);
-    if (hit) placed.push({ ...hit, date: e.date });
+      (e.season !== undefined ? aired.find((a) => a.season === e.season && a.episode === num) : undefined) ??
+      (e.absolute ? regular[e.absolute - 1] : undefined);
+    if (hit) placed.push({ ...hit, date: e.date, ...(e.undated && { undated: true as const }) });
     else missed++;
   }
   return { placed, missed };
