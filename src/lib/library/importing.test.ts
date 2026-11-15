@@ -329,6 +329,18 @@ describe("primeTitle", () => {
     expect(primeTitle("WHEEL OF TIME, THE (2021)")).toEqual({ title: "THE WHEEL OF TIME", year: 2021 });
     expect(primeTitle("FROM (TV)")).toEqual({ title: "FROM" });
     expect(primeTitle("Lost - Staffel 1 [dt./OV]")).toEqual({ title: "Lost - Staffel 1" });
+    const head = '"Date Watched","Type","Title","Episode Title","Global Title Identifier"';
+    const { rows } = readExport([
+      {
+        name: "p.csv",
+        text: [
+          head,
+          '"2026-01-01 20:00:00.000","Series","WHEEL OF TIME, THE (2021) - Season 2","Episode 1: Strike","g"',
+        ].join("\n"),
+      },
+    ]);
+    expect(rows[0]).toMatchObject({ title: "THE WHEEL OF TIME", year: 2021, type: "tv" });
+    expect(rows[0].episodes?.[0]).toMatchObject({ season: 2, episode: 1 });
   });
 
   it("skips trailers Prime counts as watched", () => {

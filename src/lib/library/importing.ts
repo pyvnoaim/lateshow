@@ -253,7 +253,9 @@ function readPrime(recs: Record<string, string>[]): { rows: ImportRow[]; skipped
       continue;
     }
     const s = /^(.*?)[\s,:-]*\b(?:(?:season|staffel|series)\s+|s)(\d+)$/i.exec(title);
-    const series = s ? s[1].trim() : title;
+    // the tags can sit before the season too: "FROM (TV) - Season 1", "WHEEL OF TIME, THE (2021) - Season 2"
+    const named = primeTitle(s ? s[1] : title);
+    const series = named.title;
     if (!series) {
       skipped++; // the show's name left out ("Season 1")
       continue;
@@ -263,7 +265,11 @@ function readPrime(recs: Record<string, string>[]): { rows: ImportRow[]; skipped
     const episode = e ? Number(e[1]) : undefined;
     const name = (e ? e[2] : r["Episode Title"])?.replace(/^"(.*)"$/, "$1").trim() || `Episode ${episode}`;
     let show = shows.get(norm(series));
-    if (!show) shows.set(norm(series), (show = { title: series, year, type: "tv", list: "watched", episodes: [] }));
+    if (!show)
+      shows.set(
+        norm(series),
+        (show = { title: series, year: named.year ?? year, type: "tv", list: "watched", episodes: [] }),
+      );
     show.date = date; // latest day
     if (!show.episodes!.some((x) => x.season === season && x.episode === episode && norm(x.name) === norm(name)))
       show.episodes!.push({ season, episode, name, date });
