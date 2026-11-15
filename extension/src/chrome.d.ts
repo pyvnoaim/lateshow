@@ -35,3 +35,5 @@ declare namespace chrome {
 
 /** Lateshow's address, set at build time (production, or http://localhost:3000 for `pnpm ext:dev`) */
 declare const __LATESHOW__: string;
+/** The same without a port, for site patterns (they can't hold one) */
+declare const __LATESHOW_MATCH__: string;

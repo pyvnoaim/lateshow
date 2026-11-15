@@ -3,7 +3,7 @@ import type { ImportRow } from "@/lib/library/importing";
 
 const PRIME = "https://www.primevideo.com";
 const HISTORY = `${PRIME}/settings/watch-history`;
-const ORIGINS = [`${PRIME}/*`, `${__LATESHOW__}/*`];
+const ORIGINS = [`${PRIME}/*`, `${__LATESHOW_MATCH__}/*`];
 
 const app = document.getElementById("app")!;
 
