@@ -164,7 +164,16 @@ lists (/l/<id>, see Todo), update bar after a deploy (`UpdateBar`: build id from
       4 remembered ids: a confirmed match stores the site's id (Amazon gti, Netflix id, Crunchyroll series) so the
       next import and auto-marking skip the search. Anime: air date and absolute number help place episodes ·
       5 auto-marking: an episode past ~90% on Netflix, Prime or Crunchyroll is marked with its real time, a toast
-      "Marked The Boys S1E5 · Undo", a switch per site. Shares the player detection with sync ·
+      "Marked The Boys S1E5 · Undo", a switch per site. Shares the player detection with sync. Drafts (2026-11-15):
+      https://claude.ai/artifact/McTTWW8rZiPmt9aYLtoqBd (marked toast, "Which one?" pick that is remembered, popup
+      switches, History "21:40 on Prime Video"). Decided: the extension gets its own key when you connect (hashed,
+      can only mark, Disconnect in Settings), not the login cookie (Firefox isolates cookies per site) · only your
+      Prime profile is marked · real watched seconds count (seeking doesn't, ads pause it), credits = the site's Skip
+      Credits / Next episode overlay, else ~90%, and at least half actually watched · marks queue in the extension
+      and retry with their real time, the server ignores doubles, Undo removes only what that mark created · one
+      generic `<video>` progress module, each site adds only "what's playing" and its credits signal · only the
+      finished title leaves the browser, never progress (say so on /privacy) · a `via` column ("Prime Video") on
+      watched for History ·
       6 watch together sync (above), plus: an intro skip skips for everyone, Prime ad breaks pause the sync like
       YouTube's, "Wait for me" and everyone resumes together ·
       7 Lateshow on the sites, optional and small: a Watched check on their posters, your rating, friends who
