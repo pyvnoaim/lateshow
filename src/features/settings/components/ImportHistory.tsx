@@ -3,7 +3,7 @@
 import { strFromU8, unzipSync } from "fflate";
 import { Upload } from "lucide-react";
 import Image from "next/image";
-import { useState, type DragEvent } from "react";
+import { useEffect, useRef, useState, type DragEvent } from "react";
 import { buttonStyles } from "@/components/ui/button";
 import type { BatchResult, Candidate, Saved, Unsure } from "@/lib/library/importActions";
 import { importBatch, importPick } from "@/lib/library/importActions";
@@ -61,6 +61,8 @@ export function ImportHistory() {
   const [error, setError] = useState("");
   const [over, setOver] = useState(false);
 
+  const running = useRef(false);
+
   async function start(list: FileList | null) {
     if (!list?.length) return;
     setError("");
@@ -72,6 +74,12 @@ export function ImportHistory() {
       setError("That file couldn't be opened. Try the export again.");
       return;
     }
+    await run(rows, skipped);
+  }
+
+  async function run(rows: ImportRow[], skipped: number) {
+    if (running.current) return; // one import at a time (the extension may post twice)
+    setError("");
     if (!rows.length) {
       setError(
         "No titles found. Pick the Letterboxd ZIP, IMDb's ratings or watchlist CSV, Netflix's viewing history or the Prime Video export.",
@@ -80,6 +88,7 @@ export function ImportHistory() {
     }
     // oldest first, so the import screen's title, month and bars move together (undated rows last)
     rows.sort((a, b) => (a.date ?? "9").localeCompare(b.date ?? "9"));
+    running.current = true;
     setRows(rows);
     setPhase("working");
     setProgress({ done: 0, until: 0 });
@@ -96,7 +105,7 @@ export function ImportHistory() {
       try {
         r = await importBatch(rows.slice(i, end));
       } catch {
-        setError(`Stopped after ${i} of ${rows.length}. Drop the file again to continue, nothing is added twice.`);
+        setError(`Stopped after ${i} of ${rows.length}. Start it again to continue, nothing is added twice.`);
         break;
       }
       sum = add(sum, r);
@@ -107,7 +116,26 @@ export function ImportHistory() {
     setTotals(sum);
     setUnsure(open);
     setPhase("done");
+    running.current = false;
   }
+
+  // The Lateshow extension hands over a site's history (read there, signed in there) through its content script on
+  // this page: the page says it's ready, the script posts the rows once. Only this window's own messages count.
+  // Rows are checked again on the server like a file's.
+  useEffect(() => {
+    const take = (e: MessageEvent) => {
+      const d = e.data as { type?: string; rows?: unknown; skipped?: unknown } | null;
+      if (e.source !== window || e.origin !== location.origin) return;
+      // the script may start after this page said ready: it says hello, the page answers
+      if (d?.type === "lateshow:import-hello") window.postMessage({ type: "lateshow:import-ready" }, location.origin);
+      if (d?.type !== "lateshow:import-rows") return;
+      if (!Array.isArray(d.rows) || d.rows.length > 20000) return;
+      void run(d.rows as ImportRow[], typeof d.skipped === "number" ? d.skipped : 0);
+    };
+    window.addEventListener("message", take);
+    window.postMessage({ type: "lateshow:import-ready" }, location.origin);
+    return () => window.removeEventListener("message", take);
+  }, []);
 
   async function choose(item: Unsure, c: Candidate | null) {
     setUnsure((u) => u.filter((x) => x !== item));

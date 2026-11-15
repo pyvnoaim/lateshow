@@ -12,6 +12,8 @@
     "test": "vitest run",
     "check": "prettier --check . && pnpm typecheck && pnpm lint && pnpm test",
     "db:generate": "drizzle-kit generate",
+    "ext:build": "node extension/build.mjs",
+    "ext:dev": "node extension/build.mjs --dev",
     "db:migrate": "mkdir -p data && drizzle-kit migrate"
   },
   "dependencies": {
@@ -37,6 +39,7 @@
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "drizzle-kit": "^0.31.11",
+    "esbuild": "^0.28.2",
     "eslint": "^9",
     "eslint-config-next": "16.4.6",
     "prettier": "^3.9.10",

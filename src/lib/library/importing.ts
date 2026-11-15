@@ -250,6 +250,43 @@ function readPrime(recs: Record<string, string>[]): { rows: ImportRow[]; skipped
   return { rows: [...shows.values(), ...films.values()], skipped };
 }
 
+/** One title in Prime Video's own watch history data (the page's watch-history widget and its paging API). */
+export type PrimeTitle = {
+  titleType?: string; // "movie", "season", "episode"
+  time?: number; // ms
+  gti?: string;
+  title?: { text?: string };
+  children?: PrimeTitle[];
+};
+
+/**
+ * Prime Video's watch history as the extension reads it (days newest first, each with its titles, a season with its
+ * episodes as children) into rows, through the same reader as the exporter's CSV.
+ */
+export function readPrimeHistory(days: { titles?: PrimeTitle[] }[]): { rows: ImportRow[]; skipped: number } {
+  const at = (ms?: number) => (ms ? new Date(ms).toISOString() : "");
+  const recs = days.flatMap((d) =>
+    (d.titles ?? []).flatMap((t) =>
+      t.children?.length
+        ? t.children.map((e) => ({
+            "Date Watched": at(e.time ?? t.time),
+            Type: "Series",
+            Title: t.title?.text ?? "",
+            "Episode Title": e.title?.text ?? "",
+          }))
+        : [
+            {
+              "Date Watched": at(t.time),
+              Type: t.titleType === "movie" ? "Movie" : "Series",
+              Title: t.title?.text ?? "",
+              "Episode Title": "",
+            },
+          ],
+    ),
+  );
+  return readPrime(recs);
+}
+
 // brackets don't count: Netflix "The Freelancer (No. 145)" is TMDB "The Freelancer"
 const loose = (s: string) => norm(s.replace(/\([^)]*\)/g, " "));
 

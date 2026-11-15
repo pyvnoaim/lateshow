@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { norm, parseCsv, pickMatch, placeEpisodes, readExport, watchMonths } from "./importing";
+import { norm, parseCsv, pickMatch, placeEpisodes, readExport, readPrimeHistory, watchMonths } from "./importing";
 
 describe("parseCsv", () => {
   it("handles quotes, commas, escaped quotes, CRLF and a BOM", () => {
@@ -236,5 +236,78 @@ describe("Prime Video", () => {
     );
     expect(placed).toEqual([{ season: 1, episode: 2, name: "Pilot (2)", date: "2026-06-14" }]);
     expect(missed).toBe(0);
+  });
+});
+
+describe("Prime Video history data (the extension)", () => {
+  // shaped like the page's watch-history widget (made up ids, no tokens)
+  const days = [
+    {
+      date: "November 15, 2026",
+      titles: [
+        {
+          titleType: "season",
+          time: Date.parse("2026-11-15T20:00:00Z"),
+          gti: "amzn1.dv.gti.season",
+          title: { text: "Highschool of the Dead [dt./OV]" },
+          children: [
+            {
+              titleType: "episode",
+              time: Date.parse("2026-11-15T20:00:00Z"),
+              gti: "amzn1.dv.gti.e2",
+              title: { text: "Episode 2: Shadow of the DEAD" },
+            },
+            {
+              titleType: "episode",
+              time: Date.parse("2026-11-15T19:30:00Z"),
+              gti: "amzn1.dv.gti.e1",
+              title: { text: "Episode 1: Spring of the DEAD" },
+            },
+          ],
+        },
+      ],
+    },
+    {
+      date: "July 4, 2026",
+      titles: [
+        {
+          titleType: "movie",
+          time: Date.parse("2026-07-04T21:00:00Z"),
+          gti: "amzn1.dv.gti.m",
+          title: { text: "Zodiac" },
+          children: [],
+        },
+        {
+          titleType: "season",
+          time: Date.parse("2026-07-04T18:00:00Z"),
+          title: { text: "South Park Season 26" },
+          children: [
+            {
+              titleType: "episode",
+              time: Date.parse("2026-07-04T18:00:00Z"),
+              title: { text: "Episode 3: Japanese Toilet" },
+            },
+          ],
+        },
+      ],
+    },
+  ];
+
+  it("reads seasons as shows with their episodes, movies as films, with the day", () => {
+    const { rows, skipped } = readPrimeHistory(days);
+    expect(skipped).toBe(0);
+    expect(rows.find((r) => r.title === "Highschool of the Dead")?.episodes).toEqual([
+      { season: undefined, episode: 1, name: "Spring of the DEAD", date: "2026-11-15" },
+      { season: undefined, episode: 2, name: "Shadow of the DEAD", date: "2026-11-15" },
+    ]);
+    expect(rows.find((r) => r.title === "South Park")?.episodes).toEqual([
+      { season: 26, episode: 3, name: "Japanese Toilet", date: "2026-07-04" },
+    ]);
+    expect(rows.find((r) => r.type === "movie")).toEqual({
+      title: "Zodiac",
+      type: "movie",
+      list: "watched",
+      date: "2026-07-04",
+    });
   });
 });

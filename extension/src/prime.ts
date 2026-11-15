@@ -1,0 +1,72 @@
+// Runs on primevideo.com. On request from the popup it reads your watch history from Prime Video's own data (the
+// page's watch-history widget, then its paging API with your Prime sign-in), turns it into Lateshow import rows and
+// keeps them in the extension's storage for the Lateshow tab. Read only: Prime's remove action is never called.
+import { readPrimeHistory, type PrimeTitle } from "@/lib/library/importing";
+
+type Day = { date?: string; titles?: PrimeTitle[] };
+type Widget = { widgetType?: string; content?: { content?: { titles?: Day[]; nextToken?: string } } };
+
+const PAGE = "/api/getWatchHistorySettingsPage";
+
+// Firefox makes a content script's requests as the extension, `content.fetch` as the page (with its sign-in)
+const pageFetch: typeof fetch = (() => {
+  const content = (globalThis as { content?: { fetch: typeof fetch } }).content;
+  return content ? content.fetch.bind(content) : fetch.bind(globalThis);
+})();
+
+/** The watch-history widget somewhere inside Prime's data (its place moves: props.widgets, init.preparations…). */
+function findWidget(o: unknown, seen = new Set<object>()): Widget | null {
+  if (!o || typeof o !== "object" || seen.has(o)) return null;
+  seen.add(o);
+  if ((o as Widget).widgetType === "watch-history") return o as Widget;
+  for (const v of Object.values(o)) {
+    const hit = findWidget(v, seen);
+    if (hit) return hit;
+  }
+  return null;
+}
+
+async function getJson(url: string) {
+  const res = await pageFetch(url, { credentials: "include" });
+  if (!res.ok) throw new Error(`Prime Video answered ${res.status}.`);
+  return res.json();
+}
+
+async function readHistory() {
+  let widget: Widget | null = null;
+  for (const s of document.querySelectorAll('script[type="application/json"], script[type="text/template"]')) {
+    try {
+      widget = findWidget(JSON.parse(s.textContent ?? ""));
+    } catch {
+      continue;
+    }
+    if (widget) break;
+  }
+  // not embedded in this page: ask for the first page
+  widget ??= findWidget(await getJson(PAGE));
+  if (!widget) throw new Error("No watch history found here. Open your Prime Video watch history and try again.");
+  const days = [...(widget.content?.content?.titles ?? [])];
+  let token = widget.content?.content?.nextToken;
+  // ponytail: 500 pages cap (a page is a few days), so a loop in Prime's paging can't run forever
+  for (let page = 1; token && page < 500; page++) {
+    await new Promise((r) => setTimeout(r, 250)); // gently, one page at a time
+    const next = findWidget(
+      await getJson(`${PAGE}?widgetArgs=${encodeURIComponent(JSON.stringify({ nextToken: token }))}`),
+    );
+    days.push(...(next?.content?.content?.titles ?? []));
+    token = next?.content?.content?.nextToken;
+  }
+  return readPrimeHistory(days);
+}
+
+chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+  if (message.type !== "lateshow:read-prime") return;
+  readHistory()
+    .then(async ({ rows, skipped }) => {
+      // kept in storage, so closing the popup loses nothing
+      await chrome.storage.local.set({ pending: { source: "Prime Video", rows, skipped, at: Date.now() } });
+      sendResponse({ ok: true });
+    })
+    .catch((e: unknown) => sendResponse({ error: e instanceof Error ? e.message : String(e) }));
+  return true; // answers later
+});

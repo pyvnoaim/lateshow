@@ -43,3 +43,6 @@ next-env.d.ts
 # local SQLite database
 /data
 !.env.example
+
+# the built extension (pnpm ext:build)
+/extension/dist

@@ -21,6 +21,12 @@ Read `node_modules/next/dist/docs/` before using Next APIs (see AGENTS.md).
   (`RESEND_API_KEY`, `MAIL_FROM`, `MAIL_REPLY_TO`, see .env.example). Passkey table is hand-written in auth-schema.ts.
 - Gotcha: Turbopack serves stale CSS after editing `@utility`/`@theme`. Stop server, `rm -rf .next`, restart, check served CSS.
 - Gotcha: dev pages reloading themselves in a loop (empty page, "server could not finish this Suspense boundary") = stale Turbopack HMR state, every HMR connect sends an update it can only apply by a full reload. Same fix: stop, `rm -rf .next`, restart. Dev only, production has no HMR.
+- Extension (`extension/`, MV3, Chrome and Firefox): `pnpm ext:build` (Lateshow in production) or `pnpm ext:dev`
+  (localhost:3000) builds `extension/dist`. Firefox: about:debugging › This Firefox › Load Temporary Add-on › the
+  dist manifest.json. Chrome: chrome://extensions › Developer mode › Load unpacked › dist. Its readers turn a site's
+  history into import rows (`readPrimeHistory` in lib/library/importing.ts, tested there), the popup opens
+  /settings?import=extension and a content script hands the rows to ImportHistory (page says ready, script posts once).
+  No API route, no extension sign-in yet (comes with sync).
 - Private repo github.com/pyvnoaim/lateshow (main). Commit often, push only when the user says so, via push-gate.
 
 ## Copy rules (visible text)

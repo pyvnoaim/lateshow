@@ -1,0 +1,68 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Lateshow</title>
+    <style>
+      :root {
+        color-scheme: dark;
+        --bg: #050506;
+        --fg: #eef1f6;
+        --muted: #8b8f98;
+        --accent: #b4c8ea;
+      }
+      body {
+        margin: 0;
+        width: 300px;
+        padding: 20px;
+        background: var(--bg);
+        color: var(--fg);
+        font:
+          14px/1.45 "Inter Tight",
+          system-ui,
+          sans-serif;
+      }
+      h1 {
+        margin: 0 0 4px;
+        font-size: 20px;
+        letter-spacing: -0.02em;
+      }
+      p {
+        margin: 0 0 16px;
+        color: var(--muted);
+        text-wrap: pretty;
+      }
+      .count {
+        color: var(--fg);
+        font-variant-numeric: tabular-nums;
+      }
+      button {
+        width: 100%;
+        height: 40px;
+        border: 0;
+        border-radius: 999px;
+        background: linear-gradient(180deg, #f2f6fd, #a9c2ea);
+        color: var(--bg);
+        font: inherit;
+        font-weight: 600;
+        cursor: pointer;
+      }
+      button:active {
+        transform: scale(0.98);
+      }
+      button:disabled {
+        opacity: 0.5;
+        cursor: default;
+      }
+      button:focus-visible {
+        outline: 2px solid var(--accent);
+        outline-offset: 2px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Lateshow</h1>
+    <main id="app" aria-live="polite"></main>
+    <script src="popup.js"></script>
+  </body>
+</html>
