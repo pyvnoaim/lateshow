@@ -8,10 +8,10 @@ const ep = (tmdbId: number, season: number, episode: number, day = "a") => ({
   tmdbId,
   season,
   episode,
-  watchedAt: new Date(day === "a" ? 2 : 1),
+  watchedAt: new Date(2026, 9, day === "a" ? 2 : 1),
 });
 const movie = (tmdbId: number) => ({ ...ep(tmdbId, 0, 0), mediaType: "movie" as const });
-const label = (d: Date) => (d.getTime() === 2 ? "Today" : "Yesterday");
+const label = (d: Date) => (d.getDate() === 2 ? "Today" : "Yesterday");
 
 describe("historyEntries", () => {
   it("merges back to back episodes of one show within a day", () => {
@@ -21,6 +21,11 @@ describe("historyEntries", () => {
       ["Today", [2, 1, 1]],
       ["Yesterday", [1, 1]],
     ]);
+  });
+
+  it("keeps episodes of different days apart under one heading", () => {
+    const month = () => "October";
+    expect(historyEntries([ep(1, 1, 2, "a"), ep(1, 1, 1, "b")], month)[0][1]).toHaveLength(2);
   });
 
   it("never merges movies", () => {

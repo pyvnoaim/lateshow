@@ -97,7 +97,7 @@ carousel, rows: new episodes, Can't decide?, watchlist, Top 10, trending, becaus
 /cinemas calendar, /watchlist (shelves: Watch now with leaving dates from JustWatch, Coming up, On other services,
 Not streaming here; type/genre/sort in the URL, Add a title, Pick one; a + on every poster caption (cinema posters
 too), Out this week from your list on Home), /search (type + genre filters in the URL, browse a genre without a query), title page (where to watch, trailer, episodes + ratings grid, cast, more like), sign in with `?next=`,
-profile /u/username (avatar, phone menu and invite page link there, /u/me forwards to it, the footer keeps /u/me since it never looks up who is signed in; stats, heatmap, history, watchlist), /settings (your services: My services tab on Trending,
+profile /u/username (avatar, phone menu and invite page link there, /u/me forwards to it, the footer keeps /u/me since it never looks up who is signed in; stats, heatmap, history (a binge on one day is one row, Show older pages through all of it), watchlist), /settings (your services: My services tab on Trending,
 picks only from them, your service first in captions and Watch on, language for TMDB data in a cookie, else the browser's, name, share-with-friends switch, CSV export at /api/export,
 delete account. Spoiler guard and the .ics calendar feed were removed 2026-11-13),
 ratings (not for me / like / love, `rating` table, on the title page once watched, feed "Because you loved", taste match

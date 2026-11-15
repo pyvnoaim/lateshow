@@ -59,19 +59,30 @@ export async function getWatchTimes(userId: string, since: Date) {
     .where(and(eq(watched.userId, userId), gte(watched.watchedAt, since)));
 }
 
-/** The last titles watched, each once (a binge of one show is one title), most recent first. */
+/**
+ * The last titles watched, each once (a binge of one show is one title), most recent first. Title and poster come from
+ * the newest row (SQLite takes bare columns from the max() row).
+ * ponytail: only the newest 500 rows are looked at (index read, not a scan of a big import). Fewer titles if those are one long binge.
+ */
 export async function getRecentTitles(userId: string, limit = 12) {
-  const last = max(watched.watchedAt);
-  return db
-    .select({
-      mediaType: watched.mediaType,
-      tmdbId: watched.tmdbId,
-      title: watched.title,
-      posterPath: watched.posterPath,
-    })
+  const latest = db
+    .select()
     .from(watched)
     .where(eq(watched.userId, userId))
-    .groupBy(watched.mediaType, watched.tmdbId)
+    .orderBy(desc(watched.watchedAt))
+    .limit(500)
+    .as("latest");
+  const last = max(latest.watchedAt);
+  return db
+    .select({
+      mediaType: latest.mediaType,
+      tmdbId: latest.tmdbId,
+      title: latest.title,
+      posterPath: latest.posterPath,
+      last,
+    })
+    .from(latest)
+    .groupBy(latest.mediaType, latest.tmdbId)
     .orderBy(desc(last))
     .limit(limit);
 }

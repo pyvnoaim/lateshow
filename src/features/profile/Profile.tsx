@@ -96,11 +96,15 @@ export async function Profile({
   const { tab: raw, more } = await searchParams;
   // /u/me is only a shortcut for links: with a username you land on /u/yourname, the address you can share
   if (self && base === "/u/me" && owner.username) {
-    redirect(`/u/${owner.username}${typeof raw === "string" ? `?tab=${encodeURIComponent(raw)}` : ""}`);
+    const query = new URLSearchParams(
+      Object.entries({ tab: raw, more }).filter((e): e is [string, string] => typeof e[1] === "string"),
+    );
+    redirect(`/u/${owner.username}${query.size ? `?${query}` : ""}`);
   }
   const tab: Tab = tabs.find((t) => t === raw) ?? "overview";
-  // History pages by "Show older", each one adds HISTORY_PAGE rows (they render from the db alone, no TMDB calls)
-  const pages = tab === "history" ? Math.min(Math.max(Number(more) || 1, 1), 50) : 1;
+  // History pages by "Show older", each one adds HISTORY_PAGE rows (they render from the db alone, no TMDB calls).
+  // ponytail: every click rerenders the earlier pages too, bounded by the user's own rows. A cursor if that gets slow.
+  const pages = tab === "history" ? Math.max(Math.floor(Number(more)) || 1, 1) : 1;
 
   const uid = owner.id;
   const now = new Date();
