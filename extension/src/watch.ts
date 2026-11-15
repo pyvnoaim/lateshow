@@ -25,6 +25,11 @@ export type Adapter = {
   credits?(): boolean;
   /** the site's profile that's playing, so only yours is marked */
   profile?(): string | null;
+  /**
+   * The site's own verdict, when it keeps one (Crunchyroll's "Watched"): true counts as finished however it was
+   * watched, so Lateshow agrees with the site. null (can't tell) leaves it to the counting here.
+   */
+  done?(): Promise<boolean | null>;
 };
 
 type Answer = MarkResult | { status: "queued" } | { status: "error"; message: string };
@@ -106,6 +111,7 @@ export function watch(site: Adapter) {
   };
   let source = "";
   let lastLog = 0;
+  let lastAsked = 0;
   window.setInterval(async () => {
     const framed = site.clock?.() ?? null;
     const v = framed ?? ownVideo();
@@ -114,18 +120,30 @@ export function watch(site: Adapter) {
     source = now;
     if (!v || v.paused) return;
     const was = p.finished;
-    p = tick(p, {
-      at: v.at,
-      duration: v.duration,
-      rate: v.rate,
-      ad: site.ad?.() ?? false,
-      credits: site.credits?.() ?? false,
-    });
+    p = tick(
+      p,
+      {
+        at: v.at,
+        duration: v.duration,
+        rate: v.rate,
+        ad: site.ad?.() ?? false,
+        credits: site.credits?.() ?? false,
+      },
+      __MARK_SHARE__,
+    );
     if (Date.now() - lastLog > 120_000) {
       lastLog = Date.now();
       log(
         `watched ${Math.round(p.watched / 60)} of ${Math.round(p.duration / 60)} min, at ${Math.round(v.at / 60)} min`,
       );
+    }
+    // past 90%: the site's own verdict decides when it has one (asked every 15 seconds, it saves now and then)
+    if (!was && !p.finished && site.done && v.at >= v.duration * 0.9 && Date.now() - lastAsked > 15_000) {
+      lastAsked = Date.now();
+      if ((await site.done()) === true) {
+        log(`${site.via} counts it as watched`);
+        p = { ...p, finished: true };
+      }
     }
     if (was || !p.finished) return;
     log("finished, marking");

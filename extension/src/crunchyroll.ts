@@ -126,8 +126,34 @@ function playing(): Promise<ImportRow | null> {
   return playingRows.get(id)!;
 }
 
+let accountId: string | null = null;
+
+/** Crunchyroll's own "Watched" for the episode playing (its playheads API), null when it can't tell */
+async function done(): Promise<boolean | null> {
+  const id = /\/watch\/([A-Z0-9]+)/i.exec(location.pathname)?.[1];
+  if (!id) return null;
+  try {
+    const { auth, account } = await ask();
+    if (!auth) return null;
+    accountId ??=
+      account ??
+      ((await getJson("/accounts/v1/me", { authorization: auth })) as { account_id?: string }).account_id ??
+      null;
+    if (!accountId) return null;
+    const res = (await getJson(
+      `/content/v2/${accountId}/playheads?content_ids=${encodeURIComponent(id)}&locale=en-US`,
+      { authorization: auth },
+    )) as { data?: { content_id?: string; fully_watched?: boolean }[] };
+    const mine = res.data?.find((d) => d.content_id === id);
+    return mine ? Boolean(mine.fully_watched) : null;
+  } catch {
+    return null; // the counting here decides then
+  }
+}
+
 watch({
   via: SOURCE,
   playing,
+  done,
   clock: () => (frame && Date.now() - frame.at < 3000 ? frame.clock : null),
 });

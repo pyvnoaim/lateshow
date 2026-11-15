@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { start, tick, type Progress, type Tick } from "@/lib/watchProgress";
 
-const run = (ticks: Tick[], from: Progress = start()) => ticks.reduce(tick, from);
+const run = (ticks: Tick[], from: Progress = start()) => ticks.reduce((p, t) => tick(p, t), from);
 // ticks every second from `a` to `b` of a video `len` long
 const play = (a: number, b: number, len: number, extra: Partial<Tick> = {}) =>
   Array.from({ length: b - a + 1 }, (_, i) => ({ at: a + i, duration: len, ...extra }));
@@ -32,6 +32,12 @@ describe("watchProgress", () => {
   it("counts faster playback as playing", () => {
     const p = run(Array.from({ length: 1400 }, (_, i) => ({ at: i * 2, duration: 3000, rate: 2 })));
     expect(p.finished).toBe(true);
+  });
+
+  it("takes a lower share for a test build", () => {
+    const skimmed = [...play(0, 120, 3000), { at: 2750, duration: 3000 }, ...play(2751, 2760, 3000)];
+    expect(run(skimmed).finished).toBe(false);
+    expect(skimmed.reduce((p, t) => tick(p, t, 0.02), start()).finished).toBe(true);
   });
 
   it("never finishes a trailer", () => {

@@ -29,14 +29,14 @@ export type Tick = {
 
 export const MIN_LENGTH = 5 * 60; // shorter than this is a trailer or preview
 const NEAR_END = 0.9;
-const WATCHED_SHARE = 0.5;
+export const WATCHED_SHARE = 0.5;
 // between two ticks (players tick about every quarter second, a throttled background tab every second or so)
 const MAX_STEP = 3;
 
 export const start = (duration = 0): Progress => ({ duration, at: 0, watched: 0, finished: false });
 
 /** The next state after a tick. `finished` turns true once, on the tick that completes it. */
-export function tick(p: Progress, t: Tick): Progress {
+export function tick(p: Progress, t: Tick, watchedShare = WATCHED_SHARE): Progress {
   if (!Number.isFinite(t.duration) || t.duration <= 0) return p;
   // a different length (the next episode), or back at the start after finishing (the next one is just as long, or
   // a rewatch): a fresh playthrough from here
@@ -47,7 +47,7 @@ export function tick(p: Progress, t: Tick): Progress {
   const watched = base.watched + (playing && !t.ad ? step : 0);
   const done =
     t.duration >= MIN_LENGTH &&
-    watched >= t.duration * WATCHED_SHARE &&
+    watched >= t.duration * watchedShare &&
     (t.credits === true || t.at >= t.duration * NEAR_END);
   return { duration: t.duration, at: t.at, watched, finished: base.finished || done };
 }

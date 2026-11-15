@@ -40,6 +40,9 @@ declare namespace chrome {
   }
 }
 
+/** How much must really be watched to mark it (0.5, a test build 0.02: `pnpm ext:test`) */
+declare const __MARK_SHARE__: number;
+
 /** The logo's SVG source, built in by esbuild (loader text) */
 declare module "@/app/icon.svg" {
   const svg: string;

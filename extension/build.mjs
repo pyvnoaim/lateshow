@@ -21,7 +21,12 @@ await build({
   format: "iife",
   target: ["chrome120", "firefox121"],
   alias: { "@": fileURLToPath(new URL("../src", import.meta.url)) },
-  define: { __LATESHOW__: JSON.stringify(lateshow), __LATESHOW_MATCH__: JSON.stringify(match) },
+  define: {
+    __LATESHOW__: JSON.stringify(lateshow),
+    __LATESHOW_MATCH__: JSON.stringify(match),
+    // a test build marks after a few seconds of real watching (still only past 90%), never for release
+    __MARK_SHARE__: process.argv.includes("--test") ? "0.02" : "0.5",
+  },
   loader: { ".svg": "text" }, // the logo, inlined into the card
   logLevel: "warning",
 });
@@ -30,4 +35,6 @@ await writeFile(`${out}manifest.json`, manifest);
 await copyFile(`${dir}popup.html`, `${out}popup.html`);
 // icon.png: src/app/icon.svg rendered once at 128 px with a transparent background (apple-icon.png is opaque, iOS)
 await copyFile(`${dir}icon.png`, `${out}icon-128.png`); // a new name: Firefox kept showing the old icon.png
-console.log(`Built extension/dist for ${lateshow}`);
+console.log(
+  `Built extension/dist for ${lateshow}${process.argv.includes("--test") ? " (TEST: marks after 2% watched)" : ""}`,
+);
