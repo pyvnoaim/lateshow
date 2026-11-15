@@ -54,18 +54,25 @@ const readHistory: ReadHistory = async (onProgress, since) => {
   }
   const kept = since ? entries.filter((e) => Date.parse(e.date_played ?? "") > since) : entries;
 
-  // entries that came without details: asked for, 50 at a time (most are dubs of an episode already there)
+  // entries that came without details: asked for, 50 at a time. Best effort, never stops the read: Crunchyroll
+  // turns down a whole batch for one episode it no longer has, so a failed batch is split in half until only the
+  // gone ones are left (skipped, most are dubs of an episode already there)
   const bare = [...new Set(kept.filter((e) => e.fully_watched && !e.panel).map((e) => e.id))];
-  for (let i = 0; i < bare.length; i += 50) {
-    const found = (await api(
-      `/content/v2/cms/objects/${bare
-        .slice(i, i + 50)
-        .map(encodeURIComponent)
-        .join(",")}?locale=en-US`,
-    )) as Page;
-    const byId = new Map((found.data ?? []).map((o) => [o.id, o as CrunchyrollEntry["panel"]]));
-    for (const e of kept) if (!e.panel && byId.has(e.id)) e.panel = byId.get(e.id);
-  }
+  const details = new Map<string, CrunchyrollEntry["panel"]>();
+  const lookUp = async (ids: string[]): Promise<void> => {
+    try {
+      const found = (await api(
+        `/content/v2/cms/objects/${ids.map(encodeURIComponent).join(",")}?locale=en-US`,
+      )) as Page;
+      for (const o of found.data ?? []) details.set(o.id, o as CrunchyrollEntry["panel"]);
+    } catch {
+      if (ids.length === 1) return;
+      await lookUp(ids.slice(0, ids.length / 2));
+      await lookUp(ids.slice(ids.length / 2));
+    }
+  };
+  for (let i = 0; i < bare.length; i += 50) await lookUp(bare.slice(i, i + 50));
+  for (const e of kept) if (!e.panel && details.has(e.id)) e.panel = details.get(e.id);
 
   const newest = Math.max(0, ...entries.map((e) => Date.parse(e.date_played ?? "") || 0));
   return { ...readCrunchyrollHistory(kept), oldest: shortDay(kept.at(-1)?.date_played), newest };
