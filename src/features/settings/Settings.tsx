@@ -24,6 +24,7 @@ import { PastImports } from "./components/PastImports";
 import { ExtensionKeys } from "./components/ExtensionKeys";
 import { getKeys } from "@/lib/extension/keys";
 import { connectExtension, disconnectExtension } from "@/lib/extension/actions";
+import { latestExtension } from "@/lib/extension/latest";
 import { getImports, getOpenPicks } from "@/lib/library/queries";
 import { removeImport } from "@/lib/library/importActions";
 import { TextSetting } from "./components/TextSetting";
@@ -36,13 +37,14 @@ export async function Settings() {
   const session = await getSession();
   if (!session) redirect(`/login?next=${encodeURIComponent("/settings")}`);
   const region = await getRegion();
-  const [choices, mine, passkeys, imports, keys, waiting] = await Promise.all([
+  const [choices, mine, passkeys, imports, keys, waiting, latest] = await Promise.all([
     getServiceChoices(region.code).catch(() => []),
     getMyServiceIds(),
     getMyPasskeys(),
     getImports(session.user.id),
     getKeys(session.user.id),
     getOpenPicks(session.user.id),
+    latestExtension(),
   ]);
   const day = (d: Date) =>
     d.toLocaleDateString("en", {
@@ -156,7 +158,10 @@ export async function Settings() {
               />
             </div>
           </Row>
-          <Row title="Extension" description="Lets the Lateshow extension mark what you finish, with the real time.">
+          <Row
+            title="Extension"
+            description="Brings your history from Netflix, Prime Video and Crunchyroll and marks what you finish."
+          >
             <ExtensionKeys
               connected={keys.map((k) => ({
                 id: k.id,
@@ -164,6 +169,7 @@ export async function Settings() {
                 used: k.usedAt ? day(k.usedAt) : null,
                 browser: k.browser,
               }))}
+              latest={latest}
               connect={connectExtension}
               disconnect={disconnectExtension}
             />

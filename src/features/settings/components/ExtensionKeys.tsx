@@ -1,5 +1,6 @@
 "use client";
 
+import { Download } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { buttonStyles } from "@/components/ui/button";
@@ -7,22 +8,56 @@ import { buttonStyles } from "@/components/ui/button";
 /** `browser`: "Chrome on macOS", null until a key connected or used since 2026-11-15 says */
 export type Connected = { id: string; created: string; used: string | null; browser: string | null };
 
+/** What this browser is, for the extension: it can add the signed one (Zen, Firefox), Chrome's comes later, or none */
+type Kind = "firefox" | "chrome" | "none";
+function kindOf(ua: string): Kind {
+  if (/Android|iPhone|iPad|Mobile/.test(ua)) return "none";
+  if (/Firefox\//.test(ua)) return "firefox";
+  if (/Chrome\//.test(ua)) return "chrome";
+  return "none";
+}
+
+/** The extension's mark on this page (lateshow.ts): its version and its key's id, read once it has set them */
+function useExtension() {
+  const [ext, setExt] = useState<{ version: string | null; keyId: string | null; kind: Kind } | null>(null);
+  useEffect(() => {
+    const read = () => {
+      const d = document.documentElement.dataset;
+      setExt({
+        version: d.lateshowExtension ?? null,
+        keyId: d.lateshowKey ?? null,
+        kind: kindOf(navigator.userAgent),
+      });
+    };
+    read();
+    // the extension's script may run after the page: it changes these attributes then
+    const watch = new MutationObserver(read);
+    watch.observe(document.documentElement, { attributeFilter: ["data-lateshow-extension", "data-lateshow-key"] });
+    return () => watch.disconnect();
+  }, []);
+  return ext;
+}
+
 /**
- * Settings › Extension. Your connected browsers with Disconnect. Opened by the extension with ?connect=extension it
- * asks first, then hands the new key to the extension's script on this page (this window only) and waits for it to
- * say it has it.
+ * Settings › Extension, by what this browser has: no extension (Add, where it can have one), the extension but not
+ * connected (Connect this browser), connected (the list, "this browser" marked). Connecting asks the server for a key
+ * and hands it to the extension's script on this page (this window only), then waits for it to say it has it. The
+ * popup opens this page with ?connect=extension for the same.
  */
 export function ExtensionKeys({
   connected,
+  latest,
   connect,
   disconnect,
 }: {
   connected: Connected[];
+  /** the newest signed extension for Zen and Firefox, null before CI published one */
+  latest: { version: string; link: string } | null;
   connect: () => Promise<string>;
   disconnect: (id: string) => Promise<void>;
 }) {
-  // only the extension opens Settings with this, and only after you clicked Connect there
   const asked = useSearchParams().get("connect") === "extension";
+  const ext = useExtension();
   const [state, setState] = useState<"idle" | "waiting" | "done" | "missing">("idle");
   const [gone, setGone] = useState<string[]>([]);
   const [pending, startTransition] = useTransition();
@@ -46,32 +81,53 @@ export function ExtensionKeys({
     });
 
   const shown = connected.filter((c) => !gone.includes(c.id));
+  const here = ext?.keyId ? shown.find((c) => c.id === ext.keyId) : undefined;
+  // the extension is here but its key isn't one of yours (never connected, disconnected, another account)
+  const offerConnect = state !== "done" && (asked || (ext?.version != null && !here));
+  const offerAdd = ext != null && ext.version == null && !asked;
 
   return (
     <div className="flex w-full flex-col items-start gap-6">
-      {asked && state !== "done" && (
-        <div className="flex flex-col items-start gap-4">
-          <p className="text-body text-fg">
-            Connect the Lateshow extension in this browser?
-            <br />
-            <span className="text-muted">It can then mark what you finish. Nothing else.</span>
-          </p>
+      {offerConnect && (
+        <div className="flex flex-col items-start gap-3">
           {state === "missing" ? (
             <p className="text-small text-danger">The extension didn&apos;t answer. Reload it and connect again.</p>
           ) : (
             <button type="button" disabled={pending} onClick={doConnect} className={buttonStyles("primary", "sm")}>
-              {pending || state === "waiting" ? "Connecting" : "Connect"}
+              {pending || state === "waiting" ? "Connecting" : "Connect this browser"}
             </button>
           )}
+          <p className="text-small text-pretty text-muted">
+            {ext?.version ? `Lateshow ${ext.version} is in this browser. ` : ""}
+            Connecting lets it mark what you finish. Nothing else.
+          </p>
         </div>
       )}
       {state === "done" && <p className="text-body text-fg">Connected. You can close this tab.</p>}
-      {shown.length > 0 ? (
+      {offerAdd && ext.kind === "firefox" && latest && (
+        <div className="flex flex-col items-start gap-3">
+          {/* a plain link: Zen and Firefox install a signed add-on from it after asking */}
+          <a href={latest.link} className={buttonStyles("primary", "sm")}>
+            <Download size={16} strokeWidth={2} aria-hidden />
+            Add to Zen or Firefox
+          </a>
+          <p className="text-small text-pretty text-muted">
+            Free, updates by itself. After adding it, come back here and connect.
+          </p>
+        </div>
+      )}
+      {offerAdd && ext.kind === "chrome" && (
+        <p className="text-small text-pretty text-muted">
+          For Chrome it&apos;s coming to the Chrome Web Store. Zen and Firefox have it now.
+        </p>
+      )}
+      {shown.length > 0 && (
         <ul className="flex w-full flex-col gap-3" aria-label="Connected browsers">
           {shown.map((c) => (
             <li key={c.id} className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
               <span className="text-label">
-                {c.browser ?? "A browser"}{" "}
+                {c.browser ?? "A browser"}
+                {c === here && <span className="text-caption text-accent"> · this browser</span>}{" "}
                 <span className="text-muted">
                   · connected {c.created} · {c.used ? `used ${c.used}` : "not used yet"}
                 </span>
@@ -91,10 +147,9 @@ export function ExtensionKeys({
             </li>
           ))}
         </ul>
-      ) : (
-        !asked && (
-          <p className="text-small text-muted">Not connected. Open the Lateshow extension and choose Connect.</p>
-        )
+      )}
+      {shown.length === 0 && ext?.kind === "none" && (
+        <p className="text-small text-muted">The extension runs in Zen, Firefox and Chrome on a computer.</p>
       )}
     </div>
   );

@@ -51,16 +51,30 @@ async function handOver() {
   setTimeout(() => clearInterval(hello), 60_000);
 }
 
-// Connecting (Settings › Extension, opened by the popup with ?connect=extension): the page hands over the new key once
-// you clicked Connect there, this script keeps it and says so. Only this window's own message, only on that page.
+// Tells Lateshow's pages it's here: its version and the id of its key (the public part, never the secret), so Settings
+// shows Add, Connect or "this browser" for this browser
+async function mark() {
+  const key = (await chrome.storage.local.get("key")).key as string | undefined;
+  document.documentElement.dataset.lateshowExtension = chrome.runtime.getManifest().version;
+  const id = /^ls_([\w-]{12})_/.exec(key ?? "")?.[1];
+  if (id) document.documentElement.dataset.lateshowKey = id;
+  else delete document.documentElement.dataset.lateshowKey;
+}
+void mark();
+
+// Connecting (Settings › Extension, after you clicked Connect there, or opened by the popup): the page hands over the
+// new key, this script keeps it and says so. Only this window's own message, only on Settings.
 window.addEventListener("message", (e) => {
   const d = e.data as { type?: string; key?: unknown } | null;
   if (e.source !== window || d?.type !== "lateshow:extension-key" || typeof d.key !== "string") return;
-  if (location.pathname !== "/settings" || new URLSearchParams(location.search).get("connect") !== "extension") return;
-  void chrome.storage.local.set({ key: d.key }).then(() => {
-    log("connected");
-    window.postMessage({ type: "lateshow:extension-connected" }, location.origin);
-  });
+  if (location.pathname !== "/settings") return;
+  void chrome.storage.local
+    .set({ key: d.key })
+    .then(mark)
+    .then(() => {
+      log("connected");
+      window.postMessage({ type: "lateshow:extension-connected" }, location.origin);
+    });
 });
 
 // ponytail: a cheap address check twice a second, a content script can't see the app's own navigation

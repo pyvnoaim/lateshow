@@ -33,6 +33,7 @@ declare namespace chrome {
   }
   namespace runtime {
     function sendMessage<T>(message: { type: string; [key: string]: unknown }): Promise<T>;
+    function getManifest(): { version: string };
   }
   namespace permissions {
     function contains(p: { origins: string[] }): Promise<boolean>;
