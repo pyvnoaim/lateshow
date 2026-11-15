@@ -1,6 +1,6 @@
 import "server-only";
 import { randomBytes } from "node:crypto";
-import { and, eq } from "drizzle-orm";
+import { and, eq, gt, isNull, or } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/lib/db/client";
 import { importBatch as imports, rating, watched, watchlist } from "@/lib/db/schema";
@@ -70,6 +70,28 @@ export async function save(userId: string, matches: Match[], importId: string): 
         )
         .onConflictDoNothing()
         .run().changes;
+      // already there with a later day (marked by hand = the day you clicked) or no day ("A while ago"): the site's
+      // real day replaces it. A same-day time stays (the extension's 21:40 beats the import's noon), an earlier day
+      // you picked stays too
+      for (const p of parts[i]) {
+        const day = p.undated ? undefined : (p.date ?? m.row.date);
+        if (!day) continue;
+        const at = new Date(`${day}T12:00:00Z`);
+        tx.update(watched)
+          .set({ watchedAt: at })
+          .where(
+            and(
+              eq(watched.userId, userId),
+              eq(watched.mediaType, m.type),
+              eq(watched.tmdbId, m.id),
+              eq(watched.season, p.season),
+              eq(watched.episode, p.episode),
+              // past the end of that day (noon + 12 h), or none
+              or(isNull(watched.watchedAt), gt(watched.watchedAt, new Date(at.getTime() + 12 * 3_600_000))),
+            ),
+          )
+          .run();
+      }
       if (added && m.type === "movie") films++;
       else if (added) {
         series++;
