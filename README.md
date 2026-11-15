@@ -16,6 +16,8 @@
 - **Track** your watchlist, history and progress through series
 - **Friends** see what each other watched, invite only
 - **Rooms** to pick a movie together by swiping, a bracket or a reel
+- **Browser extension** (Zen, Firefox, Chrome) brings your history from Netflix, Prime Video and Crunchyroll
+  with one click and marks every episode you finish there
 
 ## Run it
 
@@ -31,6 +33,10 @@ Open [localhost:3000](http://localhost:3000). The database sets itself up on fir
 and the sign-in code shows up in the terminal.
 
 Run `pnpm check` before every commit (format, types, lint, tests). CI runs it too.
+
+The extension lives in `extension/`: `pnpm ext:dev` builds it against localhost into `extension/dist`
+(load it unpacked). New versions for Zen and Firefox: raise the version in `extension/manifest.template.json`
+and push, CI has Mozilla sign it and publishes it on the site.
 
 ## Deploy
 

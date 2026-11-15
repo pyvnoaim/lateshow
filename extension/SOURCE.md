@@ -25,3 +25,4 @@ The add-on is then in `extension/dist`, the same files as the submitted zip.
   `manifest.json` from `manifest.template.json` and copies `popup.html` and the icon
 - `src/lib/library/importing.ts` and `src/lib/watchProgress.ts`: code shared with the Lateshow website
 - `src/app/icon.svg`: the logo, drawn inline into the add-on's card
+- The `-main.ts` files run in the site's own page (MAIN world) and only read what that page already holds
