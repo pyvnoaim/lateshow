@@ -20,7 +20,7 @@ await build({
   define: { __LATESHOW__: JSON.stringify(lateshow) },
   logLevel: "warning",
 });
-const manifest = (await readFile(`${dir}manifest.json`, "utf8")).replaceAll("__LATESHOW__", lateshow);
+const manifest = (await readFile(`${dir}manifest.template.json`, "utf8")).replaceAll("__LATESHOW__", lateshow);
 await writeFile(`${out}manifest.json`, manifest);
 await copyFile(`${dir}popup.html`, `${out}popup.html`);
 // icon.png: src/app/icon.svg rendered once at 128 px with a transparent background (apple-icon.png is opaque, iOS)
