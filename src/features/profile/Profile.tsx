@@ -117,10 +117,10 @@ export async function Profile({
 
   const uid = owner.id;
   const now = new Date();
-  // ?year= shows that calendar year on the heatmap, without it the last 12 months
+  // the heatmap shows one calendar year, ?year= an older one, this year by default
   const thisYear = now.getUTCFullYear();
   const y = Number(rawYear);
-  const year = tab === "overview" && Number.isInteger(y) && y >= 1900 && y <= thisYear ? y : undefined;
+  const year = tab === "overview" && Number.isInteger(y) && y >= 1900 && y <= thisYear ? y : thisYear;
   const name = owner.username || shownName(session.user);
   const hidden = !self && !owner.shareActivity;
   const lang = await getLanguage();
@@ -130,11 +130,7 @@ export async function Profile({
     hidden ? { movies: 0, episodes: 0, minutes: 0 } : getStats(uid),
     hidden || tab !== "history" ? none : getHistory(uid, pages * HISTORY_PAGE + 1),
     hidden ? none : getWatchlist(uid),
-    hidden
-      ? none
-      : year
-        ? getWatchTimes(uid, new Date(Date.UTC(year, 0, 1)), new Date(Date.UTC(year + 1, 0, 1)))
-        : getWatchTimes(uid, new Date(now.getTime() - 380 * 24 * 60 * 60 * 1000)),
+    hidden ? none : getWatchTimes(uid, new Date(Date.UTC(year, 0, 1)), new Date(Date.UTC(year + 1, 0, 1))),
     hidden || tab !== "overview" ? [] : getWatchYears(uid),
     self ? getFriendCount(uid) : 0,
     self && tab === "friends"
@@ -166,8 +162,8 @@ export async function Profile({
   ]);
   const month = (d: Date) => d.toLocaleDateString("en", { month: "long", year: "numeric" });
   const empty = stats.movies + stats.episodes === 0;
-  // a year switcher only for years with watches, and only once there's one before this year (else just the past year)
-  const years = watchYears.some((n) => n < thisYear) ? watchYears : [];
+  // a year switcher only for years with watches (this year always), and only once there's one before this year
+  const years = watchYears.some((n) => n < thisYear) ? [thisYear, ...watchYears.filter((n) => n < thisYear)] : [];
 
   return (
     <div className="group/profile flex flex-col gap-section">
@@ -281,21 +277,18 @@ export async function Profile({
               </Section>
             )}
             <Section
-              title={year ? `${self ? "Your" : "Their"} ${year}` : self ? "Your year" : "Their year"}
+              title={year === thisYear ? (self ? "Your year" : "Their year") : `${self ? "Your" : "Their"} ${year}`}
               description="Each square is a day."
               aside={
                 years.length > 0 && (
                   <SegmentedTabs
                     label="Year"
-                    items={[
-                      { key: "past", label: "Past year", active: !year, href: base },
-                      ...years.map((n) => ({
-                        key: String(n),
-                        label: String(n),
-                        active: n === year,
-                        href: `${base}?year=${n}`,
-                      })),
-                    ]}
+                    items={years.map((n) => ({
+                      key: String(n),
+                      label: String(n),
+                      active: n === year,
+                      href: n === thisYear ? base : `${base}?year=${n}`,
+                    }))}
                   />
                 )
               }
