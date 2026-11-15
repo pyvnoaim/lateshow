@@ -37,7 +37,11 @@ Read `node_modules/next/dist/docs/` before using Next APIs (see AGENTS.md).
   Netflix and Prime need Widevine: Zen (and Helium) have none, so their marking works only in Chrome (load unpacked). Prime findings for its marking (2026-11-15, Chrome): the player's request `atv-ps-eu.primevideo.com/cdp/lumina/playerChromeResources/v1` carries `entityId` (the episode's gti, follows autoplay), the same URL with `desiredResources=catalogMetadata` answers `seriesTitle`, `seasonNumber`, `episodeNumber`, `title`. Ad = `.atvwebplayersdk-ad-timer-remaining-time`, the ad is its own short <video>. The episode's <video> length grows while it loads (3150 then 3398 s), so it needs a fixed length before the counting can follow it. No credits signal found yet (next up card stays empty 2 min before the end).
   Signed for keeps (Firefox): `pnpm ext:zip` makes extension/lateshow-extension.zip, upload it at
   addons.mozilla.org › Submit a New Add-on › On your own (unlisted, signed for free, not public), install the signed
-  .xpi from about:addons › gear › Install Add-on From File. Raise "version" in manifest.template.json before each upload. `pnpm ext:zip` also makes
+  .xpi from about:addons › gear › Install Add-on From File. Raise "version" in manifest.template.json before each upload.
+  Since 2026-11-15 CI does it (job `extension` in ci.yml): a version not yet in public/extension/updates.json gets
+  signed at AMO (`web-ext sign`, unlisted, with the source zip, secrets AMO_JWT_ISSUER/AMO_JWT_SECRET), CI commits
+  public/extension/lateshow-<version>.xpi + updates.json and redeploys, Zen updates itself via the manifest's
+  update_url. So a release = raise the version, push. Pull after it, CI commits to main. `pnpm ext:zip` also makes
   extension/lateshow-extension-source.zip (git archive of HEAD, so commit first, build steps in extension/SOURCE.md):
   AMO asks for source since esbuild bundles, answer Yes and upload it. AMO needs `data_collection_permissions` in the
   gecko settings (what leaves the browser, Firefox 140+ asks on install), keep it true when the extension sends more.
