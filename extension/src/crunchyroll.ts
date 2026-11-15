@@ -163,8 +163,10 @@ async function loadProfile() {
   profile = res.profiles?.find((p) => p.is_selected)?.profile_name ?? null;
 }
 // on every page: Crunchyroll changes pages without reloading, an episode may start from anywhere
+// ponytail: 12 tries (a minute), then no profile check on this page rather than asking Crunchyroll forever
+let tries = 0;
 const retry = window.setInterval(() => {
-  if (profile) return window.clearInterval(retry);
+  if (profile || ++tries > 12) return window.clearInterval(retry);
   void loadProfile().catch(() => {});
 }, 5000);
 
