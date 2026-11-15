@@ -165,6 +165,7 @@ export async function importBatch(raw: ImportRow[], rawImportId: string): Promis
   const unsure = results.filter((r): r is Unsure => r !== null && "candidates" in r);
   const saved = await save(userId, matches, importId);
   remember(userId, matches);
+  if (unsure.length) await keepOpen(importId, (open) => [...open, ...unsure]);
   refresh();
   return {
     ...saved,
@@ -182,8 +183,31 @@ export async function importPick(rawRow: ImportRow, rawPick: z.input<typeof pick
   const picked: Match = { row: r, id: p.id, type: p.type, title: p.title, posterPath: p.posterPath };
   const saved = await save(userId, [picked], importId);
   remember(userId, [picked]); // your pick: the next import knows this title
+  await keepOpen(importId, (open) => open.filter((u) => openKey(u.row) !== openKey(r)));
   refresh();
   return saved;
+}
+
+/** You skipped an unclear row: it stops waiting. */
+export async function importSkip(rawRow: ImportRow, rawImportId: string) {
+  const userId = await requireUserId();
+  const importId = await ownBatch(userId, rawImportId);
+  const r = row.parse(rawRow);
+  await keepOpen(importId, (open) => open.filter((u) => openKey(u.row) !== openKey(r)));
+  refresh();
+}
+
+// which unclear row is which (a pick or skip sends the row back)
+const openKey = (r: ImportRow) => `${r.type}|${r.title}|${r.year ?? ""}|${r.date ?? ""}`;
+
+/** Changes the unclear rows an import keeps waiting (the import must be yours, checked by the caller) */
+async function keepOpen(importId: string, change: (open: Unsure[]) => Unsure[]) {
+  const b = await db.select({ open: imports.open }).from(imports).where(eq(imports.id, importId)).get();
+  const next = change((b?.open ?? []) as Unsure[]);
+  await db
+    .update(imports)
+    .set({ open: next.length ? next : null })
+    .where(eq(imports.id, importId));
 }
 
 /**

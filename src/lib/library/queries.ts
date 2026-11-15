@@ -5,6 +5,7 @@ import { and, count, desc, eq, gte, isNotNull, isNull, lt, max, or, sql, sum } f
 import { db } from "@/lib/db/client";
 import { importBatch, rating, watched, watchlist } from "@/lib/db/schema";
 import type { MediaType } from "@/lib/tmdb";
+import type { Unsure } from "@/lib/library/matching";
 
 const byTitle = (userId: string, type: MediaType, tmdbId: number) => ({
   watched: and(eq(watched.userId, userId), eq(watched.mediaType, type), eq(watched.tmdbId, tmdbId)),
@@ -205,6 +206,16 @@ export const getMyWatchlistKeys = cache(async () => {
     .where(eq(watchlist.userId, session.user.id));
   return new Set(rows.map((r) => `${r.mediaType}-${r.tmdbId}`));
 });
+
+/** The unclear titles your imports still wait on, with the import each belongs to (Settings › Import lists them) */
+export async function getOpenPicks(userId: string) {
+  const rows = await db
+    .select({ id: importBatch.id, open: importBatch.open })
+    .from(importBatch)
+    .where(and(eq(importBatch.userId, userId), isNotNull(importBatch.open)))
+    .orderBy(desc(importBatch.createdAt));
+  return rows.flatMap((r) => (r.open as Unsure[]).map((u) => ({ ...u, importId: r.id })));
+}
 
 /** Your past imports that still hold something, newest first: what Settings › Import can remove again. */
 export async function getImports(userId: string) {

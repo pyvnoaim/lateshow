@@ -6,7 +6,7 @@ import Image from "next/image";
 import { useEffect, useRef, useState, type DragEvent } from "react";
 import { buttonStyles } from "@/components/ui/button";
 import type { BatchResult, Candidate, Saved, Unsure } from "@/lib/library/importActions";
-import { importBatch, importPick, startImport } from "@/lib/library/importActions";
+import { importBatch, importPick, importSkip, startImport } from "@/lib/library/importActions";
 import { readExport, type ImportRow, type ImportSource } from "@/lib/library/importing";
 import { CountUp, ImportProgress } from "./ImportProgress";
 
@@ -48,16 +48,20 @@ function fileNote(row: ImportRow) {
   return "No year in your file";
 }
 
+/** An unclear title and the import it belongs to (a pick joins that import) */
+export type Open = Unsure & { importId: string };
+
 /**
  * Settings › Import: drop a Letterboxd export ZIP, IMDb CSVs or Netflix's viewing history. Rows go to the server in batches (progress shown),
- * clear matches are saved, unclear ones are listed to pick from.
+ * clear matches are saved, unclear ones are listed to pick from. They're kept with their import until you pick or
+ * skip (`waiting`, from earlier imports), so leaving the page loses none.
  */
-export function ImportHistory() {
+export function ImportHistory({ waiting = [] }: { waiting?: Open[] }) {
   const [phase, setPhase] = useState<"idle" | "working" | "done">("idle");
   const [rows, setRows] = useState<ImportRow[]>([]);
   const [progress, setProgress] = useState({ done: 0, until: 0 });
   const [totals, setTotals] = useState<Totals>({ ...EMPTY, notFound: 0, skipped: 0 });
-  const [unsure, setUnsure] = useState<Unsure[]>([]);
+  const [unsure, setUnsure] = useState<Open[]>(waiting);
   const [error, setError] = useState("");
   const [over, setOver] = useState(false);
   const [incoming, setIncoming] = useState(false);
@@ -70,7 +74,6 @@ export function ImportHistory() {
     const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
     view.current?.scrollIntoView({ behavior: still ? "auto" : "smooth", block: "center" });
   }, [phase]);
-  const batch = useRef(""); // this run's import id, picks join it
 
   async function start(list: FileList | null) {
     if (!list?.length) return;
@@ -108,12 +111,11 @@ export function ImportHistory() {
       running.current = false;
       return;
     }
-    batch.current = importId;
     setRows(rows);
     setPhase("working");
     setProgress({ done: 0, until: 0 });
     let sum: Totals = { ...EMPTY, notFound: 0, skipped };
-    const open: Unsure[] = [];
+    const open: Open[] = [];
     for (let i = 0; i < rows.length;) {
       let end = i;
       for (let eps = 0; end < rows.length && end - i < BATCH; end++) {
@@ -130,11 +132,11 @@ export function ImportHistory() {
       }
       sum = add(sum, r);
       sum.notFound += r.notFound;
-      open.push(...r.unsure);
+      open.push(...r.unsure.map((u) => ({ ...u, importId })));
       i = end;
     }
     setTotals(sum);
-    setUnsure(open);
+    setUnsure((u) => [...open, ...u]);
     setPhase("done");
     running.current = false;
   }
@@ -175,16 +177,62 @@ export function ImportHistory() {
     return () => window.removeEventListener("message", take);
   }, []);
 
-  async function choose(item: Unsure, c: Candidate | null) {
+  async function choose(item: Open, c: Candidate | null) {
     setUnsure((u) => u.filter((x) => x !== item));
-    if (!c) return;
+    if (!c) return void importSkip(item.row, item.importId).catch(() => null);
     const saved = await importPick(
       item.row,
       { id: c.id, type: c.type, title: c.title, posterPath: c.posterPath },
-      batch.current,
+      item.importId,
     ).catch(() => null);
     if (saved) setTotals((t) => add(t, saved));
   }
+
+  const picks = unsure.length > 0 && (
+    <div className="flex flex-col gap-3">
+      <p className="text-label font-semibold">
+        <span className="nums">{unsure.length}</span> need a look. Same name, different title.
+      </p>
+      {unsure.slice(0, 20).map((u) => (
+        <div key={`${u.row.title}-${u.row.year}`} className="flex flex-col gap-2 rounded-banner glass-cell p-3">
+          <div className="flex items-start justify-between gap-3 pt-1 pl-2">
+            <span className="min-w-0">
+              <span className="block text-label font-medium text-balance">{u.row.title}</span>
+              <span className="block text-caption text-muted">{fileNote(u.row)}</span>
+            </span>
+            <button
+              type="button"
+              onClick={() => void choose(u, null)}
+              className={`${buttonStyles("text", "text")} shrink-0`}
+            >
+              Skip
+            </button>
+          </div>
+          <div className="grid gap-1 sm:grid-cols-2">
+            {u.candidates.map((c) => (
+              <button
+                key={`${c.type}-${c.id}`}
+                type="button"
+                onClick={() => void choose(u, c)}
+                className="glass-hover flex press items-center gap-2.5 rounded-thumb p-1.5 pr-3 text-left"
+              >
+                <span className="relative aspect-poster w-8 shrink-0 overflow-hidden rounded-sm bg-raised">
+                  {c.poster && <Image src={c.poster} alt="" fill sizes="32px" className="object-cover" />}
+                </span>
+                <span className="min-w-0 text-small">
+                  {c.title}
+                  <span className="block text-caption text-muted">
+                    {c.type === "tv" ? "Series · " : ""}
+                    {c.year ?? "Year unknown"}
+                  </span>
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
 
   if (phase === "working")
     return (
@@ -239,51 +287,7 @@ export function ImportHistory() {
           )}
         </div>
         {error && <p className="text-small text-danger">{error}</p>}
-        {unsure.length > 0 && (
-          <div className="flex flex-col gap-3">
-            <p className="text-label font-semibold">
-              <span className="nums">{unsure.length}</span> need a look. Same name, different title.
-            </p>
-            {unsure.slice(0, 20).map((u) => (
-              <div key={`${u.row.title}-${u.row.year}`} className="flex flex-col gap-2 rounded-banner glass-cell p-3">
-                <div className="flex items-start justify-between gap-3 pt-1 pl-2">
-                  <span className="min-w-0">
-                    <span className="block text-label font-medium text-balance">{u.row.title}</span>
-                    <span className="block text-caption text-muted">{fileNote(u.row)}</span>
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => void choose(u, null)}
-                    className={`${buttonStyles("text", "text")} shrink-0`}
-                  >
-                    Skip
-                  </button>
-                </div>
-                <div className="grid gap-1 sm:grid-cols-2">
-                  {u.candidates.map((c) => (
-                    <button
-                      key={`${c.type}-${c.id}`}
-                      type="button"
-                      onClick={() => void choose(u, c)}
-                      className="glass-hover flex press items-center gap-2.5 rounded-thumb p-1.5 pr-3 text-left"
-                    >
-                      <span className="relative aspect-poster w-8 shrink-0 overflow-hidden rounded-sm bg-raised">
-                        {c.poster && <Image src={c.poster} alt="" fill sizes="32px" className="object-cover" />}
-                      </span>
-                      <span className="min-w-0 text-small">
-                        {c.title}
-                        <span className="block text-caption text-muted">
-                          {c.type === "tv" ? "Series · " : ""}
-                          {c.year ?? "Year unknown"}
-                        </span>
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
+        {picks}
         <button type="button" onClick={() => setPhase("idle")} className={`${buttonStyles("text", "text")} w-fit`}>
           Import more
         </button>
@@ -321,6 +325,7 @@ export function ImportHistory() {
           {error}
         </p>
       )}
+      {picks}
     </div>
   );
 }

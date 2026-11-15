@@ -84,6 +84,8 @@ export const importBatch = sqliteTable(
     /** "Prime Video", "Letterboxd", "IMDb", "Netflix" */
     source: text("source").notNull(),
     createdAt: integer("created_at", { mode: "timestamp_ms" }).default(now).notNull(),
+    /** the unclear titles still waiting for your pick (matching's Unsure[]), so leaving the page doesn't lose them */
+    open: text("open", { mode: "json" }).$type<unknown[]>(),
   },
   (t) => [index("import_batch_by_user").on(t.userId)],
 );

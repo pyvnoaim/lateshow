@@ -24,7 +24,7 @@ import { PastImports } from "./components/PastImports";
 import { ExtensionKeys } from "./components/ExtensionKeys";
 import { getKeys } from "@/lib/extension/keys";
 import { connectExtension, disconnectExtension } from "@/lib/extension/actions";
-import { getImports } from "@/lib/library/queries";
+import { getImports, getOpenPicks } from "@/lib/library/queries";
 import { removeImport } from "@/lib/library/importActions";
 import { TextSetting } from "./components/TextSetting";
 import { Passkeys } from "./components/Passkeys";
@@ -36,12 +36,13 @@ export async function Settings() {
   const session = await getSession();
   if (!session) redirect(`/login?next=${encodeURIComponent("/settings")}`);
   const region = await getRegion();
-  const [choices, mine, passkeys, imports, keys] = await Promise.all([
+  const [choices, mine, passkeys, imports, keys, waiting] = await Promise.all([
     getServiceChoices(region.code).catch(() => []),
     getMyServiceIds(),
     getMyPasskeys(),
     getImports(session.user.id),
     getKeys(session.user.id),
+    getOpenPicks(session.user.id),
   ]);
   const day = (d: Date) =>
     d.toLocaleDateString("en", {
@@ -138,7 +139,7 @@ export async function Settings() {
             }
           >
             <div className="flex flex-col items-start gap-8">
-              <ImportHistory />
+              <ImportHistory waiting={waiting} />
               <PastImports
                 imports={imports.map((i) => ({
                   id: i.id,
