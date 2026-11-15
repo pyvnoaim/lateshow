@@ -36,7 +36,8 @@
     tell({
       kind: "catalog",
       titleId,
-      type: c.type,
+      // not `type`: that names the message itself
+      catalogType: c.type,
       title: c.title,
       seriesTitle: c.seriesTitle,
       seasonNumber: c.seasonNumber,

@@ -83,7 +83,7 @@ if (location.pathname.includes("/settings/watch-history")) showCard(SOURCE, read
 // --- marking what you finish
 
 type Catalog = {
-  type?: string; // "EPISODE", "MOVIE"
+  catalogType?: string; // "EPISODE", "MOVIE"
   title?: string;
   seriesTitle?: string;
   seasonNumber?: number;
@@ -130,7 +130,7 @@ function playing(): ImportRow | null {
   if (!c?.title) return null;
   const today = new Date();
   const date = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
-  if (c.type === "MOVIE") {
+  if (c.catalogType === "MOVIE") {
     const { title, year } = primeTitle(c.title);
     return { title, year, type: "movie", list: "watched", date };
   }
