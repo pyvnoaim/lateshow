@@ -28,6 +28,7 @@ const row = z.object({
     .array(
       z.object({
         season: z.number().int().min(0).max(500).optional(),
+        episode: z.number().int().min(0).max(100000).optional(),
         name: z.string().trim().min(1).max(300),
         date: day.optional(),
       }),

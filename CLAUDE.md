@@ -114,7 +114,7 @@ lists (/l/<id>, see Todo), update bar after a deploy (`UpdateBar`: build id from
       /privacy and /impressum exist (2026-11-11): fill the placeholders in `src/lib/legal.ts` and the email provider
       line on /privacy. Keep /privacy true to the code: no browser request may go to TMDB/JustWatch (images go
       through next/image), cookies listed there are the only ones.
-- [x] Import (2026-11-11): Settings › Import takes a Letterboxd export ZIP or IMDb ratings/watchlist CSVs. The browser
+- [x] Import (2026-11-11): Settings › Import takes a Letterboxd export ZIP, IMDb ratings/watchlist CSVs or Prime Video (the CSV of the community "Watch History Exporter for Amazon Prime Video" console script, 2026-11-15: seasons and episode numbers from its titles, placed by name then number). The browser
       unpacks and reads them (fflate), only rows go to the server in batches of 40 (`lib/library/importActions.ts`),
       IMDb matches by id, Letterboxd by title + year (±1) across films and series (a watched series = every aired episode), unclear ones are picked by hand. Ratings come along (9+ love, 6+ like, 4 or less not for me). Netflix viewing history CSV (2026-11-14): episodes placed by name per season (brackets ignored),
       each with its day, remakes decided by which show's episodes fit, yearless films = top hit released by the watch day.
@@ -137,8 +137,13 @@ lists (/l/<id>, see Todo), update bar after a deploy (`UpdateBar`: build id from
       4 drift fix past ~2 s ("You're 4 s behind", Catch up / Wait for me) · 5 test with friends as "load unpacked".
       Everyone needs their own subscription, nothing is streamed between people. Later: Chrome Web Store ($5 once)
       or Firefox add-ons (free).
-      Idea (2026-11-15): the extension also imports watch history from sites with no export of their own (Crunchyroll
-      has none, checked 2026-11-15), read while signed in there, like Simkl's extension does. Rows go through the existing import.
+      Extension step 0, before sync (decided 2026-11-15): a history importer. On the site's watch history, signed in
+      there, it reads the site's own data and sends rows straight to Lateshow's import (no CSV), one row shape for every
+      site (title, season, episode, day). It also sets up the extension's Lateshow sign-in that sync needs.
+      Prime Video first: port the community exporter (Unlicense, public domain, reviewed 2026-11-15), read the page's
+      data (ids, real season and episode numbers) instead of display text. Then Crunchyroll (no export of its own, its
+      site calls a watch history API with series, season, episode), then Netflix (skips the CSV and its name-only
+      episodes). Disney+ and Apple TV+ show no history, nothing to read.
 - [ ] Friends (decided 2026-11-11): mutual, by invite link only (7 days, few uses), no people search.
       Friends see everything by default, one Settings switch hides it. Tables: `user.username`, `friendship`
       (one row per pair, lower id first), `invite`. Access checked in one helper. Build order:

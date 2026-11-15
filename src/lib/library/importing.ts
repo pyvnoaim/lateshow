@@ -1,5 +1,6 @@
 /**
- * Import from Letterboxd (export ZIP), IMDb (ratings / watchlist CSV) and Netflix (viewing history CSV). Pure, runs in the browser (reading the
+ * Import from Letterboxd (export ZIP), IMDb (ratings / watchlist CSV), Netflix (viewing history CSV) and Prime Video (the
+ * CSV of the community "Watch History Exporter for Amazon Prime Video" script). Pure, runs in the browser (reading the
  * files) and on the server (matching to TMDB). Only these rows ever leave the browser, never the file.
  */
 
@@ -14,11 +15,12 @@ export type ImportRow = {
   date?: string;
   /** your score out of 10 (IMDb as is, Letterboxd stars doubled), becomes a rating via `fromScore` */
   score?: number;
-  /** Netflix: the episodes you watched of this series (season unknown when Netflix names an arc, not a number) */
+  /** Netflix, Prime Video: the episodes you watched of this series (season unknown when the file names none) */
   episodes?: NetflixEpisode[];
 };
 
-export type NetflixEpisode = { season?: number; name: string; date?: string };
+/** `episode`: the number when the file gives one (Prime Video), placed by it when the name doesn't match */
+export type NetflixEpisode = { season?: number; episode?: number; name: string; date?: string };
 
 /** Reads CSV: quoted fields, "" inside quotes, commas and newlines in titles, CRLF, a leading BOM. */
 export function parseCsv(text: string): string[][] {
@@ -83,7 +85,11 @@ export function readExport(files: { name: string; text: string }[]): { rows: Imp
   for (const file of [...files].sort((a, b) => order(a) - order(b))) {
     const recs = records(file.text);
     const cols = recs[0] ? Object.keys(recs[0]) : [];
-    if (cols.includes("Letterboxd URI")) {
+    if (cols.includes("Date Watched") && cols.includes("Episode Title")) {
+      const read = readPrime(recs);
+      rows.push(...read.rows);
+      skipped += read.skipped;
+    } else if (cols.includes("Letterboxd URI")) {
       const name = lb(file);
       if (!FILES.includes(name)) continue; // reviews, likes, lists
       for (const r of recs) {
@@ -207,12 +213,50 @@ function readNetflix(recs: Record<string, string>[]): { rows: ImportRow[]; skipp
   return { rows: [...shows.values(), ...films], skipped };
 }
 
+/**
+ * Prime Video (the exporter script's CSV, newest first): "Series"/"Movie" rows with an exact time. A series title
+ * carries its season ("The Boys - Season 1", "Lost - Staffel 1 [dt./OV]", "Hawaii Five-0, Season 8", "Lucifer:
+ * Staffel 6", "Breadwinners Season 2", "House of David, S1", "South Park" none), the episode its number ("Episode 5: \"Good for the Soul\"", "Folge 3: ...").
+ */
+function readPrime(recs: Record<string, string>[]): { rows: ImportRow[]; skipped: number } {
+  let skipped = 0;
+  const shows = new Map<string, ImportRow>();
+  const films = new Map<string, ImportRow>();
+  // walking it backwards keeps the first time you saw each episode or film
+  for (const r of recs.toReversed()) {
+    const title = r.Title.replace(/\s*\[[^\]]*\]$/, "").trim(); // "[OV]", "[dt./OV]"
+    if (!title) continue;
+    const date = day(r["Date Watched"]);
+    if (r.Type !== "Series") {
+      if (!films.has(norm(title))) films.set(norm(title), { title, type: "movie", list: "watched", date });
+      continue;
+    }
+    const s = /^(.*?)[\s,:-]*\b(?:(?:season|staffel|series)\s+|s)(\d+)$/i.exec(title);
+    const series = s ? s[1].trim() : title;
+    if (!series) {
+      skipped++; // the show's name left out ("Season 1")
+      continue;
+    }
+    const season = s ? Number(s[2]) : undefined;
+    const e = /^(?:episode|folge|ep\.?) (\d+)(?::\s*(.*))?$/i.exec(r["Episode Title"]);
+    const episode = e ? Number(e[1]) : undefined;
+    const name = (e ? e[2] : r["Episode Title"])?.replace(/^"(.*)"$/, "$1").trim() || `Episode ${episode}`;
+    let show = shows.get(norm(series));
+    if (!show) shows.set(norm(series), (show = { title: series, type: "tv", list: "watched", episodes: [] }));
+    show.date = date; // latest day
+    if (!show.episodes!.some((x) => x.season === season && x.episode === episode && norm(x.name) === norm(name)))
+      show.episodes!.push({ season, episode, name, date });
+  }
+  return { rows: [...shows.values(), ...films.values()], skipped };
+}
+
 // brackets don't count: Netflix "The Freelancer (No. 145)" is TMDB "The Freelancer"
 const loose = (s: string) => norm(s.replace(/\([^)]*\)/g, " "));
 
 /**
  * Netflix episodes to TMDB numbers by name: in the season the file names, then in any season (Netflix "Part 2" can be
- * TMDB season 1). "Episode 5" with a season falls back to the number. A name after an arc label counts too. Unknown names are counted as missed.
+ * TMDB season 1). Then the number (Prime Video gives one, "Episode 5" names one) in that season. A name after an arc
+ * label counts too. Unknown names are counted as missed.
  * ponytail: exact names only. Anime arcs ("Dragon's Judgement") and renamed episodes miss, fuzzy matching if it matters.
  */
 export function placeEpisodes<A extends { season: number; episode: number; name: string }>(
@@ -227,13 +271,11 @@ export function placeEpisodes<A extends { season: number; episode: number; name:
     // an arc instead of a season ("Dragon's Judgement: The Ten Commandments"): the name after it counts too
     const tail = e.season === undefined ? loose(e.name.split(": ").slice(1).join(": ")) : "";
     const same = (a: A) => names.get(a) === n || (!!tail && names.get(a) === tail);
-    const num = /^episode (\d+)$/.exec(n);
+    const num = e.episode ?? Number(/^episode (\d+)$/.exec(n)?.[1] ?? NaN);
     const hit =
       aired.find((a) => a.season === e.season && same(a)) ??
       aired.find(same) ??
-      (num && e.season !== undefined
-        ? aired.find((a) => a.season === e.season && a.episode === Number(num[1]))
-        : undefined);
+      (e.season !== undefined ? aired.find((a) => a.season === e.season && a.episode === num) : undefined);
     if (hit) placed.push({ ...hit, date: e.date });
     else missed++;
   }

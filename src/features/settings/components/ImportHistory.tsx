@@ -74,7 +74,7 @@ export function ImportHistory() {
     }
     if (!rows.length) {
       setError(
-        "No titles found. Pick the Letterboxd ZIP, IMDb's ratings or watchlist CSV, or Netflix's viewing history.",
+        "No titles found. Pick the Letterboxd ZIP, IMDb's ratings or watchlist CSV, Netflix's viewing history or the Prime Video export.",
       );
       return;
     }

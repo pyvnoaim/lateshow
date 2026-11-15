@@ -101,8 +101,14 @@ export async function Settings() {
             description={
               <>
                 Your history from <Source name="Letterboxd" where="Settings › Data › Export your data" file="ZIP" />,{" "}
-                <Source name="IMDb" where="Your ratings or Watchlist › ⋯ › Export" file="CSV" /> or{" "}
-                <Source name="Netflix" where="Account › Profile › Viewing activity › Download all" file="CSV" />.
+                <Source name="IMDb" where="Your ratings or Watchlist › ⋯ › Export" file="CSV" />,{" "}
+                <Source name="Netflix" where="Account › Profile › Viewing activity › Download all" file="CSV" /> or{" "}
+                <Source
+                  name="Prime Video"
+                  where="Watch history page, run the Watch History Exporter script in the console"
+                  file="CSV"
+                />
+                .
               </>
             }
           >

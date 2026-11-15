@@ -186,3 +186,55 @@ describe("watchMonths", () => {
     expect(watchMonths([{ title: "Alien", type: "movie", list: "watchlist" }])).toEqual([]);
   });
 });
+
+describe("Prime Video", () => {
+  const head =
+    '"Date Watched","Type","Title","Episode Title","Global Title Identifier","Episode Global Title Identifier","Path","Episode Path","Image URL"';
+  const row = (date: string, type: string, title: string, ep = "") =>
+    [date, type, title, ep, "gti", "", "/detail/x", "", "img"].map((v) => `"${v.replaceAll('"', '""')}"`).join(",");
+  const file = [
+    head,
+    row("2026-06-15 00:35:23.963", "Series", "The Boys - Season 1", 'Episode 5: "Good for the Soul"'),
+    row("2026-06-14 21:10:00.000", "Series", "Lost - Staffel 1 [dt./OV]", "Folge 2: Gestrandet, Teil 2"),
+    row("2026-06-14 20:00:00.000", "Series", "Hawaii Five-0, Season 8", "Episode 3: Ka laina ma ke one"),
+    row("2026-06-13 20:00:00.000", "Series", "South Park", "Episode 4: Wackelpudding"),
+    row("2026-06-12 21:00:00.000", "Series", "Lucifer: Staffel 6", "Folge 1: Bye Bye Lucifer"),
+    row("2026-06-12 20:30:00.000", "Series", "Breadwinners Season 2", "Episode 7: Duck Tales"),
+    row("2026-06-12 20:10:00.000", "Series", "Season 1", "Episode 1: Pilot"),
+    row("2026-06-12 20:00:00.000", "Movie", "Scream 4"),
+    row("2026-06-11 20:00:00.000", "Series", "The Boys - Season 1", 'Episode 4: "The Female of the Species"'),
+    row("2022-12-05 19:32:36.976", "Movie", "Scream 4"),
+  ].join("\n");
+
+  it("reads seasons, episode numbers and names from Prime's titles, first watch per film", () => {
+    const { rows, skipped } = readExport([{ name: "watch-history-export-1.csv", text: file }]);
+    expect(skipped).toBe(1);
+    const show = (t: string) => rows.find((r) => r.title === t);
+    expect(show("The Boys")?.episodes).toEqual([
+      { season: 1, episode: 4, name: "The Female of the Species", date: "2026-06-11" },
+      { season: 1, episode: 5, name: "Good for the Soul", date: "2026-06-15" },
+    ]);
+    expect(show("The Boys")?.date).toBe("2026-06-15");
+    expect(show("Lost")?.episodes).toEqual([{ season: 1, episode: 2, name: "Gestrandet, Teil 2", date: "2026-06-14" }]);
+    expect(show("Hawaii Five-0")?.episodes?.[0]).toMatchObject({ season: 8, episode: 3 });
+    expect(show("Lucifer")?.episodes?.[0]).toMatchObject({ season: 6, episode: 1 });
+    expect(show("Breadwinners")?.episodes?.[0]).toMatchObject({ season: 2, episode: 7 });
+    expect(show("South Park")?.episodes?.[0]).toMatchObject({ season: undefined, episode: 4, name: "Wackelpudding" });
+    expect(rows.filter((r) => r.type === "movie")).toEqual([
+      { title: "Scream 4", type: "movie", list: "watched", date: "2022-12-05" },
+    ]);
+  });
+
+  it("places by number when the name is translated", () => {
+    const aired = [
+      { season: 1, episode: 1, name: "Pilot (1)" },
+      { season: 1, episode: 2, name: "Pilot (2)" },
+    ];
+    const { placed, missed } = placeEpisodes(
+      [{ season: 1, episode: 2, name: "Gestrandet, Teil 2", date: "2026-06-14" }],
+      aired,
+    );
+    expect(placed).toEqual([{ season: 1, episode: 2, name: "Pilot (2)", date: "2026-06-14" }]);
+    expect(missed).toBe(0);
+  });
+});
