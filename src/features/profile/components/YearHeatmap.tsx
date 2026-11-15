@@ -1,11 +1,11 @@
 import type { Day, Level } from "@/features/profile/yearGrid";
 
 const LEVELS: Record<Level, string> = {
-  0: "bg-raised",
-  1: "bg-accent/30",
-  2: "bg-accent/55",
-  3: "bg-accent/80",
-  4: "bg-accent",
+  0: "bg-raised glass-cell",
+  1: "bg-accent/30 glass-cell-lit",
+  2: "bg-accent/55 glass-cell-lit",
+  3: "bg-accent/80 glass-cell-lit",
+  4: "bg-accent glass-cell-lit",
 };
 
 const day = (d: Day) =>
@@ -31,7 +31,7 @@ export function YearHeatmap({ days }: { days: Day[] }) {
                 key={d.date}
                 data-tip={day(d)}
                 data-tip-meta={watchedFor(d)}
-                className={`aspect-square rounded-sm glass-cell ${LEVELS[d.level]}`}
+                className={`aspect-square rounded-sm ${LEVELS[d.level]}`}
               />
             ),
           )}
@@ -40,7 +40,7 @@ export function YearHeatmap({ days }: { days: Day[] }) {
       <div className="flex items-center gap-1.5 text-caption text-muted" aria-hidden>
         Less
         {([0, 1, 2, 3, 4] as const).map((l) => (
-          <span key={l} className={`size-3 rounded-sm glass-cell ${LEVELS[l]}`} />
+          <span key={l} className={`size-3 rounded-sm ${LEVELS[l]}`} />
         ))}
         More
       </div>

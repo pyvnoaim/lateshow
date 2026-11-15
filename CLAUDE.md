@@ -137,6 +137,8 @@ lists (/l/<id>, see Todo), update bar after a deploy (`UpdateBar`: build id from
       4 drift fix past ~2 s ("You're 4 s behind", Catch up / Wait for me) · 5 test with friends as "load unpacked".
       Everyone needs their own subscription, nothing is streamed between people. Later: Chrome Web Store ($5 once)
       or Firefox add-ons (free).
+      Idea (2026-11-15): the extension also imports watch history from sites with no export of their own (Crunchyroll
+      has none, checked 2026-11-15), read while signed in there, like Simkl's extension does. Rows go through the existing import.
 - [ ] Friends (decided 2026-11-11): mutual, by invite link only (7 days, few uses), no people search.
       Friends see everything by default, one Settings switch hides it. Tables: `user.username`, `friendship`
       (one row per pair, lower id first), `invite`. Access checked in one helper. Build order:
