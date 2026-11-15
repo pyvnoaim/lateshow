@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { safeNext } from "@/lib/safeNext";
+import { nextWithQuery, safeNext } from "@/lib/safeNext";
 
 describe("safeNext", () => {
   it("keeps paths on this site", () => {
@@ -20,5 +20,17 @@ describe("safeNext", () => {
     expect(safeNext("/\n/evil.com")).toBe("/");
     expect(safeNext("/\u0000evil")).toBe("/");
     expect(safeNext("/x\\evil.com")).toBe("/");
+  });
+});
+
+describe("nextWithQuery", () => {
+  it("takes the page's own query from /login back along, never next or error, never over next's own", () => {
+    expect(nextWithQuery("/settings", { next: "/settings", import: "extension", error: "x" })).toBe(
+      "/settings?import=extension",
+    );
+    expect(nextWithQuery("/u/me?year=2024", { next: "/u/me", year: "2025", tab: "history" })).toBe(
+      "/u/me?year=2024&tab=history",
+    );
+    expect(nextWithQuery("/", { next: "//evil.com", a: ["1", "2"] })).toBe("/");
   });
 });

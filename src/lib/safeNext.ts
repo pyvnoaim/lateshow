@@ -13,3 +13,15 @@ export function safeNext(raw: string | string[] | undefined): string {
   if (url.origin !== BASE) return "/";
   return url.pathname + url.search + url.hash;
 }
+
+/**
+ * The sign-in redirect (next.config) leaves the page's own query on /login ("/login?year=2025&next=/u/me"), so the
+ * way back takes it along: every other plain parameter goes onto `next` unless `next` already has it.
+ */
+export function nextWithQuery(next: string, params: Record<string, string | string[] | undefined>): string {
+  const url = new URL(next, BASE);
+  for (const [key, value] of Object.entries(params))
+    if (key !== "next" && key !== "error" && typeof value === "string" && !url.searchParams.has(key))
+      url.searchParams.set(key, value);
+  return url.pathname + url.search + url.hash;
+}

@@ -1,15 +1,15 @@
 import { redirect } from "next/navigation";
 import { getSession, LOGIN_CODE_MINUTES } from "@/lib/auth";
 import { SignInForm } from "./components/SignInForm";
-import { safeNext } from "@/lib/safeNext";
+import { nextWithQuery, safeNext } from "@/lib/safeNext";
 
 export async function SignIn({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string | string[]; next?: string | string[] }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const params = await searchParams;
-  const next = safeNext(params.next);
+  const next = nextWithQuery(safeNext(params.next), params);
   if (await getSession()) redirect(next);
   return <SignInForm minutes={LOGIN_CODE_MINUTES} next={next} />;
 }
