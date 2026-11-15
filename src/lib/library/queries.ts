@@ -1,7 +1,7 @@
 import "server-only";
 import { cache } from "react";
 import { getSession } from "@/lib/auth";
-import { and, count, desc, eq, gte, isNull, max, or, sum } from "drizzle-orm";
+import { and, count, desc, eq, gte, isNull, lt, max, or, sql, sum } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import { rating, watched, watchlist } from "@/lib/db/schema";
 import type { MediaType } from "@/lib/tmdb";
@@ -51,12 +51,22 @@ export async function getStats(userId: string) {
   };
 }
 
-/** Watch time per row since a date, for the year heatmap. */
-export async function getWatchTimes(userId: string, since: Date) {
+/** Watch time per row from `since` up to `until`, for the year heatmap. */
+export async function getWatchTimes(userId: string, since: Date, until?: Date) {
   return db
     .select({ at: watched.watchedAt, minutes: watched.minutes })
     .from(watched)
-    .where(and(eq(watched.userId, userId), gte(watched.watchedAt, since)));
+    .where(
+      and(eq(watched.userId, userId), gte(watched.watchedAt, since), until ? lt(watched.watchedAt, until) : undefined),
+    );
+}
+
+/** The years (UTC) this user watched something in, newest first, so the heatmap offers only those. */
+export async function getWatchYears(userId: string) {
+  // ponytail: reads every row of the user through the (user_id, watched_at) index. Fine for a big import, cache if not
+  const year = sql<string>`strftime('%Y', ${watched.watchedAt} / 1000, 'unixepoch')`;
+  const rows = await db.selectDistinct({ year }).from(watched).where(eq(watched.userId, userId)).orderBy(desc(year));
+  return rows.map((r) => Number(r.year));
 }
 
 /**

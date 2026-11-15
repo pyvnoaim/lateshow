@@ -18,7 +18,14 @@ import { createList } from "@/lib/lists/actions";
 import { getListsOf } from "@/lib/lists/queries";
 import { VISIBILITY } from "@/lib/lists/rules";
 import { shownName } from "@/lib/username";
-import { getHistory, getRecentTitles, getStats, getWatchlist, getWatchTimes } from "@/lib/library/queries";
+import {
+  getHistory,
+  getRecentTitles,
+  getWatchYears,
+  getStats,
+  getWatchlist,
+  getWatchTimes,
+} from "@/lib/library/queries";
 import { getLanguage } from "@/lib/region";
 import { getTitle, img, titleToCard, type Card } from "@/lib/tmdb";
 import { TmdbImage } from "@/components/TmdbImage";
@@ -78,7 +85,7 @@ export async function Profile({
   base = "/u/me",
   owner: friend,
 }: {
-  searchParams: Promise<{ tab?: string | string[]; more?: string | string[] }>;
+  searchParams: Promise<{ tab?: string | string[]; more?: string | string[]; year?: string | string[] }>;
   base?: string;
   owner?: Owner;
 }) {
@@ -94,11 +101,11 @@ export async function Profile({
   };
   // yours: the watchlist has its own page (/watchlist). A friend's: their watchlist is a tab here.
   const tabs = TABS.filter((t) => (self ? t !== "watchlist" : t !== "friends"));
-  const { tab: raw, more } = await searchParams;
+  const { tab: raw, more, year: rawYear } = await searchParams;
   // /u/me is only a shortcut for links: with a username you land on /u/yourname, the address you can share
   if (self && base === "/u/me" && owner.username) {
     const query = new URLSearchParams(
-      Object.entries({ tab: raw, more }).filter((e): e is [string, string] => typeof e[1] === "string"),
+      Object.entries({ tab: raw, more, year: rawYear }).filter((e): e is [string, string] => typeof e[1] === "string"),
     );
     redirect(`/u/${owner.username}${query.size ? `?${query}` : ""}`);
   }
@@ -110,16 +117,25 @@ export async function Profile({
 
   const uid = owner.id;
   const now = new Date();
+  // ?year= shows that calendar year on the heatmap, without it the last 12 months
+  const thisYear = now.getUTCFullYear();
+  const y = Number(rawYear);
+  const year = tab === "overview" && Number.isInteger(y) && y >= 1900 && y <= thisYear ? y : undefined;
   const name = owner.username || shownName(session.user);
   const hidden = !self && !owner.shareActivity;
   const lang = await getLanguage();
   // A friend who keeps their activity private: nothing of theirs is even read, not just hidden.
   const none = Promise.resolve([] as never[]);
-  const [stats, history, watchlist, times, friendCount, friends] = await Promise.all([
+  const [stats, history, watchlist, times, watchYears, friendCount, friends] = await Promise.all([
     hidden ? { movies: 0, episodes: 0, minutes: 0 } : getStats(uid),
     hidden || tab !== "history" ? none : getHistory(uid, pages * HISTORY_PAGE + 1),
     hidden ? none : getWatchlist(uid),
-    hidden ? none : getWatchTimes(uid, new Date(now.getTime() - 380 * 24 * 60 * 60 * 1000)),
+    hidden
+      ? none
+      : year
+        ? getWatchTimes(uid, new Date(Date.UTC(year, 0, 1)), new Date(Date.UTC(year + 1, 0, 1)))
+        : getWatchTimes(uid, new Date(now.getTime() - 380 * 24 * 60 * 60 * 1000)),
+    hidden || tab !== "overview" ? [] : getWatchYears(uid),
     self ? getFriendCount(uid) : 0,
     self && tab === "friends"
       ? getFriends(uid).then((list) =>
@@ -150,6 +166,8 @@ export async function Profile({
   ]);
   const month = (d: Date) => d.toLocaleDateString("en", { month: "long", year: "numeric" });
   const empty = stats.movies + stats.episodes === 0;
+  // a year switcher only for years with watches, and only once there's one before this year (else just the past year)
+  const years = watchYears.some((n) => n < thisYear) ? watchYears : [];
 
   return (
     <div className="group/profile flex flex-col gap-section">
@@ -254,10 +272,7 @@ export async function Profile({
         {!hidden && tab === "overview" && (
           <>
             {match && match.both.length > 0 && (
-              <Section
-                title="You both watched"
-                aside={<p className="text-small text-muted">{plural(match.both.length, "title")}</p>}
-              >
+              <Section title="You both watched" description={plural(match.both.length, "title")}>
                 <PosterGrid>
                   {both.map((c, i) => (
                     <PosterLink key={`${c.media_type}-${c.id}`} card={c} index={i} morph={false} />
@@ -266,10 +281,27 @@ export async function Profile({
               </Section>
             )}
             <Section
-              title={self ? "Your year" : "Their year"}
-              aside={<p className="text-small text-muted">Each square is a day.</p>}
+              title={year ? `${self ? "Your" : "Their"} ${year}` : self ? "Your year" : "Their year"}
+              description="Each square is a day."
+              aside={
+                years.length > 0 && (
+                  <SegmentedTabs
+                    label="Year"
+                    items={[
+                      { key: "past", label: "Past year", active: !year, href: base },
+                      ...years.map((n) => ({
+                        key: String(n),
+                        label: String(n),
+                        active: n === year,
+                        href: `${base}?year=${n}`,
+                      })),
+                    ]}
+                  />
+                )
+              }
+              asideAt="end"
             >
-              <YearHeatmap days={yearGrid(times, now)} />
+              <YearHeatmap days={yearGrid(times, now, year)} />
             </Section>
             {recent.length > 0 && (
               <Section title="Recently watched">

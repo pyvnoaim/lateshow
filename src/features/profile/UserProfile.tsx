@@ -13,7 +13,7 @@ export async function UserProfile({
   searchParams,
 }: {
   params: Promise<{ username: string }>;
-  searchParams: Promise<{ tab?: string | string[]; more?: string | string[] }>;
+  searchParams: Promise<{ tab?: string | string[]; more?: string | string[]; year?: string | string[] }>;
 }) {
   const [{ username }, session] = await Promise.all([params, getSession()]);
   if (!session) notFound();

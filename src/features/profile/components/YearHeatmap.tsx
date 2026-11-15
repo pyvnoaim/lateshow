@@ -23,14 +23,18 @@ export function YearHeatmap({ days }: { days: Day[] }) {
     <div className="flex flex-col gap-3">
       <div className="overflow-x-auto pb-1">
         <div className="grid min-w-3xl auto-cols-fr grid-flow-col grid-rows-7 gap-1">
-          {days.map((d) => (
-            <div
-              key={d.date}
-              data-tip={day(d)}
-              data-tip-meta={watchedFor(d)}
-              className={`aspect-square rounded-sm glass-cell ${LEVELS[d.level]}`}
-            />
-          ))}
+          {days.map((d) =>
+            d.pad ? (
+              <div key={d.date} aria-hidden />
+            ) : (
+              <div
+                key={d.date}
+                data-tip={day(d)}
+                data-tip-meta={watchedFor(d)}
+                className={`aspect-square rounded-sm glass-cell ${LEVELS[d.level]}`}
+              />
+            ),
+          )}
         </div>
       </div>
       <div className="flex items-center gap-1.5 text-caption text-muted" aria-hidden>

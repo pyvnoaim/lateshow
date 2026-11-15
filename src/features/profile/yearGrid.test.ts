@@ -37,4 +37,20 @@ describe("yearGrid", () => {
     );
     expect(days.filter((d) => d.level > 0)).toEqual([{ date: "2026-11-09", minutes: 30, level: 4 }]);
   });
+
+  it("shows a calendar year padded back to a Sunday, counting only that year", () => {
+    const days = yearGrid(
+      [
+        { at: new Date("2024-12-31T12:00:00Z"), minutes: 600 },
+        { at: new Date("2025-03-01T12:00:00Z"), minutes: 30 },
+      ],
+      today,
+      2025,
+    );
+    // Jan 1 2025 is a Wednesday: Sun to Tue of 2024 pad the first week
+    expect(days.slice(0, 3).every((d) => d.pad && d.level === 0)).toBe(true);
+    expect(days[3]).toEqual({ date: "2025-01-01", minutes: 0, level: 0 });
+    expect(days.at(-1)?.date).toBe("2025-12-31");
+    expect(days.filter((d) => d.level > 0)).toEqual([{ date: "2025-03-01", minutes: 30, level: 4 }]);
+  });
 });
