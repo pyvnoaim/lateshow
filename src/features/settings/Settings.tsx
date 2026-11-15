@@ -20,6 +20,9 @@ import { AvatarPicker } from "./components/AvatarPicker";
 import { LanguagePicker } from "./components/LanguagePicker";
 import { DeleteAccount } from "./components/DeleteAccount";
 import { ImportHistory } from "./components/ImportHistory";
+import { PastImports } from "./components/PastImports";
+import { getImports } from "@/lib/library/queries";
+import { removeImport } from "@/lib/library/importActions";
 import { TextSetting } from "./components/TextSetting";
 import { Passkeys } from "./components/Passkeys";
 import { ServicePicker } from "./components/ServicePicker";
@@ -30,10 +33,11 @@ export async function Settings() {
   const session = await getSession();
   if (!session) redirect(`/login?next=${encodeURIComponent("/settings")}`);
   const region = await getRegion();
-  const [choices, mine, passkeys] = await Promise.all([
+  const [choices, mine, passkeys, imports] = await Promise.all([
     getServiceChoices(region.code).catch(() => []),
     getMyServiceIds(),
     getMyPasskeys(),
+    getImports(session.user.id),
   ]);
 
   return (
@@ -112,7 +116,23 @@ export async function Settings() {
               </>
             }
           >
-            <ImportHistory />
+            <div className="flex flex-col items-start gap-8">
+              <ImportHistory />
+              <PastImports
+                imports={imports.map((i) => ({
+                  id: i.id,
+                  source: i.source,
+                  when: i.createdAt.toLocaleDateString("en", {
+                    month: "short",
+                    day: "numeric",
+                    year: i.createdAt.getFullYear() === new Date().getFullYear() ? undefined : "numeric",
+                  }),
+                  watches: i.watches,
+                  listed: i.listed,
+                }))}
+                remove={removeImport}
+              />
+            </div>
           </Row>
           <Row title="Your data" description="Download or delete everything.">
             <DeleteAccount remove={deleteAccount}>

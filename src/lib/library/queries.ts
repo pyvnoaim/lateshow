@@ -3,7 +3,7 @@ import { cache } from "react";
 import { getSession } from "@/lib/auth";
 import { and, count, desc, eq, gte, isNotNull, isNull, lt, max, or, sql, sum } from "drizzle-orm";
 import { db } from "@/lib/db/client";
-import { rating, watched, watchlist } from "@/lib/db/schema";
+import { importBatch, rating, watched, watchlist } from "@/lib/db/schema";
 import type { MediaType } from "@/lib/tmdb";
 
 const byTitle = (userId: string, type: MediaType, tmdbId: number) => ({
@@ -205,3 +205,35 @@ export const getMyWatchlistKeys = cache(async () => {
     .where(eq(watchlist.userId, session.user.id));
   return new Set(rows.map((r) => `${r.mediaType}-${r.tmdbId}`));
 });
+
+/** Your past imports that still hold something, newest first: what Settings › Import can remove again. */
+export async function getImports(userId: string) {
+  const watches = db
+    .select({ id: watched.importId, n: count().as("watches") })
+    .from(watched)
+    .where(eq(watched.userId, userId))
+    .groupBy(watched.importId)
+    .as("watches");
+  const listed = db
+    .select({ id: watchlist.importId, n: count().as("listed") })
+    .from(watchlist)
+    .where(eq(watchlist.userId, userId))
+    .groupBy(watchlist.importId)
+    .as("listed");
+  const rows = await db
+    .select({
+      id: importBatch.id,
+      source: importBatch.source,
+      createdAt: importBatch.createdAt,
+      watches: watches.n,
+      listed: listed.n,
+    })
+    .from(importBatch)
+    .leftJoin(watches, eq(watches.id, importBatch.id))
+    .leftJoin(listed, eq(listed.id, importBatch.id))
+    .where(eq(importBatch.userId, userId))
+    .orderBy(desc(importBatch.createdAt));
+  return rows
+    .map((r) => ({ ...r, watches: r.watches ?? 0, listed: r.listed ?? 0 }))
+    .filter((r) => r.watches + r.listed > 0);
+}

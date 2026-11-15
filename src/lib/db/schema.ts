@@ -24,11 +24,29 @@ export const watched = sqliteTable(
     minutes: integer("minutes").notNull().default(0),
     // null: watched some time ago, date unknown (marked by hand as "A while ago")
     watchedAt: integer("watched_at", { mode: "timestamp_ms" }).default(now),
+    /** the import that added it (import_batch.id), null when you marked it yourself: Remove undoes only those */
+    importId: text("import_id"),
   },
   (t) => [
     uniqueIndex("watched_once").on(t.userId, t.mediaType, t.tmdbId, t.season, t.episode),
     index("watched_by_time").on(t.userId, t.watchedAt),
+    index("watched_by_import").on(t.importId),
   ],
+);
+
+/** One run of Settings › Import (a file or the extension), so it can be removed again as a whole. */
+export const importBatch = sqliteTable(
+  "import_batch",
+  {
+    id: text("id").primaryKey(),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    /** "Prime Video", "Letterboxd", "IMDb", "Netflix" */
+    source: text("source").notNull(),
+    createdAt: integer("created_at", { mode: "timestamp_ms" }).default(now).notNull(),
+  },
+  (t) => [index("import_batch_by_user").on(t.userId)],
 );
 
 export const watchlist = sqliteTable(
@@ -42,6 +60,7 @@ export const watchlist = sqliteTable(
     title: text("title").notNull(),
     posterPath: text("poster_path"),
     addedAt: integer("added_at", { mode: "timestamp_ms" }).default(now).notNull(),
+    importId: text("import_id"), // the import that added it, see watched.importId
   },
   (t) => [primaryKey({ columns: [t.userId, t.mediaType, t.tmdbId] })],
 );
@@ -190,6 +209,7 @@ export const rating = sqliteTable(
     tmdbId: integer("tmdb_id").notNull(),
     value: integer("value").notNull(),
     ratedAt: integer("rated_at", { mode: "timestamp_ms" }).default(now).notNull(),
+    importId: text("import_id"), // the import that added it, cleared once you rate it yourself
   },
   (t) => [primaryKey({ columns: [t.userId, t.mediaType, t.tmdbId] }), index("rating_by_time").on(t.userId, t.ratedAt)],
 );

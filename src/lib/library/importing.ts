@@ -19,6 +19,9 @@ export type ImportRow = {
   episodes?: NetflixEpisode[];
 };
 
+/** Where an import came from: shown with it in Settings, so it can be removed as a whole */
+export type ImportSource = "Prime Video" | "Letterboxd" | "IMDb" | "Netflix";
+
 /** `episode`: the number when the file gives one (Prime Video), placed by it when the name doesn't match */
 export type NetflixEpisode = { season?: number; episode?: number; name: string; date?: string };
 
@@ -75,9 +78,14 @@ const IMDB_SERIES = /^(tv ?series|tv ?mini ?series)$/i;
  * Turns the files of an export into rows. Files are recognised by their columns, so names don't matter.
  * `skipped`: rows that can't become a Lateshow title (IMDb episodes, a watched series without its episodes).
  */
-export function readExport(files: { name: string; text: string }[]): { rows: ImportRow[]; skipped: number } {
+export function readExport(files: { name: string; text: string }[]): {
+  rows: ImportRow[];
+  skipped: number;
+  source: ImportSource;
+} {
   const rows: ImportRow[] = [];
   let skipped = 0;
+  let source: ImportSource | undefined; // the first file that's recognised names it
   // Letterboxd: the diary has the real watch dates, watched.csv everything (dated when logged). Diary first wins.
   const lb = (f: { name: string }) => f.name.replace(/^.*\//, "").toLowerCase();
   const FILES = ["diary.csv", "watched.csv", "ratings.csv", "watchlist.csv"];
@@ -89,7 +97,9 @@ export function readExport(files: { name: string; text: string }[]): { rows: Imp
       const read = readPrime(recs);
       rows.push(...read.rows);
       skipped += read.skipped;
+      source ??= "Prime Video";
     } else if (cols.includes("Letterboxd URI")) {
+      source ??= "Letterboxd";
       const name = lb(file);
       if (!FILES.includes(name)) continue; // reviews, likes, lists
       for (const r of recs) {
@@ -107,7 +117,9 @@ export function readExport(files: { name: string; text: string }[]): { rows: Imp
       const read = readNetflix(recs);
       rows.push(...read.rows);
       skipped += read.skipped;
+      source ??= "Netflix";
     } else if (cols.includes("Const")) {
+      source ??= "IMDb";
       // ratings.csv has "Date Rated" (rated means watched), a list export (watchlist) has "Created"
       const rated = cols.includes("Your Rating");
       for (const r of recs) {
@@ -142,7 +154,7 @@ export function readExport(files: { name: string; text: string }[]): { rows: Imp
     seen.set(key, r);
     return true;
   });
-  return { rows: unique, skipped };
+  return { rows: unique, skipped, source: source ?? "Letterboxd" };
 }
 
 // "Season 2", "Part 2", "Series 2", "Staffel 2", "2nd Season", "Limited Series" (= 1)

@@ -25,7 +25,10 @@ async function handOver() {
     if (type === "lateshow:import-ready" && count && !sent) {
       sent = true;
       log("the page is ready, handing over");
-      window.postMessage({ type: "lateshow:import-rows", rows: p!.rows, skipped: p!.skipped }, location.origin);
+      window.postMessage(
+        { type: "lateshow:import-rows", rows: p!.rows, skipped: p!.skipped, source: p!.source },
+        location.origin,
+      );
     }
     // only once the page has them: a handoff that fails keeps the rows for the next try
     if (type === "lateshow:import-received") {

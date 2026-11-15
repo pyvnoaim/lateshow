@@ -107,7 +107,8 @@ export async function setRating(ref: TitleRef, value: number | null) {
       .values({ ...key, value: v })
       .onConflictDoUpdate({
         target: [rating.userId, rating.mediaType, rating.tmdbId],
-        set: { value: v, ratedAt: new Date() },
+        // your own rating now: removing the import that brought the old one leaves it
+        set: { value: v, ratedAt: new Date(), importId: null },
       });
   }
   refresh();

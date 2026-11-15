@@ -6,8 +6,8 @@ import Image from "next/image";
 import { useEffect, useRef, useState, type DragEvent } from "react";
 import { buttonStyles } from "@/components/ui/button";
 import type { BatchResult, Candidate, Saved, Unsure } from "@/lib/library/importActions";
-import { importBatch, importPick } from "@/lib/library/importActions";
-import { readExport, type ImportRow } from "@/lib/library/importing";
+import { importBatch, importPick, startImport } from "@/lib/library/importActions";
+import { readExport, type ImportRow, type ImportSource } from "@/lib/library/importing";
 import { CountUp, ImportProgress } from "./ImportProgress";
 
 // ponytail: one size for all. A Netflix series row fetches every season, so batches stay small.
@@ -63,22 +63,24 @@ export function ImportHistory() {
   const [incoming, setIncoming] = useState(false);
 
   const running = useRef(false);
+  const batch = useRef(""); // this run's import id, picks join it
 
   async function start(list: FileList | null) {
     if (!list?.length) return;
     setError("");
     let rows: ImportRow[];
     let skipped: number;
+    let source: ImportSource;
     try {
-      ({ rows, skipped } = readExport(await readFiles(list)));
+      ({ rows, skipped, source } = readExport(await readFiles(list)));
     } catch {
       setError("That file couldn't be opened. Try the export again.");
       return;
     }
-    await run(rows, skipped);
+    await run(rows, skipped, source);
   }
 
-  async function run(rows: ImportRow[], skipped: number) {
+  async function run(rows: ImportRow[], skipped: number, source: ImportSource) {
     if (running.current) return; // one import at a time (the extension may post twice)
     setError("");
     if (!rows.length) {
@@ -90,6 +92,16 @@ export function ImportHistory() {
     // oldest first, so the import screen's title, month and bars move together (undated rows last)
     rows.sort((a, b) => (a.date ?? "9").localeCompare(b.date ?? "9"));
     running.current = true;
+    // one id for the run, on everything it adds: Settings can remove it as a whole
+    let importId: string;
+    try {
+      importId = await startImport(source);
+    } catch {
+      setError("The import couldn't start. Try again.");
+      running.current = false;
+      return;
+    }
+    batch.current = importId;
     setRows(rows);
     setPhase("working");
     setProgress({ done: 0, until: 0 });
@@ -104,7 +116,7 @@ export function ImportHistory() {
       setProgress({ done: i, until: end });
       let r: BatchResult;
       try {
-        r = await importBatch(rows.slice(i, end));
+        r = await importBatch(rows.slice(i, end), importId);
       } catch {
         setError(`Stopped after ${i} of ${rows.length}. Start it again to continue, nothing is added twice.`);
         break;
@@ -125,7 +137,13 @@ export function ImportHistory() {
   // Rows are checked again on the server like a file's.
   useEffect(() => {
     const take = (e: MessageEvent) => {
-      const d = e.data as { type?: string; rows?: unknown; skipped?: unknown; count?: unknown } | null;
+      const d = e.data as {
+        type?: string;
+        rows?: unknown;
+        skipped?: unknown;
+        count?: unknown;
+        source?: unknown;
+      } | null;
       // this window only. Not checked: the origin, Firefox stamps an extension script's messages with its own
       if (e.source !== window) return;
       // the script may start after this page said ready: it says hello, the page answers (and shows it's coming)
@@ -141,7 +159,9 @@ export function ImportHistory() {
       if (!Array.isArray(d.rows) || d.rows.length > 20000) return;
       // the extension forgets them only now, so a handoff that fails can be tried again
       window.postMessage({ type: "lateshow:import-received" }, location.origin);
-      void run(d.rows as ImportRow[], typeof d.skipped === "number" ? d.skipped : 0);
+      // the extension says where it read them, anything else counts as Prime Video (its only site so far)
+      const source = d.source === "Netflix" ? "Netflix" : "Prime Video";
+      void run(d.rows as ImportRow[], typeof d.skipped === "number" ? d.skipped : 0, source);
     };
     window.addEventListener("message", take);
     window.postMessage({ type: "lateshow:import-ready" }, location.origin);
@@ -151,12 +171,11 @@ export function ImportHistory() {
   async function choose(item: Unsure, c: Candidate | null) {
     setUnsure((u) => u.filter((x) => x !== item));
     if (!c) return;
-    const saved = await importPick(item.row, {
-      id: c.id,
-      type: c.type,
-      title: c.title,
-      posterPath: c.posterPath,
-    }).catch(() => null);
+    const saved = await importPick(
+      item.row,
+      { id: c.id, type: c.type, title: c.title, posterPath: c.posterPath },
+      batch.current,
+    ).catch(() => null);
     if (saved) setTotals((t) => add(t, saved));
   }
 

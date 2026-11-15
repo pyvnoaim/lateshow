@@ -1,14 +1,15 @@
 "use server";
 
+import { randomBytes } from "node:crypto";
 import { and, eq } from "drizzle-orm";
 import { refresh } from "next/cache";
 import { z } from "zod";
 import { getSession } from "@/lib/auth";
 import { db } from "@/lib/db/client";
-import { rating, watched, watchlist } from "@/lib/db/schema";
+import { importBatch as imports, rating, watched, watchlist } from "@/lib/db/schema";
 import { findByImdbId, getAiredEpisodes, getRuntime, img, searchForImport } from "@/lib/tmdb";
 import { pool } from "@/lib/pool";
-import { norm, pickMatch, placeEpisodes, type Hit, type ImportRow } from "./importing";
+import { norm, pickMatch, placeEpisodes, type Hit, type ImportRow, type ImportSource } from "./importing";
 import { fromScore } from "./rating";
 
 // The browser sends rows read from your export, never the file. Batches stay small so each call is a few seconds.
@@ -124,7 +125,7 @@ async function match(r: ImportRow): Promise<Match | Unsure | null> {
  * A watched series means all of it: every episode aired so far, unless the row lists its episodes (Netflix).
  * Ratings come along (loved, liked, not for me). `missed`: Netflix episodes whose name TMDB doesn't know.
  */
-async function save(userId: string, matches: Match[]): Promise<Saved> {
+async function save(userId: string, matches: Match[], importId: string): Promise<Saved> {
   const seen = matches.filter((m) => m.row.list === "watched");
   const listed = matches.filter((m) => m.row.list === "watchlist");
   // runtimes so imported titles count in your hours (cached, most are looked up once)
@@ -162,6 +163,7 @@ async function save(userId: string, matches: Match[]): Promise<Saved> {
             title: m.title,
             posterPath: m.posterPath,
             minutes: Math.min(p.minutes, 1000),
+            importId,
             ...((p.date ?? m.row.date) ? { watchedAt: new Date(`${p.date ?? m.row.date}T12:00:00Z`) } : {}),
           })),
         )
@@ -175,7 +177,10 @@ async function save(userId: string, matches: Match[]): Promise<Saved> {
       // a rating from the export, unless you already rated it here
       const value = m.row.score ? fromScore(m.row.score) : undefined;
       if (value)
-        tx.insert(rating).values({ userId, mediaType: m.type, tmdbId: m.id, value }).onConflictDoNothing().run();
+        tx.insert(rating)
+          .values({ userId, mediaType: m.type, tmdbId: m.id, value, importId })
+          .onConflictDoNothing()
+          .run();
       // like marking it watched in the app: it leaves the watchlist
       tx.delete(watchlist)
         .where(and(eq(watchlist.userId, userId), eq(watchlist.mediaType, m.type), eq(watchlist.tmdbId, m.id)))
@@ -196,6 +201,7 @@ async function save(userId: string, matches: Match[]): Promise<Saved> {
           tmdbId: m.id,
           title: m.title,
           posterPath: m.posterPath,
+          importId,
           ...(m.row.date ? { addedAt: new Date(`${m.row.date}T12:00:00Z`) } : {}),
         })
         .onConflictDoNothing()
@@ -211,9 +217,32 @@ async function requireUserId() {
   return session.user.id;
 }
 
-/** One batch of rows from an export: matched ones are saved, unclear ones come back with candidates. */
-export async function importBatch(raw: ImportRow[]): Promise<BatchResult> {
+const SOURCES = ["Prime Video", "Letterboxd", "IMDb", "Netflix"] as const satisfies ImportSource[];
+
+/** Starts an import run: everything it adds carries this id, so Settings can remove it again as a whole. */
+export async function startImport(source: ImportSource): Promise<string> {
   const userId = await requireUserId();
+  const id = randomBytes(12).toString("base64url");
+  await db.insert(imports).values({ id, userId, source: z.enum(SOURCES).parse(source) });
+  return id;
+}
+
+/** The run's id, if it's yours */
+async function ownBatch(userId: string, raw: unknown) {
+  const id = z.string().min(8).max(40).parse(raw);
+  const b = await db
+    .select({ id: imports.id })
+    .from(imports)
+    .where(and(eq(imports.id, id), eq(imports.userId, userId)))
+    .get();
+  if (!b) throw new Error("This import isn't yours.");
+  return id;
+}
+
+/** One batch of rows from an export: matched ones are saved, unclear ones come back with candidates. */
+export async function importBatch(raw: ImportRow[], rawImportId: string): Promise<BatchResult> {
+  const userId = await requireUserId();
+  const importId = await ownBatch(userId, rawImportId);
   // a batch holds at most 6000 episodes in all, so one call can't keep the server matching names for long
   const rows = z
     .array(row)
@@ -223,7 +252,7 @@ export async function importBatch(raw: ImportRow[]): Promise<BatchResult> {
   const results = await pool(rows, 8, match);
   const matches = results.filter((r): r is Match => r !== null && "id" in r);
   const unsure = results.filter((r): r is Unsure => r !== null && "candidates" in r);
-  const saved = await save(userId, matches);
+  const saved = await save(userId, matches, importId);
   refresh();
   return {
     ...saved,
@@ -233,11 +262,39 @@ export async function importBatch(raw: ImportRow[]): Promise<BatchResult> {
 }
 
 /** You picked which title an unclear row meant. */
-export async function importPick(rawRow: ImportRow, rawPick: z.input<typeof pick>) {
+export async function importPick(rawRow: ImportRow, rawPick: z.input<typeof pick>, rawImportId: string) {
   const userId = await requireUserId();
+  const importId = await ownBatch(userId, rawImportId);
   const r = row.parse(rawRow);
   const p = pick.parse(rawPick);
-  const saved = await save(userId, [{ row: r, id: p.id, type: p.type, title: p.title, posterPath: p.posterPath }]);
+  const saved = await save(
+    userId,
+    [{ row: r, id: p.id, type: p.type, title: p.title, posterPath: p.posterPath }],
+    importId,
+  );
   refresh();
   return saved;
+}
+
+/**
+ * Settings › Import › Remove: takes back what one import added (watches, watchlist entries, ratings you haven't
+ * changed since). What was there before it, or what you marked yourself, stays.
+ * ponytail: titles the import took off your watchlist (watched beats watchlist) don't come back.
+ */
+export async function removeImport(rawId: string) {
+  const userId = await requireUserId();
+  const id = await ownBatch(userId, rawId);
+  db.transaction((tx) => {
+    tx.delete(watched)
+      .where(and(eq(watched.userId, userId), eq(watched.importId, id)))
+      .run();
+    tx.delete(watchlist)
+      .where(and(eq(watchlist.userId, userId), eq(watchlist.importId, id)))
+      .run();
+    tx.delete(rating)
+      .where(and(eq(rating.userId, userId), eq(rating.importId, id)))
+      .run();
+    tx.delete(imports).where(eq(imports.id, id)).run();
+  });
+  refresh();
 }
