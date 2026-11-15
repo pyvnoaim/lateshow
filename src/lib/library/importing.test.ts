@@ -482,8 +482,11 @@ describe("readNetflixHistory", () => {
       ep(80200253, "The Stopped Show", "Season 5", "2026-11-08"), // watched twice: the first time counts
       ep(80000001, "Nothing to Remember", "Part 2", "2026-11-01"),
       { date: at("2026-10-01") }, // nothing to place
+      { movieID: 81000002, date: at("2026-10-02"), title: "  " }, // a name of only spaces
+      { ...ep(80000002, "Pilot", "Season 1", "2026-10-03"), seriesTitle: " " },
+      ep(80000003, "Year in Review", "Season 2024", "2026-10-04"), // a year, not a season
     ]);
-    expect(skipped).toBe(1);
+    expect(skipped).toBe(3);
     expect(rows).toEqual([
       {
         title: "BoJack Horseman",
@@ -492,6 +495,7 @@ describe("readNetflixHistory", () => {
         refs: ["netflix:70300800"],
         date: "2026-11-11",
         episodes: [
+          { season: undefined, name: "Year in Review", date: "2026-10-04" },
           { season: 2, name: "Nothing to Remember", date: "2026-11-01" },
           { season: 5, name: "The Stopped Show", date: "2026-11-08" },
           { season: 5, name: "The Showstopper", date: "2026-11-09" },

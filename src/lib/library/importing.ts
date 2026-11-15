@@ -176,6 +176,11 @@ export function readExport(files: { name: string; text: string }[]): {
 
 // "Season 2", "Part 2", "Series 2", "Staffel 2", "2nd Season", "Limited Series" (= 1)
 function seasonOf(label: string, series: string): number | undefined {
+  const n = seasonNumber(label, series);
+  // "Season 2024" (a yearly show) isn't a season number the import can place: left to the name, which finds it
+  return n !== undefined && n <= 500 ? n : undefined;
+}
+function seasonNumber(label: string, series: string): number | undefined {
   const m =
     /^(?:season|series|part|staffel|volume|book|collection) (\d+)$/i.exec(label) ??
     /^(\d+)(?:st|nd|rd|th) season$/i.exec(label);
@@ -424,21 +429,24 @@ export function readNetflixHistory(items: NetflixViewed[]): { rows: ImportRow[];
   let skipped = 0;
   for (const v of items.toReversed()) {
     const date = local(v.date);
-    if (v.series && v.seriesTitle) {
+    // Netflix sometimes sends a name of only spaces: such an entry can't be matched, it's counted as skipped
+    const seriesTitle = v.seriesTitle?.trim();
+    const title = v.title?.trim();
+    if (v.series && seriesTitle) {
       let show = shows.get(v.series);
       if (!show)
         shows.set(
           v.series,
-          (show = { title: v.seriesTitle, type: "tv", list: "watched", refs: [`netflix:${v.series}`], episodes: [] }),
+          (show = { title: seriesTitle, type: "tv", list: "watched", refs: [`netflix:${v.series}`], episodes: [] }),
         );
       show.date = date; // latest day
-      const season = v.seasonDescriptor ? seasonOf(v.seasonDescriptor, v.seriesTitle) : undefined;
-      const name = v.episodeTitle?.trim() || v.title?.trim() || "";
+      const season = v.seasonDescriptor ? seasonOf(v.seasonDescriptor, seriesTitle) : undefined;
+      const name = v.episodeTitle?.trim() || title || "";
       if (name && !show.episodes!.some((e) => e.season === season && norm(e.name) === norm(name)))
         show.episodes!.push({ season, name, date });
-    } else if (v.movieID && v.title && !v.series) {
+    } else if (v.movieID && title && !v.series) {
       if (!films.has(v.movieID))
-        films.set(v.movieID, { title: v.title, type: "movie", list: "watched", date, refs: [`netflix:${v.movieID}`] });
+        films.set(v.movieID, { title, type: "movie", list: "watched", date, refs: [`netflix:${v.movieID}`] });
     } else skipped++;
   }
   return { rows: [...shows.values(), ...films.values()], skipped };
