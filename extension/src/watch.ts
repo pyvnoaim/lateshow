@@ -10,10 +10,15 @@ import { close, toast } from "./toast";
 
 export type Via = "Prime Video" | "Netflix" | "Crunchyroll";
 
+/** The playing video's state: from this page's own <video>, or reported by the site's player frame */
+export type Clock = { at: number; duration: number; rate: number; paused: boolean };
+
 export type Adapter = {
   via: Via;
   /** what's playing, as one import row (a film, or a show with the one episode), null while unknown */
-  playing(): ImportRow | null;
+  playing(): ImportRow | null | Promise<ImportRow | null>;
+  /** where the video is when it isn't in this page (Crunchyroll plays in a frame of its own), else the page's video */
+  clock?(): Clock | null;
   /** an ad runs now (it doesn't count as watching) */
   ad?(): boolean;
   /** the credits started (the site's Skip Credits or Next episode) */
@@ -91,14 +96,18 @@ function show(via: Via, row: ImportRow, at: string, a: Answer) {
 /** Starts following playback on this page for one site. Checks once a second, does nothing without a key. */
 export function watch(site: Adapter) {
   let p: Progress = start();
-  window.setInterval(async () => {
+  const ownVideo = (): Clock | null => {
     const v = mainVideo();
+    return v && { at: v.currentTime, duration: v.duration, rate: v.playbackRate, paused: v.paused };
+  };
+  window.setInterval(async () => {
+    const v = site.clock?.() ?? ownVideo();
     if (!v || v.paused) return;
     const was = p.finished;
     p = tick(p, {
-      at: v.currentTime,
+      at: v.at,
       duration: v.duration,
-      rate: v.playbackRate,
+      rate: v.rate,
       ad: site.ad?.() ?? false,
       credits: site.credits?.() ?? false,
     });
@@ -114,7 +123,7 @@ export function watch(site: Adapter) {
       if (!mine)
         await chrome.storage.local.set({ settings: { ...s, profiles: { ...s?.profiles, [site.via]: profile } } });
     }
-    const row = site.playing();
+    const row = await site.playing();
     if (row) void send(site.via, row, new Date().toISOString());
   }, 1000);
 }

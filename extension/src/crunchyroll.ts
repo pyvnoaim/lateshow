@@ -1,9 +1,12 @@
 // Runs on crunchyroll.com. On the history page its card reads your watch history from Crunchyroll's own API (with
 // the token its app holds, noted by crunchyroll-main.ts), fills in the entries that come without details, and turns
-// it into Lateshow import rows (readCrunchyrollHistory, tested). Read only.
-import { readCrunchyrollHistory, type CrunchyrollEntry } from "@/lib/library/importing";
+// it into Lateshow import rows (readCrunchyrollHistory, tested). On a player page it marks what you finish
+// (watch.ts): the episode from the address, its details from the API, the video's position from the player frame
+// (frame-video.ts). Read only on Crunchyroll's side.
+import { readCrunchyrollHistory, type CrunchyrollEntry, type ImportRow } from "@/lib/library/importing";
 import { showCard } from "./card";
 import { getJson, pause, reader, type ReadHistory } from "./reader";
+import { watch, type Clock } from "./watch";
 
 type Auth = { auth: string | null; account: string | null };
 type Page = { data?: CrunchyrollEntry[]; meta?: { next_page?: string } };
@@ -80,3 +83,51 @@ const readHistory: ReadHistory = async (onProgress, since) => {
 
 const SOURCE = "Crunchyroll";
 if (location.pathname.startsWith("/history")) showCard(SOURCE, reader(SOURCE, readHistory));
+
+// --- marking what you finish
+
+// the player frame's reports, a few seconds old at most (no reports: the video is in this page, watch.ts reads it)
+let frame: { clock: Clock; at: number } | null = null;
+window.addEventListener("message", (e) => {
+  const d = e.data as ({ type?: string } & Partial<Clock>) | null;
+  if (e.origin !== "https://static.crunchyroll.com" || d?.type !== "lateshow:tick") return;
+  frame = {
+    clock: { at: Number(d.at), duration: Number(d.duration), rate: Number(d.rate) || 1, paused: Boolean(d.paused) },
+    at: Date.now(),
+  };
+});
+
+// each episode's details once (the next one starting on its own changes the address, so it's looked up then)
+const playingRows = new Map<string, Promise<ImportRow | null>>();
+function playing(): Promise<ImportRow | null> {
+  const id = /\/watch\/([A-Z0-9]+)/i.exec(location.pathname)?.[1];
+  if (!id) return Promise.resolve(null);
+  if (!playingRows.has(id))
+    playingRows.set(
+      id,
+      (async () => {
+        const { auth } = await ask();
+        if (!auth) return null;
+        const found = (await getJson(`/content/v2/cms/objects/${encodeURIComponent(id)}?locale=en-US`, {
+          authorization: auth,
+        })) as Page;
+        const panel = found.data?.[0] as CrunchyrollEntry["panel"] | undefined;
+        if (!panel) return null;
+        // the same reading as the import, so a marked episode is described the same way
+        const { rows } = readCrunchyrollHistory([
+          { id, fully_watched: true, date_played: new Date().toISOString(), panel },
+        ]);
+        return rows[0] ?? null;
+      })().catch(() => {
+        playingRows.delete(id); // try again next time
+        return null;
+      }),
+    );
+  return playingRows.get(id)!;
+}
+
+watch({
+  via: SOURCE,
+  playing,
+  clock: () => (frame && Date.now() - frame.at < 3000 ? frame.clock : null),
+});

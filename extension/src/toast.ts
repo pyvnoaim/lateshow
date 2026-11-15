@@ -81,8 +81,11 @@ export function toast(
     box.append(foot);
   }
   root.append(style, box);
-  // fullscreen video: only the fullscreen element shows, so the toast goes inside it
-  (document.fullscreenElement ?? document.body).append(host);
+  // fullscreen video: only the fullscreen element shows, so the toast goes inside it. A player frame in fullscreen
+  // (Crunchyroll) can't hold it: then it waits on the page and shows once you leave fullscreen.
+  // ponytail: showing it inside the frame would need the frame script to draw it
+  const full = document.fullscreenElement;
+  (full && full.tagName !== "IFRAME" ? full : document.body).append(host);
   current = { host, timer: hideAfter ? window.setTimeout(close, hideAfter) : 0 };
 }
 

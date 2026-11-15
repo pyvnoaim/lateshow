@@ -3,13 +3,19 @@
 // where the card does the reading).
 
 const PRIME = "https://www.primevideo.com";
-const SITE = "Prime Video";
+// the site that marks what you finish so far (Prime Video follows once its player is known)
+const SITE = "Crunchyroll";
 // where each site keeps your history, the card on that page reads it
 const HISTORIES = [
   { site: "Prime Video", url: `${PRIME}/settings/watch-history` },
   { site: "Crunchyroll", url: "https://www.crunchyroll.com/history" },
 ];
-const ORIGINS = [`${PRIME}/*`, "https://www.crunchyroll.com/*", `${__LATESHOW_MATCH__}/*`];
+const ORIGINS = [
+  `${PRIME}/*`,
+  "https://www.crunchyroll.com/*",
+  "https://static.crunchyroll.com/*", // Crunchyroll's player frame, where the video plays
+  `${__LATESHOW_MATCH__}/*`,
+];
 
 type Settings = { autoMark?: Partial<Record<string, boolean>>; profiles?: Partial<Record<string, string>> };
 
