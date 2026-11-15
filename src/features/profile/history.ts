@@ -4,14 +4,14 @@ type HistoryRow = {
   tmdbId: number;
   season: number;
   episode: number;
-  watchedAt: Date;
+  watchedAt: Date | null; // null: "A while ago", no date
 };
 
 /**
  * Rows (newest first) as entries: back to back episodes of one show on one day become one entry, so a binge reads
  * "Season 6, episodes 12 to 15" instead of four lines. `label` groups them ("Today", "October"), a run never crosses one.
  */
-export function historyEntries<T extends HistoryRow>(rows: T[], label: (d: Date) => string) {
+export function historyEntries<T extends HistoryRow>(rows: T[], label: (d: Date | null) => string) {
   const groups: [string, { row: T; episodes: T[] }[]][] = [];
   for (const r of rows) {
     const day = label(r.watchedAt);
@@ -21,7 +21,8 @@ export function historyEntries<T extends HistoryRow>(rows: T[], label: (d: Date)
     const prev = last?.episodes.at(-1);
     const run = r.mediaType === "tv" && prev?.mediaType === "tv" && prev.tmdbId === r.tmdbId;
     // same calendar day too: under a month heading, a show watched weekly stays one line per episode
-    if (run && prev.watchedAt.toDateString() === r.watchedAt.toDateString()) last!.episodes.push(r);
+    // (two undated rows count as the same day: a show marked "A while ago" is one line)
+    if (run && prev.watchedAt?.toDateString() === r.watchedAt?.toDateString()) last!.episodes.push(r);
     else group[1].push({ row: r, episodes: [r] });
   }
   return groups;

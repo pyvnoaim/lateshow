@@ -122,7 +122,8 @@ export async function getFriendsWatched(userId: string, days = 7) {
     .select({ userId: watched.userId, mediaType: watched.mediaType, tmdbId: watched.tmdbId, at: watched.watchedAt })
     .from(watched)
     .where(and(inArray(watched.userId, [...friends.keys()]), gte(watched.watchedAt, since)));
-  return groupByTitle(rows.map((r) => ({ ...r, name: friends.get(r.userId)! })));
+  // undated rows ("A while ago") never pass the date filter, the flatMap only tells TypeScript
+  return groupByTitle(rows.flatMap((r) => (r.at ? [{ ...r, at: r.at, name: friends.get(r.userId)! }] : [])));
 }
 
 /** Which friends watched this title (any episode) and which have it on their watchlist. */

@@ -1,6 +1,6 @@
 "use server";
 
-import { and, eq } from "drizzle-orm";
+import { and, eq, gte, sql } from "drizzle-orm";
 import { refresh } from "next/cache";
 import { z } from "zod";
 import { getSession } from "@/lib/auth";
@@ -143,6 +143,35 @@ export async function setEarlierWatched(ref: TitleRef, season: number, episodes:
       .where(and(eq(watchlist.userId, userId), eq(watchlist.mediaType, t.type), eq(watchlist.tmdbId, t.tmdbId)))
       .run();
   });
+  refresh();
+}
+
+/**
+ * "Watched it earlier?": moves what you marked of this title in the last day to `when` (a "2024-05-01" day, up to
+ * today) or to no date (null, "A while ago"). Inside the day the rows keep the show's order (season and episode as
+ * milliseconds after noon UTC, the time imports use).
+ */
+export async function redateTitle(ref: TitleRef, when: string | null) {
+  const userId = await requireUserId();
+  const t = titleRef.parse(ref);
+  const day = z
+    .string()
+    .regex(/^\d{4}-\d{2}-\d{2}$/)
+    .refine((d) => d >= "1900-01-01" && d <= new Date().toISOString().slice(0, 10) && !Number.isNaN(Date.parse(d)))
+    .nullable()
+    .parse(when);
+  const noon = day === null ? null : Date.parse(`${day}T12:00:00Z`);
+  await db
+    .update(watched)
+    .set({ watchedAt: noon === null ? null : sql`${noon} + ${watched.season} * 1000 + ${watched.episode}` })
+    .where(
+      and(
+        eq(watched.userId, userId),
+        eq(watched.mediaType, t.type),
+        eq(watched.tmdbId, t.tmdbId),
+        gte(watched.watchedAt, new Date(Date.now() - 86_400_000)),
+      ),
+    );
   refresh();
 }
 

@@ -65,7 +65,8 @@ const fullCards = (rows: Row[], lang: string) =>
   );
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
 const shortDate = (d: Date) => d.toLocaleDateString("en", { month: "short", day: "numeric" });
-const dayLabel = (d: Date, now: Date) => {
+const dayLabel = (d: Date | null, now: Date) => {
+  if (!d) return "Earlier"; // marked "A while ago", no date: History lists these last (SQLite sorts null last when descending)
   const days = Math.round((startOfDay(now) - startOfDay(d)) / 86_400_000);
   if (days === 0) return "Today";
   if (days === 1) return "Yesterday";
@@ -431,7 +432,7 @@ export async function Profile({
                         {!f.shareActivity
                           ? "Keeps their activity private"
                           : f.last
-                            ? `Watched ${f.last.title}${f.last.mediaType === "tv" ? ` S${f.last.season} E${f.last.episode}` : ""} · ${ago(f.last.watchedAt, now)}`
+                            ? `Watched ${f.last.title}${f.last.mediaType === "tv" ? ` S${f.last.season} E${f.last.episode}` : ""} · ${f.last.watchedAt ? ago(f.last.watchedAt, now) : "a while ago"}`
                             : "Nothing watched yet"}
                       </div>
                     </div>

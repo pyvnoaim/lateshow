@@ -101,7 +101,7 @@ too), Out this week from your list on Home), /search (type + genre filters in th
 profile /u/username (avatar, phone menu and invite page link there, /u/me forwards to it, the footer keeps /u/me since it never looks up who is signed in; stats, heatmap (this year by default, a year switcher once there are watches before this year, only years with watches, click a day: a glass card at the square (`DayPeek`, server action, every title, scrolls inside on busy days)), history (a binge on one day is one row, Show older pages through all of it), watchlist), /settings (your services: My services tab on Trending,
 picks only from them, your service first in captions and Watch on, language for TMDB data in a cookie, else the browser's, name, share-with-friends switch, CSV export at /api/export,
 delete account. Spoiler guard and the .ics calendar feed were removed 2026-11-13),
-ratings (not for me / like / love, `rating` table, on the title page once watched, feed "Because you loved", taste match
+watch dates (marked by hand = today, the title page then offers "A while ago" = no date, off heatmap and Recently watched, History "Earlier", or a picked day, `redateTitle`), ratings (not for me / like / love, `rating` table, on the title page once watched, feed "Because you loved", taste match
 and imports), OG images per title and profile (profile shows only the name, profiles are friends only), PWA manifest,
 lists (/l/<id>, see Todo), update bar after a deploy (`UpdateBar`: build id from next.config vs `/api/version`, on tab focus and every 10 min), /watchlist + /u/me redirects in `next.config.ts`, 404, errors, /about.
 

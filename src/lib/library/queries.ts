@@ -1,7 +1,7 @@
 import "server-only";
 import { cache } from "react";
 import { getSession } from "@/lib/auth";
-import { and, count, desc, eq, gte, isNull, lt, max, or, sql, sum } from "drizzle-orm";
+import { and, count, desc, eq, gte, isNotNull, isNull, lt, max, or, sql, sum } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import { rating, watched, watchlist } from "@/lib/db/schema";
 import type { MediaType } from "@/lib/tmdb";
@@ -11,12 +11,18 @@ const byTitle = (userId: string, type: MediaType, tmdbId: number) => ({
   watchlist: and(eq(watchlist.userId, userId), eq(watchlist.mediaType, type), eq(watchlist.tmdbId, tmdbId)),
 });
 
-/** What this user has done with one title: on the watchlist, which episodes ("season-episode") are watched, rating. */
+/**
+ * What this user has done with one title: on the watchlist, which episodes ("season-episode") are watched, rating, and
+ * `justMarked`: something of it marked in the last day (the title page then asks "Watched it earlier?").
+ */
 export async function getTitleLibrary(userId: string, type: MediaType, tmdbId: number) {
   const where = byTitle(userId, type, tmdbId);
   const [listed, rows, rated] = await Promise.all([
     db.select({ userId: watchlist.userId }).from(watchlist).where(where.watchlist).limit(1),
-    db.select({ season: watched.season, episode: watched.episode }).from(watched).where(where.watched),
+    db
+      .select({ season: watched.season, episode: watched.episode, at: watched.watchedAt })
+      .from(watched)
+      .where(where.watched),
     db
       .select({ value: rating.value })
       .from(rating)
@@ -26,6 +32,7 @@ export async function getTitleLibrary(userId: string, type: MediaType, tmdbId: n
     onWatchlist: listed.length > 0,
     watched: rows.map((r) => `${r.season}-${r.episode}`),
     rating: rated[0]?.value ?? null,
+    justMarked: rows.some((r) => r.at && r.at.getTime() > Date.now() - 86_400_000),
   };
 }
 
@@ -74,7 +81,11 @@ export async function getWatchedBetween(userId: string, since: Date, until: Date
 export async function getWatchYears(userId: string) {
   // ponytail: reads every row of the user through the (user_id, watched_at) index. Fine for a big import, cache if not
   const year = sql<string>`strftime('%Y', ${watched.watchedAt} / 1000, 'unixepoch')`;
-  const rows = await db.selectDistinct({ year }).from(watched).where(eq(watched.userId, userId)).orderBy(desc(year));
+  const rows = await db
+    .selectDistinct({ year })
+    .from(watched)
+    .where(and(eq(watched.userId, userId), isNotNull(watched.watchedAt)))
+    .orderBy(desc(year));
   return rows.map((r) => Number(r.year));
 }
 
@@ -87,7 +98,8 @@ export async function getRecentTitles(userId: string, limit = 12) {
   const latest = db
     .select()
     .from(watched)
-    .where(eq(watched.userId, userId))
+    // a title marked "A while ago" (no date) isn't recent
+    .where(and(eq(watched.userId, userId), isNotNull(watched.watchedAt)))
     .orderBy(desc(watched.watchedAt))
     .limit(500)
     .as("latest");

@@ -11,7 +11,7 @@ const ep = (tmdbId: number, season: number, episode: number, day = "a") => ({
   watchedAt: new Date(2026, 9, day === "a" ? 2 : 1),
 });
 const movie = (tmdbId: number) => ({ ...ep(tmdbId, 0, 0), mediaType: "movie" as const });
-const label = (d: Date) => (d.getDate() === 2 ? "Today" : "Yesterday");
+const label = (d: Date | null) => (d?.getDate() === 2 ? "Today" : "Yesterday");
 
 describe("historyEntries", () => {
   it("merges back to back episodes of one show within a day", () => {

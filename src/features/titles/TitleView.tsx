@@ -13,7 +13,8 @@ import { PosterGrid, PosterGridSkeleton } from "@/components/ui/PosterGrid";
 import { Section } from "@/components/ui/Section";
 import { getSession } from "@/lib/auth";
 import { getWatchLinks, type WatchLink } from "@/lib/justwatch";
-import { setOnWatchlist, setRating, setWatched, type TitleRef } from "@/lib/library/actions";
+import { redateTitle, setOnWatchlist, setRating, setWatched, type TitleRef } from "@/lib/library/actions";
+import { WhenWatched } from "./components/WhenWatched";
 import { nextEpisode, parseEpisodeKeys, type EpisodeRef } from "@/lib/library/progress";
 import { getSeasonInfo } from "@/lib/library/inProgress";
 import { getTitleLibrary } from "@/lib/library/queries";
@@ -45,6 +46,7 @@ type Library = {
   onWatchlist: boolean;
   watched: string[];
   rating: number | null;
+  justMarked: boolean;
   /** yours, with whether this title is on each. Null signed out */
   lists: { id: string; name: string; has: boolean }[] | null;
   ref: TitleRef;
@@ -66,7 +68,7 @@ export async function TitleView({ type, id }: { type: string; id: string }) {
   const links = yourServicesFirst(allLinks, t, region.code, myIds);
   const [lib, lists] = session
     ? await Promise.all([getTitleLibrary(session.user.id, type, t.id), getMyListsFor(session.user.id, type, t.id)])
-    : [{ onWatchlist: false, watched: [], rating: null }, null];
+    : [{ onWatchlist: false, watched: [], rating: null, justMarked: false }, null];
   const library: Library = {
     signedIn: session !== null,
     ...lib,
@@ -210,6 +212,8 @@ function Hero({
         {library.watched.length > 0 && (
           <RatingButtons initial={library.rating} rate={setRating.bind(null, library.ref)} />
         )}
+        {/* marked by hand just now: today is a guess, an old binge can move back to its day or to no date */}
+        {library.justMarked && <WhenWatched redate={redateTitle.bind(null, library.ref)} />}
       </div>
     </BackdropHero>
   );

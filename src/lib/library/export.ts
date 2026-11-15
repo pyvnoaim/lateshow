@@ -10,7 +10,7 @@ type Row = {
   title: string;
   season: number | null;
   episode: number | null;
-  date: Date;
+  date: Date | null; // null: watched "A while ago", no date
 };
 
 const cell = (v: string | number | null) => {
@@ -24,7 +24,7 @@ const cell = (v: string | number | null) => {
 export function toCsv(rows: Row[]) {
   const head = ["list", "type", "tmdb_id", "title", "season", "episode", "date"];
   const lines = rows.map((r) =>
-    [r.list, r.type, r.tmdbId, r.title, r.season, r.episode, r.date.toISOString()].map(cell).join(","),
+    [r.list, r.type, r.tmdbId, r.title, r.season, r.episode, r.date?.toISOString() ?? ""].map(cell).join(","),
   );
   return [head.join(","), ...lines].join("\n") + "\n";
 }

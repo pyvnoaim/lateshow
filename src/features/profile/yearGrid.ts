@@ -11,7 +11,7 @@ const iso = (d: Date) => d.toISOString().slice(0, 10);
  * your own spread, and one huge day (an import, a marathon) is just one day in the top quarter. Unknown runtime counts as 1 minute.
  * ponytail: days are UTC. Use the viewer's timezone once profiles show other people's activity.
  */
-export function yearGrid(entries: { at: Date; minutes: number }[], today: Date, year: number): Day[] {
+export function yearGrid(entries: { at: Date | null; minutes: number }[], today: Date, year: number): Day[] {
   const first = Date.UTC(year, 0, 1);
   const end = Date.UTC(year, 11, 31);
   const last = Math.min(end, Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
@@ -19,7 +19,7 @@ export function yearGrid(entries: { at: Date; minutes: number }[], today: Date, 
 
   const perDay = new Map<string, number>();
   for (const e of entries) {
-    if (e.at.getTime() < first || e.at.getTime() >= last + DAY) continue;
+    if (!e.at || e.at.getTime() < first || e.at.getTime() >= last + DAY) continue;
     const key = iso(e.at);
     perDay.set(key, (perDay.get(key) ?? 0) + Math.max(e.minutes, 1));
   }

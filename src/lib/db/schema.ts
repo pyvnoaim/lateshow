@@ -22,7 +22,8 @@ export const watched = sqliteTable(
     title: text("title").notNull(),
     posterPath: text("poster_path"),
     minutes: integer("minutes").notNull().default(0),
-    watchedAt: integer("watched_at", { mode: "timestamp_ms" }).default(now).notNull(),
+    // null: watched some time ago, date unknown (marked by hand as "A while ago")
+    watchedAt: integer("watched_at", { mode: "timestamp_ms" }).default(now),
   },
   (t) => [
     uniqueIndex("watched_once").on(t.userId, t.mediaType, t.tmdbId, t.season, t.episode),
