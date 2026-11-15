@@ -40,3 +40,22 @@ export function episodesLabel(episodes: HistoryRow[]) {
     ? `Season ${first.season}, episodes ${first.episode} to ${last.episode}`
     : `Season ${first.season}, ${sorted.length} episodes`;
 }
+
+/**
+ * One day's rows as one entry per title (all of a show's episodes that day together, wherever they fell), the most
+ * watched first: the heatmap's day card and day view. A row with unknown runtime counts as 1 minute, like the grid.
+ */
+export function dayTitles<T extends HistoryRow & { minutes: number }>(rows: T[]) {
+  const byTitle = new Map<string, { row: T; episodes: T[]; minutes: number }>();
+  for (const r of rows) {
+    const key = `${r.mediaType}-${r.tmdbId}`;
+    const entry = byTitle.get(key) ?? byTitle.set(key, { row: r, episodes: [], minutes: 0 }).get(key)!;
+    entry.episodes.push(r);
+    entry.minutes += Math.max(r.minutes, 1);
+  }
+  return [...byTitle.values()].sort((a, b) => b.minutes - a.minutes);
+}
+
+/** "3.5 h" or "40 min". */
+export const watchTime = (minutes: number) =>
+  minutes >= 60 ? `${Math.round((minutes / 60) * 10) / 10} h` : `${minutes} min`;

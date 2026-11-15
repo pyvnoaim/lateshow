@@ -11,7 +11,7 @@ import { InviteButton } from "@/components/friends/InviteButton";
 import { getSession } from "@/lib/auth";
 import { ago } from "@/lib/ago";
 import { getInviteLink, removeFriend } from "@/lib/friends/actions";
-import { getFriendCount, getFriends } from "@/lib/friends/queries";
+import { areFriends, getFriendCount, getFriends, getUserByUsername } from "@/lib/friends/queries";
 import { MIN_TITLES } from "@/lib/friends/match";
 import { getMatch } from "@/lib/friends/taste";
 import { createList } from "@/lib/lists/actions";
@@ -34,7 +34,8 @@ import { SignOutButton } from "./components/SignOutButton";
 import { YearHeatmap } from "./components/YearHeatmap";
 import { NewListForm } from "./components/NewListForm";
 import { yearGrid } from "./yearGrid";
-import { episodesLabel, historyEntries } from "./history";
+import { dayTitles, episodesLabel, historyEntries, watchTime } from "./history";
+import type { PeekTitle } from "./components/DayPeek";
 
 const HISTORY_PAGE = 300;
 const MAX_PAGES = 1000;
@@ -181,6 +182,28 @@ export async function Profile({
   ]);
   const month = (d: Date) => d.toLocaleDateString("en", { month: "long", year: "numeric" });
   const empty = stats.movies + stats.episodes === 0;
+  const dayList = dayTitles(dayRows);
+  // the heatmap's day card. Next binds uid and the username in encrypted, and access is checked again on every call:
+  // signed in, and for a friend's profile still friends and still sharing (they may have turned it off since)
+  const friendName = self ? null : owner.username;
+  async function peekDay(date: string): Promise<PeekTitle[]> {
+    "use server";
+    const start = /^\d{4}-\d{2}-\d{2}$/.test(date) ? Date.parse(`${date}T00:00Z`) : NaN;
+    const me = await getSession();
+    if (!me || Number.isNaN(start)) return [];
+    if (uid !== me.user.id) {
+      const them = friendName ? await getUserByUsername(friendName) : null;
+      if (!them || them.id !== uid || !them.shareActivity || !(await areFriends(me.user.id, uid))) return [];
+    }
+    const rows = await getWatchedBetween(uid, new Date(start), new Date(start + 86_400_000));
+    return dayTitles(rows).map(({ row: r, episodes }) => ({
+      key: `${r.mediaType}-${r.tmdbId}`,
+      title: r.title,
+      meta: episodesLabel(episodes),
+      poster: img(r.posterPath, "w92") ?? null,
+      href: `/title/${r.mediaType}/${r.tmdbId}`,
+    }));
+  }
   // a year switcher only for years with watches (this year always), and only once there's one before this year
   const years = watchYears.some((n) => n < thisYear) ? [thisYear, ...watchYears.filter((n) => n < thisYear)] : [];
 
@@ -313,11 +336,12 @@ export async function Profile({
               }
               asideAt="end"
             >
-              <YearHeatmap days={yearGrid(times, now, year)} dayHref={dayHref} selected={day} />
+              <YearHeatmap days={yearGrid(times, now, year)} dayHref={dayHref} selected={day} peek={peekDay} />
               {day && (
-                <div className="flex flex-col gap-1 md:flex-row md:gap-8">
-                  <div className="flex items-baseline gap-4 md:w-28 md:shrink-0 md:flex-col md:gap-1 md:pt-3">
-                    <h3 className="text-small font-medium">
+                // the full day (the card's "All n titles", or a day link opened in a new tab): every title as a poster
+                <div className="flex flex-col gap-5 md:flex-row md:gap-10">
+                  <div className="flex items-baseline gap-4 md:w-40 md:shrink-0 md:flex-col md:gap-1.5">
+                    <h3 className="text-section font-bold">
                       {new Date(dayStart).toLocaleDateString("en", {
                         weekday: "short",
                         month: "short",
@@ -325,6 +349,12 @@ export async function Profile({
                         timeZone: "UTC",
                       })}
                     </h3>
+                    {dayList.length > 0 && (
+                      <p className="text-small text-muted nums">
+                        {watchTime(dayList.reduce((total, t) => total + t.minutes, 0))} ·{" "}
+                        {plural(dayList.length, "title")}
+                      </p>
+                    )}
                     <Link
                       href={yearHref}
                       scroll={false}
@@ -333,10 +363,31 @@ export async function Profile({
                       Close
                     </Link>
                   </div>
-                  {dayRows.length === 0 ? (
-                    <p className="text-body text-muted md:pt-3">Nothing watched that day.</p>
+                  {dayList.length === 0 ? (
+                    <p className="text-body text-muted">Nothing watched that day.</p>
                   ) : (
-                    <HistoryList entries={historyEntries(dayRows, () => day)[0]?.[1] ?? []} />
+                    <ol className="grid flex-1 grid-cols-3 content-start gap-x-4 gap-y-6 sm:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8">
+                      {dayList.map(({ row: r, episodes }) => {
+                        const poster = img(r.posterPath, "w185");
+                        return (
+                          <li key={`${r.mediaType}-${r.tmdbId}`}>
+                            <Link href={`/title/${r.mediaType}/${r.tmdbId}`} className="group flex flex-col gap-2">
+                              <span className="relative aspect-poster lift overflow-hidden rounded-poster bg-raised">
+                                {poster && (
+                                  <TmdbImage src={poster} lowSrc={img(r.posterPath, "w92")!} alt="" sizes="160px" />
+                                )}
+                              </span>
+                              <span className="min-w-0">
+                                <span className="block truncate text-label font-semibold">{r.title}</span>
+                                <span className="block truncate text-small text-muted nums">
+                                  {episodesLabel(episodes)}
+                                </span>
+                              </span>
+                            </Link>
+                          </li>
+                        );
+                      })}
+                    </ol>
                   )}
                 </div>
               )}

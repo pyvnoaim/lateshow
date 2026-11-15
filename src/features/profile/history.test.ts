@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { episodesLabel, historyEntries } from "./history";
+import { dayTitles, episodesLabel, historyEntries, watchTime } from "./history";
 
 let id = 0;
 const ep = (tmdbId: number, season: number, episode: number, day = "a") => ({
@@ -40,5 +40,28 @@ describe("episodesLabel", () => {
     expect(episodesLabel([ep(1, 6, 15), ep(1, 6, 13)])).toBe("Season 6, 2 episodes");
     expect(episodesLabel([ep(1, 6, 1), ep(1, 5, 12)])).toBe("Season 5 to 6, 2 episodes");
     expect(episodesLabel([movie(1)])).toBe("Movie");
+  });
+});
+
+describe("dayTitles", () => {
+  it("puts all of a title's rows together, the most watched first, unknown runtime as 1 minute", () => {
+    const rows = [
+      { ...ep(1, 1, 3), minutes: 25 },
+      { ...movie(9), minutes: 120 },
+      { ...ep(1, 1, 2), minutes: 25 },
+      { ...ep(2, 1, 1), minutes: 0 },
+      { ...ep(1, 1, 1), minutes: 25 },
+    ];
+    const titles = dayTitles(rows);
+    expect(titles.map((t) => [t.row.tmdbId, t.episodes.length, t.minutes])).toEqual([
+      [9, 1, 120],
+      [1, 3, 75],
+      [2, 1, 1],
+    ]);
+    expect(titles[0].row).toBe(rows[1]);
+  });
+
+  it("formats watch time", () => {
+    expect([watchTime(40), watchTime(60), watchTime(210)]).toEqual(["40 min", "1 h", "3.5 h"]);
   });
 });
