@@ -397,6 +397,53 @@ export function readCrunchyrollHistory(entries: CrunchyrollEntry[]): { rows: Imp
   return { rows: [...shows.values(), ...films.values()], skipped };
 }
 
+/** One entry of Netflix's viewing activity (its AUI API, aui › viewingActivity), the parts that matter */
+export type NetflixViewed = {
+  movieID?: number;
+  date?: number; // ms
+  title?: string;
+  episodeTitle?: string;
+  seasonDescriptor?: string; // "Season 5", "Part 2", "Limited Series"
+  series?: number; // a show's id, none for a film
+  seriesTitle?: string;
+};
+
+/**
+ * Netflix's viewing activity as the extension reads it (newest first) into rows: a show with the episodes you
+ * watched (by name per season, Netflix gives no episode numbers), each the first time you saw it, a film once.
+ * The day is your own (local), Netflix's ids come along as refs so a confirmed match is remembered.
+ */
+export function readNetflixHistory(items: NetflixViewed[]): { rows: ImportRow[]; skipped: number } {
+  const local = (ms?: number) => {
+    if (!ms) return undefined;
+    const d = new Date(ms);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  };
+  const shows = new Map<number, ImportRow>();
+  const films = new Map<number, ImportRow>();
+  let skipped = 0;
+  for (const v of items.toReversed()) {
+    const date = local(v.date);
+    if (v.series && v.seriesTitle) {
+      let show = shows.get(v.series);
+      if (!show)
+        shows.set(
+          v.series,
+          (show = { title: v.seriesTitle, type: "tv", list: "watched", refs: [`netflix:${v.series}`], episodes: [] }),
+        );
+      show.date = date; // latest day
+      const season = v.seasonDescriptor ? seasonOf(v.seasonDescriptor, v.seriesTitle) : undefined;
+      const name = v.episodeTitle?.trim() || v.title?.trim() || "";
+      if (name && !show.episodes!.some((e) => e.season === season && norm(e.name) === norm(name)))
+        show.episodes!.push({ season, name, date });
+    } else if (v.movieID && v.title && !v.series) {
+      if (!films.has(v.movieID))
+        films.set(v.movieID, { title: v.title, type: "movie", list: "watched", date, refs: [`netflix:${v.movieID}`] });
+    } else skipped++;
+  }
+  return { rows: [...shows.values(), ...films.values()], skipped };
+}
+
 /** One title in Prime Video's own watch history data (the page's watch-history widget and its paging API). */
 export type PrimeTitle = {
   titleType?: string; // "movie", "season", "episode"

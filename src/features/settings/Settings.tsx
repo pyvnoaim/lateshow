@@ -116,7 +116,12 @@ export async function Settings() {
               <>
                 Your history from <Source name="Letterboxd" where="Settings › Data › Export your data" file="ZIP" />,{" "}
                 <Source name="IMDb" where="Your ratings or Watchlist › ⋯ › Export" file="CSV" />,{" "}
-                <Source name="Netflix" where="Account › Profile › Viewing activity › Download all" file="CSV" />,{" "}
+                <Source
+                  name="Netflix"
+                  where="The Lateshow extension, on your Netflix viewing activity"
+                  meta="Or its CSV (Viewing activity › Download all), dropped here"
+                />
+                ,{" "}
                 <Source
                   name="Prime Video"
                   where="The Lateshow extension, on your Prime Video watch history"

@@ -159,8 +159,8 @@ export function ImportHistory() {
       if (!Array.isArray(d.rows) || d.rows.length > 20000) return;
       // the extension forgets them only now, so a handoff that fails can be tried again
       window.postMessage({ type: "lateshow:import-received" }, location.origin);
-      // the extension says where it read them (Prime Video or Crunchyroll)
-      const source = d.source === "Crunchyroll" ? "Crunchyroll" : "Prime Video";
+      // the extension says where it read them
+      const source = d.source === "Crunchyroll" || d.source === "Netflix" ? d.source : "Prime Video";
       void run(d.rows as ImportRow[], typeof d.skipped === "number" ? d.skipped : 0, source);
     };
     window.addEventListener("message", take);

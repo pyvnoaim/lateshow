@@ -13,9 +13,17 @@ const match = lateshow.replace(/:\d+$/, "");
 await rm(out, { recursive: true, force: true });
 await mkdir(out, { recursive: true });
 await build({
-  entryPoints: ["popup", "prime", "crunchyroll", "crunchyroll-main", "frame-video", "lateshow", "background"].map(
-    (f) => `${dir}src/${f}.ts`,
-  ),
+  entryPoints: [
+    "popup",
+    "prime",
+    "crunchyroll",
+    "crunchyroll-main",
+    "frame-video",
+    "netflix",
+    "netflix-main",
+    "lateshow",
+    "background",
+  ].map((f) => `${dir}src/${f}.ts`),
   outdir: out,
   bundle: true,
   format: "iife",

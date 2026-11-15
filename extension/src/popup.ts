@@ -9,11 +9,13 @@ const SITE = "Crunchyroll";
 const HISTORIES = [
   { site: "Prime Video", url: `${PRIME}/settings/watch-history` },
   { site: "Crunchyroll", url: "https://www.crunchyroll.com/history" },
+  { site: "Netflix", url: "https://www.netflix.com/settings/viewed" },
 ];
 const ORIGINS = [
   `${PRIME}/*`,
   "https://www.crunchyroll.com/*",
   "https://static.crunchyroll.com/*", // Crunchyroll's player frame, where the video plays
+  "https://www.netflix.com/*",
   `${__LATESHOW_MATCH__}/*`,
 ];
 
@@ -102,7 +104,10 @@ async function main() {
         ),
       );
     });
-    app.append(el("p", "", "To import from Prime Video and Crunchyroll and to talk to your Lateshow account."), allow);
+    app.append(
+      el("p", "", "To import from Prime Video, Crunchyroll and Netflix and to talk to your Lateshow account."),
+      allow,
+    );
     return;
   }
 

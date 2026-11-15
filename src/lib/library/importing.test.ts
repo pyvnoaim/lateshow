@@ -8,6 +8,7 @@ import {
   primeTitle,
   readCrunchyrollHistory,
   readExport,
+  readNetflixHistory,
   readPrimeHistory,
   watchMonths,
 } from "./importing";
@@ -457,5 +458,46 @@ describe("Crunchyroll history (the extension)", () => {
     );
     expect(placed.map((p) => `${p.season}x${p.episode}`)).toEqual(["2x1", "1x2", "2x3", "1x1"]);
     expect(missed).toBe(1);
+  });
+});
+
+describe("readNetflixHistory", () => {
+  // newest first, as Netflix sends it (the shape of a real answer, 2026-11-15)
+  const at = (d: string) => new Date(`${d}T21:00:00`).getTime();
+  const ep = (id: number, name: string, season: string, d: string) => ({
+    movieID: id,
+    date: at(d),
+    title: `${season}: "${name}"`,
+    episodeTitle: name,
+    seasonDescriptor: season,
+    series: 70300800,
+    seriesTitle: "BoJack Horseman",
+  });
+
+  it("makes a show of its episodes (first watch each, by season and name) and a film of the rest", () => {
+    const { rows, skipped } = readNetflixHistory([
+      ep(80200253, "The Stopped Show", "Season 5", "2026-11-11"),
+      { movieID: 81000001, date: at("2026-11-10"), title: "Glass Onion" },
+      ep(80200252, "The Showstopper", "Season 5", "2026-11-09"),
+      ep(80200253, "The Stopped Show", "Season 5", "2026-11-08"), // watched twice: the first time counts
+      ep(80000001, "Nothing to Remember", "Part 2", "2026-11-01"),
+      { date: at("2026-10-01") }, // nothing to place
+    ]);
+    expect(skipped).toBe(1);
+    expect(rows).toEqual([
+      {
+        title: "BoJack Horseman",
+        type: "tv",
+        list: "watched",
+        refs: ["netflix:70300800"],
+        date: "2026-11-11",
+        episodes: [
+          { season: 2, name: "Nothing to Remember", date: "2026-11-01" },
+          { season: 5, name: "The Stopped Show", date: "2026-11-08" },
+          { season: 5, name: "The Showstopper", date: "2026-11-09" },
+        ],
+      },
+      { title: "Glass Onion", type: "movie", list: "watched", date: "2026-11-10", refs: ["netflix:81000001"] },
+    ]);
   });
 });
