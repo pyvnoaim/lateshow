@@ -3,6 +3,7 @@
 // the site's styles can't reach it and it touches nothing of the site.
 import type { ImportRow } from "@/lib/library/importing";
 import type { Progress } from "./reader";
+import logo from "@/app/icon.svg";
 
 type Read = (onProgress: (p: Progress) => void, since: number) => Promise<{ rows: ImportRow[]; oldest: string }>;
 
@@ -14,7 +15,8 @@ const CSS = `
   box-shadow: inset 0 1px 0 rgba(255,255,255,.18), inset 0 0 0 1px rgba(255,255,255,.08), 0 24px 60px -12px rgba(0,0,0,.7);
   backdrop-filter: blur(24px) saturate(1.6); }
 .head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
-h2 { margin: 0; font-size: 16px; font-weight: 700; letter-spacing: -0.01em; }
+h2 { margin: 0; font-size: 16px; font-weight: 700; letter-spacing: -0.01em; display: flex; align-items: center; gap: 10px; }
+h2 svg { width: 24px; height: 24px; flex-shrink: 0; }
 p { margin: 0 0 14px; color: #8b8f98; text-wrap: pretty; }
 .count { color: #eef1f6; font-variant-numeric: tabular-nums; }
 button { font: inherit; cursor: pointer; }
@@ -69,7 +71,10 @@ export function showCard(source: string, read: Read) {
     const h = document.createElement("div");
     h.className = "head";
     const title = document.createElement("h2");
-    title.textContent = "Lateshow";
+    // the logo drawn inline (our own icon.svg, built in): an image file could be blocked by the site's CSP
+    const svg = new DOMParser().parseFromString(logo, "image/svg+xml").documentElement;
+    svg.setAttribute("aria-hidden", "true");
+    title.append(document.importNode(svg, true), "Lateshow");
     const close = document.createElement("button");
     close.className = "close";
     close.setAttribute("aria-label", "Close");

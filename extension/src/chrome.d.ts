@@ -40,6 +40,12 @@ declare namespace chrome {
   }
 }
 
+/** The logo's SVG source, built in by esbuild (loader text) */
+declare module "@/app/icon.svg" {
+  const svg: string;
+  export default svg;
+}
+
 /** Lateshow's address, set at build time (production, or http://localhost:3000 for `pnpm ext:dev`) */
 declare const __LATESHOW__: string;
 /** The same without a port, for site patterns (they can't hold one) */

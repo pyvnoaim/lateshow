@@ -22,6 +22,7 @@ await build({
   target: ["chrome120", "firefox121"],
   alias: { "@": fileURLToPath(new URL("../src", import.meta.url)) },
   define: { __LATESHOW__: JSON.stringify(lateshow), __LATESHOW_MATCH__: JSON.stringify(match) },
+  loader: { ".svg": "text" }, // the logo, inlined into the card
   logLevel: "warning",
 });
 const manifest = (await readFile(`${dir}manifest.template.json`, "utf8")).replaceAll("__LATESHOW__", match);
