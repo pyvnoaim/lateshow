@@ -85,8 +85,16 @@ async function main() {
     statusLine.textContent = "Needs access first";
     const allow = el("button", "primary", "Allow access");
     allow.addEventListener("click", async () => {
-      await chrome.permissions.request({ origins: ORIGINS });
-      await main();
+      // the browser's prompt doesn't always show from a popup (Zen): then say where the switches are
+      const granted = await chrome.permissions.request({ origins: ORIGINS }).catch(() => false);
+      if (granted) return main();
+      app.append(
+        el(
+          "p",
+          "",
+          "No prompt? Turn it on by hand: about:addons, Lateshow, Permissions, then switch on every site there.",
+        ),
+      );
     });
     app.append(el("p", "", "To import from Prime Video and Crunchyroll and to talk to your Lateshow account."), allow);
     return;
