@@ -16,6 +16,7 @@
     "ext:dev": "node extension/build.mjs --dev",
     "ext:test": "node extension/build.mjs --test",
     "ext:zip": "node extension/build.mjs && rm -f extension/lateshow-extension.zip && cd extension/dist && zip -qr ../lateshow-extension.zip . && cd ../.. && pnpm ext:source",
+    "ext:chrome": "node extension/build.mjs --chrome && rm -f extension/lateshow-chrome.zip && cd extension/dist && zip -qr ../lateshow-chrome.zip . && cd ../.. && node extension/build.mjs",
     "ext:source": "rm -f extension/lateshow-extension-source.zip && git archive --format=zip -o extension/lateshow-extension-source.zip HEAD extension/src extension/build.mjs extension/manifest.template.json extension/popup.html extension/icon.png extension/SOURCE.md src/lib/library/importing.ts src/lib/watchProgress.ts src/app/icon.svg package.json pnpm-lock.yaml pnpm-workspace.yaml tsconfig.json",
     "db:migrate": "mkdir -p data && drizzle-kit migrate"
   },

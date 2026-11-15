@@ -39,8 +39,13 @@ await build({
   loader: { ".svg": "text" }, // the logo, inlined into the card
   logLevel: "warning",
 });
-const manifest = (await readFile(`${dir}manifest.template.json`, "utf8")).replaceAll("__LATESHOW__", match);
-await writeFile(`${out}manifest.json`, manifest);
+const manifest = JSON.parse((await readFile(`${dir}manifest.template.json`, "utf8")).replaceAll("__LATESHOW__", match));
+// `--chrome`: the Chrome Web Store build, without what only Firefox reads (it would warn or refuse)
+if (process.argv.includes("--chrome")) {
+  delete manifest.browser_specific_settings;
+  delete manifest.background.scripts;
+}
+await writeFile(`${out}manifest.json`, `${JSON.stringify(manifest, null, 2)}\n`);
 await copyFile(`${dir}popup.html`, `${out}popup.html`);
 // icon.png: src/app/icon.svg rendered once at 128 px with a transparent background (apple-icon.png is opaque, iOS)
 await copyFile(`${dir}icon.png`, `${out}icon-128.png`); // a new name: Firefox kept showing the old icon.png
