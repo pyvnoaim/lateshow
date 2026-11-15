@@ -144,6 +144,25 @@ lists (/l/<id>, see Todo), update bar after a deploy (`UpdateBar`: build id from
       data (ids, real season and episode numbers) instead of display text. Then Crunchyroll (no export of its own, its
       site calls a watch history API with series, season, episode), then Netflix (skips the CSV and its name-only
       episodes). Disney+ and Apple TV+ show no history, nothing to read.
+      Chrome and Firefox (Zen) from day one (decided 2026-11-15): one codebase, one MV3 manifest listing both
+      `background.service_worker` and `background.scripts`, `chrome.*` APIs, a fixed gecko id, a "Allow access to this
+      site" step (Firefox grants hosts per user). Test in Firefox first. Firefox keeps it as an unlisted signed add-on
+      (free), Chrome as load unpacked. Netflix plays in lower quality in Firefox, only matters for sync.
+      Build order (brainstorm 2026-11-15, all approved):
+      1 importers above, with a preview in the popup (counts, unclear ones picked there) before anything is written ·
+      2 every import is a batch you can undo ("Remove the 1,192 watches from the Prime import") ·
+      3 delta imports: the last imported watch per site is remembered, Sync now only pulls newer ones ·
+      4 remembered ids: a confirmed match stores the site's id (Amazon gti, Netflix id, Crunchyroll series) so the
+      next import and auto-marking skip the search. Anime: air date and absolute number help place episodes ·
+      5 auto-marking: an episode past ~90% on Netflix, Prime or Crunchyroll is marked with its real time, a toast
+      "Marked The Boys S1E5 · Undo", a switch per site. Shares the player detection with sync ·
+      6 watch together sync (above), plus: an intro skip skips for everyone, Prime ad breaks pause the sync like
+      YouTube's, "Wait for me" and everyone resumes together ·
+      7 Lateshow on the sites, optional and small: a Watched check on their posters, your rating, friends who
+      watched and + Watchlist on their title pages. Most fragile, so last.
+      Robustness throughout: each site's reader is its own module with a saved snapshot of the site's data as a test
+      fixture (a site change fails a test, not your import), and the popup says "The Prime reader needs an update"
+      instead of failing quietly.
 - [ ] Friends (decided 2026-11-11): mutual, by invite link only (7 days, few uses), no people search.
       Friends see everything by default, one Settings switch hides it. Tables: `user.username`, `friendship`
       (one row per pair, lower id first), `invite`. Access checked in one helper. Build order:
