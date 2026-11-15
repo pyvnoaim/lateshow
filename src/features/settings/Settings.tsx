@@ -116,11 +116,17 @@ export async function Settings() {
               <>
                 Your history from <Source name="Letterboxd" where="Settings › Data › Export your data" file="ZIP" />,{" "}
                 <Source name="IMDb" where="Your ratings or Watchlist › ⋯ › Export" file="CSV" />,{" "}
-                <Source name="Netflix" where="Account › Profile › Viewing activity › Download all" file="CSV" /> or{" "}
+                <Source name="Netflix" where="Account › Profile › Viewing activity › Download all" file="CSV" />,{" "}
                 <Source
                   name="Prime Video"
-                  where="Watch history page, run the Watch History Exporter script in the console"
-                  file="CSV"
+                  where="The Lateshow extension, on your Prime Video watch history"
+                  meta="Or the Watch History Exporter's CSV, dropped here"
+                />{" "}
+                or{" "}
+                <Source
+                  name="Crunchyroll"
+                  where="The Lateshow extension, on crunchyroll.com/history"
+                  meta="No file needed, it reads your history there"
                 />
                 .
               </>
@@ -192,8 +198,13 @@ function Group({ id, title, children }: { id: string; title: string; children: R
  * `stack` puts wide controls (service tiles, lists) under the label instead.
  */
 /** A service the import reads, lit up, with where to download its export as the tooltip (hover or Tab). */
-const Source = ({ name, where, file }: { name: string; where: string; file: string }) => (
-  <span tabIndex={0} data-tip={where} data-tip-meta={`Then drop the ${file} here`} className="cursor-help text-fg">
+const Source = ({ name, where, file, meta }: { name: string; where: string; file?: string; meta?: string }) => (
+  <span
+    tabIndex={0}
+    data-tip={where}
+    data-tip-meta={meta ?? `Then drop the ${file} here`}
+    className="cursor-help text-fg"
+  >
     {name}
   </span>
 );
