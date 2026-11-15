@@ -3,8 +3,8 @@
 // where the card does the reading).
 
 const PRIME = "https://www.primevideo.com";
-// the site that marks what you finish so far (Prime Video follows once its player is known)
-const SITE = "Crunchyroll";
+// the sites that mark what you finish so far (Prime Video follows once its player is known)
+const MARKING = ["Crunchyroll", "Netflix"];
 // where each site keeps your history, the card on that page reads it
 const HISTORIES = [
   { site: "Prime Video", url: `${PRIME}/settings/watch-history` },
@@ -121,31 +121,33 @@ async function main() {
   // mark what you finish: a switch once connected, else Connect
   if (name) {
     const settings = (await store<Settings>("settings")) ?? {};
-    const on = settings.autoMark?.[SITE] !== false;
-    const mine = settings.profiles?.[SITE];
-    const sw = el("button", `switch ${on ? "on" : ""}`);
-    sw.setAttribute("role", "switch");
-    sw.setAttribute("aria-checked", String(on));
-    sw.setAttribute("aria-label", `Mark what I finish on ${SITE}`);
-    sw.append(el("span", "knob"));
-    sw.addEventListener("click", async () => {
-      const s = (await store<Settings>("settings")) ?? {};
-      await chrome.storage.local.set({ settings: { ...s, autoMark: { ...s.autoMark, [SITE]: !on } } });
-      await main();
-    });
-    app.append(row(CHECK, "Mark what I finish", mine ? `${SITE}, profile ${mine}` : `${SITE}, with the real time`, sw));
-    if (mine) {
-      const other = el("button", "link", "Use another profile");
-      other.addEventListener("click", async () => {
+    for (const SITE of MARKING) {
+      const on = settings.autoMark?.[SITE] !== false;
+      const mine = settings.profiles?.[SITE];
+      const sw = el("button", `switch ${on ? "on" : ""}`);
+      sw.setAttribute("role", "switch");
+      sw.setAttribute("aria-checked", String(on));
+      sw.setAttribute("aria-label", `Mark what I finish on ${SITE}`);
+      sw.append(el("span", "knob"));
+      sw.addEventListener("click", async () => {
         const s = (await store<Settings>("settings")) ?? {};
-        const profiles = { ...s.profiles };
-        delete profiles[SITE];
-        await chrome.storage.local.set({ settings: { ...s, profiles } });
+        await chrome.storage.local.set({ settings: { ...s, autoMark: { ...s.autoMark, [SITE]: !on } } });
         await main();
       });
-      const line = el("p", "");
-      line.append(other);
-      app.append(line);
+      app.append(row(CHECK, `Mark on ${SITE}`, mine ? `Profile ${mine}` : "What you finish, with the real time", sw));
+      if (mine) {
+        const other = el("button", "link", `Use another ${SITE} profile`);
+        other.addEventListener("click", async () => {
+          const s = (await store<Settings>("settings")) ?? {};
+          const profiles = { ...s.profiles };
+          delete profiles[SITE];
+          await chrome.storage.local.set({ settings: { ...s, profiles } });
+          await main();
+        });
+        const line = el("p", "");
+        line.append(other);
+        app.append(line);
+      }
     }
   } else {
     const connect = el("button", "pill", "Connect");

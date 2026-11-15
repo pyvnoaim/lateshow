@@ -1,11 +1,13 @@
 // Runs on netflix.com. On your viewing activity its card reads your history from Netflix's own API (the call the
 // page's Show more makes, with your Netflix sign-in, for the profile you're on) into Lateshow import rows
-// (readNetflixHistory, tested). Read only on Netflix's side.
-import { readNetflixHistory, type NetflixViewed } from "@/lib/library/importing";
+// (readNetflixHistory, tested). On a player page it marks what you finish (watch.ts): the episode from the address,
+// its season, number and Netflix's own "watched to the end" point from Netflix's metadata. Read only on Netflix's side.
+import { readNetflixHistory, type ImportRow, type NetflixViewed } from "@/lib/library/importing";
 import { showCard } from "./card";
-import { pageFetch, pause, reader, type ReadHistory } from "./reader";
+import { getJson, pageFetch, pause, reader, type ReadHistory } from "./reader";
+import { watch } from "./watch";
 
-type Ids = { guid: string | null; build: string | null };
+type Ids = { guid: string | null; build: string | null; name?: string | null };
 type Answer = {
   jsonGraph?: { aui?: { viewingActivity?: { value?: { vhSize?: number; viewedItems?: NetflixViewed[] } } } };
 };
@@ -23,7 +25,7 @@ function ask(): Promise<Ids> {
     window.postMessage({ type: "lateshow:nf-ask" }, location.origin);
     setTimeout(() => {
       window.removeEventListener("message", answer);
-      resolve({ guid: null, build: null });
+      resolve({ guid: null, build: null, name: null });
     }, 1500);
   });
 }
@@ -82,3 +84,92 @@ const readHistory: ReadHistory = async (onProgress, since) => {
 
 const SOURCE = "Netflix";
 if (/\/(settings\/viewed|viewingactivity)/.test(location.pathname)) showCard(SOURCE, reader(SOURCE, readHistory));
+
+// --- marking what you finish
+
+type Episode = { id?: number; episodeId?: number; title?: string; seq?: number; watchedToEndOffset?: number };
+type Meta = {
+  video?: {
+    type?: string; // "show", "movie"
+    id?: number;
+    title?: string;
+    year?: number;
+    watchedToEndOffset?: number;
+    seasons?: { seq?: number; episodes?: Episode[] }[];
+  };
+};
+type Playing = { row: ImportRow; end: number | null };
+
+const today = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
+
+/** What Netflix's metadata says about this id: the row to mark and the second Netflix counts as watched to the end */
+function describe(id: number, meta: Meta): Playing | null {
+  const v = meta.video;
+  if (!v?.title) return null;
+  if (v.type === "movie")
+    return {
+      row: {
+        title: v.title,
+        year: v.year,
+        type: "movie",
+        list: "watched",
+        date: today(),
+        refs: [`netflix:${v.id ?? id}`],
+      },
+      end: v.watchedToEndOffset ?? null,
+    };
+  for (const s of v.seasons ?? [])
+    for (const e of s.episodes ?? [])
+      if ((e.episodeId ?? e.id) === id)
+        return {
+          row: {
+            title: v.title,
+            type: "tv",
+            list: "watched",
+            date: today(),
+            refs: [`netflix:${v.id}`],
+            episodes: [
+              { season: s.seq, episode: e.seq, name: e.title || `Episode ${e.seq ?? ""}`.trim(), date: today() },
+            ],
+          },
+          end: e.watchedToEndOffset ?? null,
+        };
+  return null;
+}
+
+// each title's details once (the next episode starting on its own changes the address, so it's looked up then)
+const looked = new Map<number, Promise<Playing | null>>();
+let current: Playing | null = null;
+function lookUp(): Promise<Playing | null> {
+  const id = Number(/\/watch\/(\d+)/.exec(location.pathname)?.[1]);
+  if (!id) return Promise.resolve(null);
+  if (!looked.has(id))
+    looked.set(
+      id,
+      getJson(`/nq/website/memberapi/release/metadata?movieid=${id}`)
+        .then((m) => describe(id, m as Meta))
+        .catch(() => {
+          looked.delete(id); // try again next time
+          return null;
+        }),
+    );
+  return looked.get(id)!.then((p) => (current = p));
+}
+
+let profile: string | null = null;
+if (location.pathname.startsWith("/watch/")) void ask().then((ids) => (profile = ids.name ?? null));
+
+watch({
+  via: SOURCE,
+  playing: async () => (await lookUp())?.row ?? null,
+  // Netflix's own "watched to the end" point (just before the credits): past it counts like the credits starting
+  credits: () => {
+    void lookUp();
+    const v = document.querySelector("video");
+    return Boolean(v && current?.end && v.currentTime >= current.end);
+  },
+  profile: () => profile,
+});

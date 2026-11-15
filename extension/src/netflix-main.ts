@@ -1,5 +1,6 @@
 // Runs in Netflix's own page (the page's world, not the extension's): Netflix's viewing activity API wants the
-// profile's id and the site's build id, which only the page's app holds (window.netflix). This hands both to the
+// profile's id and the site's build id, which only the page's app holds (window.netflix), and marking only marks
+// your own profile (its name). This hands them to the
 // Lateshow script on this page when it asks (netflix.ts). Nothing here sends anything anywhere.
 (() => {
   window.addEventListener("message", (e) => {
@@ -12,6 +13,7 @@
       {
         type: "lateshow:nf-ids",
         guid: info?.guid ?? info?.userGuid ?? null,
+        name: info?.name ?? null,
         build: models?.serverDefs?.data?.BUILD_IDENTIFIER ?? null,
       },
       location.origin,
