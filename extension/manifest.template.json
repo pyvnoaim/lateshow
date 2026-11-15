@@ -9,7 +9,7 @@
   "host_permissions": ["https://www.primevideo.com/*", "__LATESHOW__/*"],
   "content_scripts": [
     { "matches": ["https://www.primevideo.com/*"], "js": ["prime.js"] },
-    { "matches": ["__LATESHOW__/settings*"], "js": ["lateshow.js"] }
+    { "matches": ["__LATESHOW__/*"], "js": ["lateshow.js"] }
   ],
   "browser_specific_settings": { "gecko": { "id": "extension@lateshow.pyvno.xyz", "strict_min_version": "121.0" } }
 }
