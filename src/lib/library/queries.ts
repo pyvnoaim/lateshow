@@ -244,7 +244,30 @@ export async function getImports(userId: string) {
     .leftJoin(listed, eq(listed.id, importBatch.id))
     .where(eq(importBatch.userId, userId))
     .orderBy(desc(importBatch.createdAt));
+  // what each import brought, for its poster strip: the titles (one per film or series), newest first
+  const titles = await db
+    .selectDistinct({
+      id: watched.importId,
+      type: watched.mediaType,
+      tmdbId: watched.tmdbId,
+      poster: watched.posterPath,
+    })
+    .from(watched)
+    .where(and(eq(watched.userId, userId), isNotNull(watched.importId)));
+  const byImport = new Map<string, { count: number; posters: string[] }>();
+  for (const t of titles) {
+    const b = byImport.get(t.id!) ?? { count: 0, posters: [] };
+    b.count++;
+    if (t.poster && b.posters.length < 6) b.posters.push(t.poster);
+    byImport.set(t.id!, b);
+  }
   return rows
-    .map((r) => ({ ...r, watches: r.watches ?? 0, listed: r.listed ?? 0 }))
+    .map((r) => ({
+      ...r,
+      watches: r.watches ?? 0,
+      listed: r.listed ?? 0,
+      titles: byImport.get(r.id)?.count ?? 0,
+      posters: byImport.get(r.id)?.posters ?? [],
+    }))
     .filter((r) => r.watches + r.listed > 0);
 }

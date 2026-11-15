@@ -12,6 +12,10 @@
   --color-accent: #b4c8ea;
   /* destructive actions only (delete account) */
   --color-danger: #ff453a;
+  /* the streaming services' own colors, only on their small badge (Settings › Import, the popup) */
+  --color-netflix: #e50914;
+  --color-prime: #1a98ff;
+  --color-crunchyroll: #f47521;
   /* heatmap steps, darkest to brightest */
   --color-heat-1: #2c2c2e;
   --color-heat-2: #48484a;
@@ -106,6 +110,7 @@
   --radius-thumb: 12px;
   --radius-poster: 10px;
   --radius-banner: 28px;
+  --radius-group: 18px; /* a box of list rows (Settings), the popup's too */
 }
 
 @utility grid-cols-people {

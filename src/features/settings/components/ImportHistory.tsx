@@ -3,7 +3,7 @@
 import { strFromU8, unzipSync } from "fflate";
 import { Upload } from "lucide-react";
 import Image from "next/image";
-import { useEffect, useRef, useState, type DragEvent } from "react";
+import { useEffect, useRef, useState, type DragEvent, type ReactNode } from "react";
 import { buttonStyles } from "@/components/ui/button";
 import type { BatchResult, Candidate, Saved, Unsure } from "@/lib/library/importActions";
 import { importBatch, importPick, importSkip, startImport } from "@/lib/library/importActions";
@@ -56,7 +56,9 @@ export type Open = Unsure & { importId: string };
  * clear matches are saved, unclear ones are listed to pick from. They're kept with their import until you pick or
  * skip (`waiting`, from earlier imports), so leaving the page loses none.
  */
-export function ImportHistory({ waiting = [] }: { waiting?: Open[] }) {
+export function ImportHistory({ waiting = [], children }: { waiting?: Open[]; children?: ReactNode }) {
+  // the titles waiting for a pick: a bar at the top, open to pick
+  const [picking, setPicking] = useState(false);
   const [phase, setPhase] = useState<"idle" | "working" | "done">("idle");
   const [rows, setRows] = useState<ImportRow[]>([]);
   const [progress, setProgress] = useState({ done: 0, until: 0 });
@@ -306,26 +308,46 @@ export function ImportHistory({ waiting = [] }: { waiting?: Open[] }) {
       onDragOver={(e) => (e.preventDefault(), setOver(true))}
       onDragLeave={(e) => !e.currentTarget.contains(e.relatedTarget as Node) && setOver(false)}
       onDrop={drop}
-      className="flex flex-col items-start gap-4"
+      className="flex w-full flex-col items-start gap-5"
     >
-      <label className={`${buttonStyles("glass", "sm")} cursor-pointer ${over ? "ring-1 ring-accent" : ""}`}>
-        <Upload size={16} strokeWidth={2} aria-hidden />
-        {over ? "Drop it" : "Choose your export"}
-        <input
-          type="file"
-          accept=".zip,.csv"
-          multiple
-          onChange={(e) => void start(e.target.files)}
-          className="sr-only"
-        />
-      </label>
+      {unsure.length > 0 && !picking && (
+        <button
+          type="button"
+          onClick={() => setPicking(true)}
+          className="flex w-full press items-center gap-3 rounded-group bg-accent/9 px-4 py-3.5 text-left ring-1 ring-accent/18"
+        >
+          <span className="flex size-7 shrink-0 items-center justify-center rounded-full bg-accent/18 text-caption font-bold text-accent nums">
+            {unsure.length}
+          </span>
+          <span className="min-w-0 flex-1 truncate text-label">
+            {unsure.length === 1 ? "Title needs" : "Titles need"} a look{" "}
+            <span className="text-muted">· {[...new Set(unsure.map((u) => u.row.title))].slice(0, 2).join(", ")}</span>
+          </span>
+          <span className="text-small text-accent">Pick</span>
+        </button>
+      )}
+      {picking && picks}
+      {children}
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+        <label className={`${buttonStyles("glass", "sm")} cursor-pointer ${over ? "ring-1 ring-accent" : ""}`}>
+          <Upload size={16} strokeWidth={2} aria-hidden />
+          {over ? "Drop it" : "Import a file"}
+          <input
+            type="file"
+            accept=".zip,.csv"
+            multiple
+            onChange={(e) => void start(e.target.files)}
+            className="sr-only"
+          />
+        </label>
+        <span className="text-small text-muted">Letterboxd ZIP, IMDb or Netflix CSV, or drop it here</span>
+      </div>
       {incoming && !error && <p className="text-small text-muted">Getting your history from the extension…</p>}
       {error && (
         <p role="alert" className="text-small text-danger">
           {error}
         </p>
       )}
-      {picks}
     </div>
   );
 }

@@ -13,6 +13,7 @@ import {
   setShareActivity,
   setUsername,
   removePasskey,
+  renamePasskey,
 } from "@/lib/settings/actions";
 import { getMyPasskeys, getMyServiceIds } from "@/lib/settings/queries";
 import { getServiceChoices, img } from "@/lib/tmdb";
@@ -97,7 +98,7 @@ export async function Settings() {
           <Row title="Email" description="Sign-in codes go here.">
             <p className="text-body">{session.user.email}</p>
           </Row>
-          <Row title="Passkeys" description="Sign in with one tap.">
+          <Row title="Passkeys" description="Sign in with Face ID, Touch ID or your password manager. No codes.">
             <Passkeys
               keys={passkeys.map((k) => ({
                 id: k.id,
@@ -111,6 +112,7 @@ export async function Settings() {
                   : "a while ago",
               }))}
               remove={removePasskey}
+              rename={renamePasskey}
             />
           </Row>
           <Row
@@ -141,21 +143,24 @@ export async function Settings() {
             }
           >
             <div className="flex flex-col items-start gap-8">
-              <ImportHistory waiting={waiting} />
-              <PastImports
-                imports={imports.map((i) => ({
-                  id: i.id,
-                  source: i.source,
-                  when: i.createdAt.toLocaleDateString("en", {
-                    month: "short",
-                    day: "numeric",
-                    year: i.createdAt.getFullYear() === new Date().getFullYear() ? undefined : "numeric",
-                  }),
-                  watches: i.watches,
-                  listed: i.listed,
-                }))}
-                remove={removeImport}
-              />
+              <ImportHistory waiting={waiting}>
+                <PastImports
+                  imports={imports.map((i) => ({
+                    id: i.id,
+                    source: i.source,
+                    when: i.createdAt.toLocaleDateString("en", {
+                      month: "short",
+                      day: "numeric",
+                      year: i.createdAt.getFullYear() === new Date().getFullYear() ? undefined : "numeric",
+                    }),
+                    watches: i.watches,
+                    listed: i.listed,
+                    titles: i.titles,
+                    posters: i.posters.map((p) => img(p, "w92")!),
+                  }))}
+                  remove={removeImport}
+                />
+              </ImportHistory>
             </div>
           </Row>
           <Row

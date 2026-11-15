@@ -110,6 +110,17 @@ export async function removePasskey(id: string) {
   refresh();
 }
 
+/** Renames one of your passkeys ("MacBook", "Bitwarden"), so you can tell them apart. */
+export async function renamePasskey(id: string, name: string) {
+  const session = await getSession();
+  if (!session) throw new Error("Sign in first.");
+  await db
+    .update(passkey)
+    .set({ name: z.string().trim().min(1).max(60).parse(name) })
+    .where(and(eq(passkey.id, z.string().min(1).parse(id)), eq(passkey.userId, session.user.id)));
+  refresh();
+}
+
 /** Your profile picture tone ("c:mint"), or "" for the default. */
 export async function setAvatar(value: string) {
   const session = await getSession();

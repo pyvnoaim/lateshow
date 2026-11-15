@@ -21,6 +21,8 @@ const tones = {
 const sizes = {
   md: "h-12 px-6 text-base",
   sm: "h-11 px-5 text-label",
+  /** A small pill inside a list row (Sync). The invisible ring keeps the tap target finger-sized. */
+  xs: "relative h-8 gap-1.5 px-3.5 text-caption before:absolute before:-inset-y-1.5 before:inset-x-0",
   icon: "size-11",
   /** Just the text, no height or padding, so it lines up with the text around it. */
   text: "text-label",

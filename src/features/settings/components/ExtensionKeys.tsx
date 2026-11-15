@@ -1,42 +1,14 @@
 "use client";
 
-import { Download } from "lucide-react";
+import { Download, Globe } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { buttonStyles } from "@/components/ui/button";
+import { Invite, ListBox, ListRow } from "./ListBox";
+import { useExtension } from "./useExtension";
 
 /** `browser`: "Chrome on macOS", null until a key connected or used since 2026-11-15 says */
 export type Connected = { id: string; created: string; used: string | null; browser: string | null };
-
-/** What this browser is, for the extension: it can add the signed one (Zen, Firefox), Chrome's comes later, or none */
-type Kind = "firefox" | "chrome" | "none";
-function kindOf(ua: string): Kind {
-  if (/Android|iPhone|iPad|Mobile/.test(ua)) return "none";
-  if (/Firefox\//.test(ua)) return "firefox";
-  if (/Chrome\//.test(ua)) return "chrome";
-  return "none";
-}
-
-/** The extension's mark on this page (lateshow.ts): its version and its key's id, read once it has set them */
-function useExtension() {
-  const [ext, setExt] = useState<{ version: string | null; keyId: string | null; kind: Kind } | null>(null);
-  useEffect(() => {
-    const read = () => {
-      const d = document.documentElement.dataset;
-      setExt({
-        version: d.lateshowExtension ?? null,
-        keyId: d.lateshowKey ?? null,
-        kind: kindOf(navigator.userAgent),
-      });
-    };
-    read();
-    // the extension's script may run after the page: it changes these attributes then
-    const watch = new MutationObserver(read);
-    watch.observe(document.documentElement, { attributeFilter: ["data-lateshow-extension", "data-lateshow-key"] });
-    return () => watch.disconnect();
-  }, []);
-  return ext;
-}
 
 /**
  * Settings › Extension, by what this browser has: no extension (Add, where it can have one), the extension but not
@@ -86,35 +58,44 @@ export function ExtensionKeys({
   const offerConnect = state !== "done" && (asked || (ext?.version != null && !here));
   const offerAdd = ext != null && ext.version == null && !asked;
 
+  const logo = (
+    // the icon's glass screen with its light, as on the extension's popup
+    // eslint-disable-next-line @next/next/no-img-element -- an svg needs no optimizing
+    <img src="/icon.svg" alt="" width={48} height={48} />
+  );
+
   return (
-    <div className="flex w-full flex-col items-start gap-6">
+    <div className="flex w-full flex-col items-start gap-4">
       {offerConnect && (
-        <div className="flex flex-col items-start gap-3">
-          {state === "missing" ? (
-            <p className="text-small text-danger">The extension didn&apos;t answer. Reload it and connect again.</p>
-          ) : (
-            <button type="button" disabled={pending} onClick={doConnect} className={buttonStyles("primary", "sm")}>
-              {pending || state === "waiting" ? "Connecting" : "Connect this browser"}
-            </button>
-          )}
-          <p className="text-small text-pretty text-muted">
-            {ext?.version ? `Lateshow ${ext.version} is in this browser. ` : ""}
-            Connecting lets it mark what you finish. Nothing else.
-          </p>
-        </div>
+        <Invite
+          glow
+          icon={logo}
+          title={ext?.version ? `Lateshow ${ext.version} is in this browser` : "Connect the Lateshow extension"}
+          text={
+            state === "missing"
+              ? "The extension didn't answer. Reload it and connect again."
+              : "Connect it to mark what you finish here. It can't do anything else."
+          }
+        >
+          <button type="button" disabled={pending} onClick={doConnect} className={buttonStyles("primary", "sm")}>
+            {pending || state === "waiting" ? "Connecting" : "Connect"}
+          </button>
+        </Invite>
       )}
       {state === "done" && <p className="text-body text-fg">Connected. You can close this tab.</p>}
       {offerAdd && ext.kind === "firefox" && latest && (
-        <div className="flex flex-col items-start gap-3">
+        <Invite
+          glow
+          icon={logo}
+          title="Get the Lateshow extension"
+          text="Free, and it updates by itself. Come back here to connect it."
+        >
           {/* a plain link: Zen and Firefox install a signed add-on from it after asking */}
           <a href={latest.link} className={buttonStyles("primary", "sm")}>
             <Download size={16} strokeWidth={2} aria-hidden />
-            Add to Zen or Firefox
+            Add to Zen
           </a>
-          <p className="text-small text-pretty text-muted">
-            Free, updates by itself. After adding it, come back here and connect.
-          </p>
-        </div>
+        </Invite>
       )}
       {offerAdd && ext.kind === "chrome" && (
         <p className="text-small text-pretty text-muted">
@@ -122,16 +103,20 @@ export function ExtensionKeys({
         </p>
       )}
       {shown.length > 0 && (
-        <ul className="flex w-full flex-col gap-3" aria-label="Connected browsers">
+        <ListBox label="Connected browsers">
           {shown.map((c) => (
-            <li key={c.id} className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
-              <span className="text-label">
-                {c.browser ?? "A browser"}
-                {c === here && <span className="text-caption text-accent"> · this browser</span>}{" "}
-                <span className="text-muted">
-                  · connected {c.created} · {c.used ? `used ${c.used}` : "not used yet"}
-                </span>
-              </span>
+            <ListRow
+              key={c.id}
+              accent={c === here}
+              icon={<Globe size={16} strokeWidth={2} />}
+              title={
+                <>
+                  {c.browser ?? "A browser"}
+                  {c === here && <span className="text-caption text-accent"> · this browser</span>}
+                </>
+              }
+              sub={`Connected ${c.created} · ${c.used ? `last used ${c.used}` : "not used yet"}`}
+            >
               <button
                 type="button"
                 onClick={() =>
@@ -140,13 +125,13 @@ export function ExtensionKeys({
                     setGone((g) => [...g, c.id]);
                   })
                 }
-                className={buttonStyles("text", "text")}
+                className={buttonStyles("text", "text", "text-small hover:text-danger")}
               >
                 Disconnect
               </button>
-            </li>
+            </ListRow>
           ))}
-        </ul>
+        </ListBox>
       )}
       {shown.length === 0 && ext?.kind === "none" && (
         <p className="text-small text-muted">The extension runs in Zen, Firefox and Chrome on a computer.</p>

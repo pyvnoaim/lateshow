@@ -77,6 +77,20 @@ window.addEventListener("message", (e) => {
     });
 });
 
+// Sync from Lateshow's Settings: the page asks, the extension syncs (background.ts) and this reports its progress to
+// the page, so the service's line shows it and refreshes at the end. Only the three sites it reads.
+const SYNCABLE = ["Netflix", "Prime Video", "Crunchyroll"];
+window.addEventListener("message", (e) => {
+  const d = e.data as { type?: string; site?: unknown } | null;
+  if (e.source !== window || d?.type !== "lateshow:sync-start" || !SYNCABLE.includes(d.site as string)) return;
+  void chrome.runtime.sendMessage({ type: "lateshow:sync", site: d.site as string });
+});
+const tell = (state: unknown) => state && window.postMessage({ type: "lateshow:sync-state", state }, location.origin);
+void chrome.storage.local.get("syncState").then((r) => tell(r.syncState));
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === "local" && changes.syncState) tell(changes.syncState.newValue);
+});
+
 // ponytail: a cheap address check twice a second, a content script can't see the app's own navigation
 const check = () => !started && wanted() && void handOver();
 check();
