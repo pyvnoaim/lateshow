@@ -10,64 +10,85 @@
         --fg: #eef1f6;
         --muted: #8b8f98;
         --accent: #b4c8ea;
+        --hover: rgba(255, 255, 255, 0.06);
       }
       body {
         margin: 0;
-        width: 300px;
-        padding: 20px;
+        width: 320px;
+        padding: 16px;
         background: var(--bg);
         color: var(--fg);
         font:
-          14px/1.45 "Inter Tight",
+          14px/1.4 "Inter Tight",
           system-ui,
           sans-serif;
       }
+      header {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 4px 4px 16px;
+      }
+      header img {
+        width: 36px;
+        height: 36px;
+      }
       h1 {
-        margin: 0 0 4px;
-        font-size: 20px;
-        letter-spacing: -0.02em;
+        margin: 0;
+        font-size: 17px;
+        font-weight: 700;
+        letter-spacing: -0.01em;
       }
-      p {
-        margin: 0 0 16px;
+      .status {
         color: var(--muted);
-        text-wrap: pretty;
+        font-size: 13px;
       }
-      .count {
+      .status b {
         color: var(--fg);
-        font-variant-numeric: tabular-nums;
+        font-weight: 500;
       }
-      button.primary {
-        width: 100%;
-        height: 40px;
-        border: 0;
-        border-radius: 999px;
-        background: linear-gradient(180deg, #f2f6fd, #a9c2ea);
-        color: var(--bg);
-        font: inherit;
-        font-weight: 600;
-        cursor: pointer;
+      main {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
       }
-      button {
-        font: inherit;
-        cursor: pointer;
-      }
-      button.text {
-        border: 0;
-        background: none;
-        color: var(--muted);
-        padding: 4px 0 14px;
-      }
-      button.text:hover {
-        color: var(--fg);
-      }
+      /* one line per thing you can do: icon, title with a hint, its action. No box at rest, a soft one on hover */
       .row {
         display: flex;
         align-items: center;
-        justify-content: space-between;
         gap: 12px;
-        padding: 6px 0 12px;
+        width: 100%;
+        box-sizing: border-box;
+        padding: 10px;
+        border: 0;
+        border-radius: 14px;
+        background: none;
+        color: inherit;
+        font: inherit;
+        text-align: left;
       }
-      .site {
+      button.row {
+        cursor: pointer;
+      }
+      button.row:hover {
+        background: var(--hover);
+      }
+      .icon {
+        flex-shrink: 0;
+        width: 32px;
+        height: 32px;
+        border-radius: 10px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background: rgba(180, 200, 234, 0.12);
+        color: var(--accent);
+      }
+      .text {
+        flex: 1;
+        min-width: 0;
+      }
+      .title {
         display: block;
         font-weight: 600;
       }
@@ -75,11 +96,57 @@
         display: block;
         color: var(--muted);
         font-size: 13px;
+        text-wrap: pretty;
       }
-      .foot {
-        margin-top: 8px;
-        padding-top: 12px;
-        border-top: 1px solid rgba(255, 255, 255, 0.08);
+      .chevron {
+        flex-shrink: 0;
+        color: var(--muted);
+      }
+      button {
+        font: inherit;
+        cursor: pointer;
+      }
+      .pill {
+        flex-shrink: 0;
+        height: 30px;
+        padding: 0 14px;
+        border: 0;
+        border-radius: 999px;
+        font-weight: 600;
+        font-size: 13px;
+        color: var(--bg);
+        background: linear-gradient(180deg, #f2f6fd, #a9c2ea);
+      }
+      .pill:active,
+      .primary:active {
+        transform: scale(0.97);
+      }
+      .primary {
+        width: 100%;
+        height: 40px;
+        margin-top: 4px;
+        border: 0;
+        border-radius: 999px;
+        font-weight: 600;
+        color: var(--bg);
+        background: linear-gradient(180deg, #f2f6fd, #a9c2ea);
+      }
+      .link {
+        border: 0;
+        background: none;
+        padding: 0;
+        color: var(--muted);
+        font-size: 13px;
+        text-decoration: underline;
+        text-underline-offset: 2px;
+      }
+      .link:hover {
+        color: var(--fg);
+      }
+      p {
+        margin: 0 4px 12px;
+        color: var(--muted);
+        text-wrap: pretty;
       }
       .switch {
         flex-shrink: 0;
@@ -99,26 +166,29 @@
         width: 20px;
         height: 20px;
         border-radius: 999px;
-        background: #8b8f98;
+        background: var(--muted);
       }
       .switch.on .knob {
         background: var(--bg);
-      }
-      button.primary:active {
-        transform: scale(0.98);
-      }
-      button:disabled {
-        opacity: 0.5;
-        cursor: default;
       }
       button:focus-visible {
         outline: 2px solid var(--accent);
         outline-offset: 2px;
       }
+      button:disabled {
+        opacity: 0.5;
+        cursor: default;
+      }
     </style>
   </head>
   <body>
-    <h1>Lateshow</h1>
+    <header>
+      <img src="icon-128.png" alt="" />
+      <div>
+        <h1>Lateshow</h1>
+        <div class="status" id="status"></div>
+      </div>
+    </header>
     <main id="app" aria-live="polite"></main>
     <script src="popup.js"></script>
   </body>
