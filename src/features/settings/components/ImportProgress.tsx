@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { watchMonths, type ImportRow } from "@/lib/library/importing";
 
 const STEP_MS = 240; // --duration-import-step
@@ -77,13 +77,20 @@ export function ImportProgress({ rows, done, until }: { rows: ImportRow[]; done:
 /** A number counting up from 0, after `delay` ms. Reduced motion: the number right away. */
 export function CountUp({ to, delay = 0 }: { to: number; delay?: number }) {
   const [n, setN] = useState(0);
+  // from the number on screen, so a total that grows later (a title you picked) counts on instead of from 0.
+  // The delay only staggers the first count.
+  const shown = useRef(0);
+  const first = useRef(true);
   useEffect(() => {
     const ms = matchMedia("(prefers-reduced-motion: reduce)").matches ? 0 : 900;
+    const from = shown.current;
+    const start = performance.now() + (first.current ? delay : 0);
+    first.current = false;
     let raf = 0;
-    const start = performance.now() + delay;
     const tick = (now: number) => {
       const t = ms ? Math.min(1, Math.max(0, (now - start) / ms)) : 1;
-      setN(Math.round((1 - (1 - t) ** 3) * to));
+      shown.current = Math.round(from + (1 - (1 - t) ** 3) * (to - from));
+      setN(shown.current);
       if (t < 1) raf = requestAnimationFrame(tick);
     };
     raf = requestAnimationFrame(tick);

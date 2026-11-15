@@ -164,10 +164,11 @@ export function ImportHistory() {
 
   if (phase === "done") {
     const stats = [
-      { n: totals.episodes, label: totals.episodes === 1 ? "episode" : "episodes" },
-      { n: totals.series, label: "series" },
-      { n: totals.films, label: totals.films === 1 ? "film" : "films" },
-      { n: totals.watchlist, label: "on your watchlist" },
+      // a fixed key: the label turns plural ("film" to "films") and a new key would restart the count from 0
+      { key: "episodes", n: totals.episodes, label: totals.episodes === 1 ? "episode" : "episodes" },
+      { key: "series", n: totals.series, label: "series" },
+      { key: "films", n: totals.films, label: totals.films === 1 ? "film" : "films" },
+      { key: "watchlist", n: totals.watchlist, label: "on your watchlist" },
     ].filter((s) => s.n > 0);
     const lost = totals.notFound + totals.skipped;
     return (
@@ -179,7 +180,7 @@ export function ImportHistory() {
           {stats.length > 0 && (
             <div className="flex flex-wrap gap-x-10 gap-y-4">
               {stats.map((s, i) => (
-                <div key={s.label} className="flex rise flex-col" style={{ animationDelay: `${i * 150}ms` }}>
+                <div key={s.key} className="flex rise flex-col" style={{ animationDelay: `${i * 150}ms` }}>
                   <span className="text-section leading-none font-semibold tracking-tight nums">
                     <CountUp to={s.n} delay={i * 150} />
                   </span>
