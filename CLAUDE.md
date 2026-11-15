@@ -26,7 +26,7 @@ Read `node_modules/next/dist/docs/` before using Next APIs (see AGENTS.md).
   dist manifest.json. Chrome: chrome://extensions › Developer mode › Load unpacked › dist. Its readers turn a site's
   history into import rows (`readPrimeHistory` in lib/library/importing.ts, tested there), the popup opens
   /settings?import=extension and a content script hands the rows to ImportHistory (page says ready, script posts once).
-  No API route, no extension sign-in yet (comes with sync).
+  No API route, no extension sign-in yet (comes with sync). Read new: after an import the extension remembers its newest watch per site (`synced`), the card then pages only back to it.
   Signed for keeps (Firefox): `pnpm ext:zip` makes extension/lateshow-extension.zip, upload it at
   addons.mozilla.org › Submit a New Add-on › On your own (unlisted, signed for free, not public), install the signed
   .xpi from about:addons › gear › Install Add-on From File. Raise "version" in manifest.template.json before each upload.
@@ -110,7 +110,7 @@ too), Out this week from your list on Home), /search (type + genre filters in th
 profile /u/username (avatar, phone menu and invite page link there, /u/me forwards to it, the footer keeps /u/me since it never looks up who is signed in; stats, heatmap (this year by default, a year switcher once there are watches before this year, only years with watches, click a day: a glass card at the square (`DayPeek`, server action, every title, scrolls inside on busy days)), history (a binge on one day is one row, Show older pages through all of it), watchlist), /settings (your services: My services tab on Trending,
 picks only from them, your service first in captions and Watch on, language for TMDB data in a cookie, else the browser's, name, share-with-friends switch, CSV export at /api/export,
 delete account. Spoiler guard and the .ics calendar feed were removed 2026-11-13),
-watch dates (marked by hand = today, the title page then offers "A while ago" = no date, off heatmap and Recently watched, History "Earlier", or a picked day, `redateTitle`), imports you can remove (`import_batch`, `import_id` on watched/watchlist/rating, Settings › Import lists them, Remove takes back only what that run added, your own re-rating keeps a rating), ratings (not for me / like / love, `rating` table, on the title page once watched, feed "Because you loved", taste match
+watch dates (marked by hand = today, the title page then offers "A while ago" = no date, off heatmap and Recently watched, History "Earlier", or a picked day, `redateTitle`), remembered matches (`title_link`, per user: a site id like prime:amzn1.dv.gti… to a TMDB title, from clear matches and your picks, the next import skips the search), imports you can remove (`import_batch`, `import_id` on watched/watchlist/rating, Settings › Import lists them, Remove takes back only what that run added, your own re-rating keeps a rating), ratings (not for me / like / love, `rating` table, on the title page once watched, feed "Because you loved", taste match
 and imports), OG images per title and profile (profile shows only the name, profiles are friends only), PWA manifest,
 lists (/l/<id>, see Todo), update bar after a deploy (`UpdateBar`: build id from next.config vs `/api/version`, on tab focus and every 10 min), /watchlist + /u/me redirects in `next.config.ts`, 404, errors, /about.
 

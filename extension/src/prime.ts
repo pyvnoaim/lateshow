@@ -1,7 +1,7 @@
 // Runs on primevideo.com. On request from the popup it reads your watch history from Prime Video's own data (the
 // page's watch-history widget, then its paging API with your Prime sign-in), turns it into Lateshow import rows and
 // keeps them in the extension's storage for the Lateshow tab. Read only: Prime's remove action is never called.
-import { readPrimeHistory, type ImportRow, type PrimeTitle } from "@/lib/library/importing";
+import { primeSince, readPrimeHistory, type ImportRow, type PrimeTitle } from "@/lib/library/importing";
 import { showCard } from "./card";
 
 type Day = { date?: string; titles?: PrimeTitle[] };
@@ -45,7 +45,17 @@ async function getJson(url: string) {
 
 export type Progress = { pages: number; titles: number; oldest: string; at: number };
 
-async function readHistory(onProgress: (p: Progress) => void = () => {}) {
+/** The latest watch time in these days (ms), 0 for none */
+const newestIn = (days: Day[]) =>
+  Math.max(
+    0,
+    ...days.flatMap((d) =>
+      (d.titles ?? []).flatMap((t) => [t.time ?? 0, ...(t.children ?? []).map((e) => e.time ?? 0)]),
+    ),
+  );
+
+/** `since` (ms): only what came after it ("Read new"), paging stops once a day is older */
+async function readHistory(onProgress: (p: Progress) => void = () => {}, since = 0) {
   let widget: Widget | null = null;
   for (const s of document.querySelectorAll('script[type="application/json"], script[type="text/template"]')) {
     try {
@@ -73,7 +83,9 @@ async function readHistory(onProgress: (p: Progress) => void = () => {}) {
   };
   await report(1);
   // ponytail: 500 pages cap (a page is a few days), so a loop in Prime's paging can't run forever
-  for (let page = 1; token && page < 500; page++) {
+  // "Read new": a page that reaches back past the last import is the last one needed
+  const pastLast = () => since > 0 && newestIn(days.slice(-1)) <= since;
+  for (let page = 1; token && page < 500 && !pastLast(); page++) {
     await new Promise((r) => setTimeout(r, 250)); // gently, one page at a time
     const next = findWidget(
       await getJson(`${PAGE}?widgetArgs=${encodeURIComponent(JSON.stringify({ nextToken: token }))}`),
@@ -82,18 +94,23 @@ async function readHistory(onProgress: (p: Progress) => void = () => {}) {
     token = next?.content?.content?.nextToken;
     await report(page + 1);
   }
-  return { ...readPrimeHistory(days), oldest: days.at(-1)?.date ?? "" };
+  const kept = since ? primeSince(days, since) : days;
+  return { ...readPrimeHistory(kept), oldest: kept.at(-1)?.date ?? "", newest: newestIn(days) };
 }
 
 type ReadResult = { rows: ImportRow[]; oldest: string };
+const SOURCE = "Prime Video";
 let running: Promise<ReadResult> | null = null;
 
-/** One read at a time (the card and the popup may both ask), kept in storage when done so nothing is lost. */
-function read(onProgress?: (p: Progress) => void): Promise<ReadResult> {
+/**
+ * One read at a time (the card and the popup may both ask), kept in storage when done so nothing is lost. `since`:
+ * the last import's newest watch (Read new), 0 for everything. `newest` is remembered once Lateshow has the rows.
+ */
+function read(onProgress?: (p: Progress) => void, since = 0): Promise<ReadResult> {
   running ??= (async () => {
     try {
-      const { rows, skipped, oldest } = await readHistory(onProgress);
-      await chrome.storage.local.set({ pending: { source: "Prime Video", rows, skipped, oldest, at: Date.now() } });
+      const { rows, skipped, oldest, newest } = await readHistory(onProgress, since);
+      await chrome.storage.local.set({ pending: { source: SOURCE, rows, skipped, oldest, newest, at: Date.now() } });
       return { rows, oldest };
     } finally {
       running = null;
@@ -111,4 +128,4 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   return true; // answers later
 });
 
-if (location.pathname.startsWith("/settings/watch-history")) showCard(read);
+if (location.pathname.startsWith("/settings/watch-history")) showCard(SOURCE, read);

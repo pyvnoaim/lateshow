@@ -15,6 +15,11 @@ export type ImportRow = {
   date?: string;
   /** your score out of 10 (IMDb as is, Letterboxd stars doubled), becomes a rating via `fromScore` */
   score?: number;
+  /**
+   * The site's own ids for this title ("prime:amzn1.dv.gti…", a show has one per season): once you confirmed a match,
+   * Lateshow remembers it and the next import skips the search.
+   */
+  refs?: string[];
   /** Netflix, Prime Video: the episodes you watched of this series (season unknown when the file names none) */
   episodes?: NetflixEpisode[];
 };
@@ -260,8 +265,11 @@ function readPrime(recs: Record<string, string>[]): { rows: ImportRow[]; skipped
     const { title, year } = primeTitle(r.Title);
     if (!title) continue;
     const date = day(r["Date Watched"]);
+    const gti = r["Global Title Identifier"]?.trim();
+    const ref = gti ? `prime:${gti}` : undefined;
     if (r.Type !== "Series") {
-      if (!films.has(norm(title))) films.set(norm(title), { title, year, type: "movie", list: "watched", date });
+      if (!films.has(norm(title)))
+        films.set(norm(title), { title, year, type: "movie", list: "watched", date, ...(ref && { refs: [ref] }) });
       continue;
     }
     const s = /^(.*?)[\s,:-]*\b(?:(?:season|staffel|series)\s+|s)(\d+)$/i.exec(title);
@@ -283,6 +291,7 @@ function readPrime(recs: Record<string, string>[]): { rows: ImportRow[]; skipped
         (show = { title: series, year: named.year ?? year, type: "tv", list: "watched", episodes: [] }),
       );
     show.date = date; // latest day
+    if (ref && !show.refs?.includes(ref)) show.refs = [...(show.refs ?? []), ref]; // a season's id
     if (!show.episodes!.some((x) => x.season === season && x.episode === episode && norm(x.name) === norm(name)))
       show.episodes!.push({ season, episode, name, date });
   }
@@ -302,6 +311,23 @@ export type PrimeTitle = {
  * Prime Video's watch history as the extension reads it (days newest first, each with its titles, a season with its
  * episodes as children) into rows, through the same reader as the exporter's CSV.
  */
+/**
+ * Only what you watched after `since` (ms), for "Read new": a season keeps just its newer episodes. Days come newest
+ * first, so the reader can stop paging once a day is older.
+ */
+export function primeSince<D extends { titles?: PrimeTitle[] }>(days: D[], since: number): D[] {
+  return days
+    .map((d) => ({
+      ...d,
+      titles: (d.titles ?? []).flatMap((t) => {
+        if (!t.children?.length) return (t.time ?? 0) > since ? [t] : [];
+        const children = t.children.filter((e) => (e.time ?? t.time ?? 0) > since);
+        return children.length ? [{ ...t, children }] : [];
+      }),
+    }))
+    .filter((d) => d.titles.length);
+}
+
 export function readPrimeHistory(days: { titles?: PrimeTitle[] }[]): { rows: ImportRow[]; skipped: number } {
   const at = (ms?: number) => (ms ? new Date(ms).toISOString() : "");
   const recs = days.flatMap((d) =>
@@ -312,6 +338,7 @@ export function readPrimeHistory(days: { titles?: PrimeTitle[] }[]): { rows: Imp
             Type: "Series",
             Title: t.title?.text ?? "",
             "Episode Title": e.title?.text ?? "",
+            "Global Title Identifier": t.gti ?? "",
           }))
         : [
             {
@@ -319,6 +346,7 @@ export function readPrimeHistory(days: { titles?: PrimeTitle[] }[]): { rows: Imp
               Type: t.titleType === "movie" ? "Movie" : "Series",
               Title: t.title?.text ?? "",
               "Episode Title": "",
+              "Global Title Identifier": t.gti ?? "",
             },
           ],
     ),

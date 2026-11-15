@@ -3,7 +3,7 @@
 // (ImportHistory): the page says it's ready, this script posts the rows, the page says it has them, then they're forgotten.
 import type { ImportRow } from "@/lib/library/importing";
 
-type Pending = { source: string; rows: ImportRow[]; skipped: number };
+type Pending = { source: string; rows: ImportRow[]; skipped: number; newest?: number };
 
 const wanted = () =>
   location.pathname === "/settings" && new URLSearchParams(location.search).get("import") === "extension";
@@ -34,6 +34,12 @@ async function handOver() {
     if (type === "lateshow:import-received") {
       log("the page has them");
       void chrome.storage.local.remove("pending");
+      // how far this import reached: the next "Read new" starts after it
+      if (p?.newest)
+        void chrome.storage.local.get("synced").then(({ synced }) => {
+          const s = (synced as Record<string, number> | undefined) ?? {};
+          return chrome.storage.local.set({ synced: { ...s, [p.source]: Math.max(s[p.source] ?? 0, p.newest!) } });
+        });
     }
   });
   // the page may have said ready before this script listened, or mounts later: say hello (with how many) until it

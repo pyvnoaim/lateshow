@@ -1,12 +1,12 @@
 "use server";
 
 import { randomBytes } from "node:crypto";
-import { and, eq } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import { refresh } from "next/cache";
 import { z } from "zod";
 import { getSession } from "@/lib/auth";
 import { db } from "@/lib/db/client";
-import { importBatch as imports, rating, watched, watchlist } from "@/lib/db/schema";
+import { importBatch as imports, rating, titleLink, watched, watchlist } from "@/lib/db/schema";
 import { findByImdbId, getAiredEpisodes, getRuntime, img, searchForImport } from "@/lib/tmdb";
 import { pool } from "@/lib/pool";
 import { norm, pickMatch, placeEpisodes, type Hit, type ImportRow, type ImportSource } from "./importing";
@@ -25,6 +25,10 @@ const row = z.object({
   list: z.enum(["watched", "watchlist"]),
   date: day.optional(),
   score: z.number().min(0).max(10).optional(),
+  refs: z
+    .array(z.string().regex(/^[a-z]+:[\w.:-]{1,120}$/))
+    .max(200)
+    .optional(),
   episodes: z
     .array(
       z.object({
@@ -63,8 +67,55 @@ type Match = { row: ImportRow; id: number; type: "movie" | "tv"; title: string; 
 
 const yearOf = (date?: string) => (date ? Number(date.slice(0, 4)) || undefined : undefined);
 
-/** IMDb rows by their id (exact). Letterboxd rows by title search, then title and year decide (or ask). */
-async function match(r: ImportRow): Promise<Match | Unsure | null> {
+type Links = Map<string, { id: number; type: "movie" | "tv"; title: string; posterPath: string | null }>;
+
+/** Your remembered matches for these site ids (see titleLink) */
+async function linksFor(userId: string, rows: ImportRow[]): Promise<Links> {
+  const refs = [...new Set(rows.flatMap((r) => r.refs ?? []))];
+  if (!refs.length) return new Map();
+  const found = await db
+    .select()
+    .from(titleLink)
+    .where(and(eq(titleLink.userId, userId), inArray(titleLink.ref, refs)));
+  return new Map(
+    found.map((l) => [l.ref, { id: l.tmdbId, type: l.mediaType, title: l.title, posterPath: l.posterPath }]),
+  );
+}
+
+/** Remembers matches by the site's ids, a pick overrides an earlier one */
+function remember(userId: string, matches: Match[]) {
+  const rows = matches.flatMap((m) =>
+    (m.row.refs ?? []).map((ref) => ({
+      userId,
+      ref,
+      mediaType: m.type,
+      tmdbId: m.id,
+      title: m.title,
+      posterPath: m.posterPath,
+    })),
+  );
+  if (!rows.length) return;
+  db.insert(titleLink)
+    .values(rows)
+    .onConflictDoUpdate({
+      target: [titleLink.userId, titleLink.ref],
+      set: {
+        mediaType: sql`excluded.media_type`,
+        tmdbId: sql`excluded.tmdb_id`,
+        title: sql`excluded.title`,
+        posterPath: sql`excluded.poster_path`,
+      },
+    })
+    .run();
+}
+
+/**
+ * A title you matched before (its site id remembered) skips everything. IMDb rows by their id (exact). The rest by
+ * title search, then title and year decide (or ask).
+ */
+async function match(r: ImportRow, links: Links = new Map()): Promise<Match | Unsure | null> {
+  const known = r.refs?.map((ref) => links.get(ref)).find(Boolean);
+  if (known) return { row: r, ...known };
   if (r.imdbId) {
     const t = await findByImdbId(r.imdbId).catch(() => null);
     if (!t) return null;
@@ -249,10 +300,12 @@ export async function importBatch(raw: ImportRow[], rawImportId: string): Promis
     .max(200)
     .refine((rs) => rs.reduce((n, r) => n + (r.episodes?.length ?? 0), 0) <= 6000)
     .parse(raw);
-  const results = await pool(rows, 8, match);
+  const links = await linksFor(userId, rows);
+  const results = await pool(rows, 8, (r) => match(r, links));
   const matches = results.filter((r): r is Match => r !== null && "id" in r);
   const unsure = results.filter((r): r is Unsure => r !== null && "candidates" in r);
   const saved = await save(userId, matches, importId);
+  remember(userId, matches);
   refresh();
   return {
     ...saved,
@@ -267,11 +320,9 @@ export async function importPick(rawRow: ImportRow, rawPick: z.input<typeof pick
   const importId = await ownBatch(userId, rawImportId);
   const r = row.parse(rawRow);
   const p = pick.parse(rawPick);
-  const saved = await save(
-    userId,
-    [{ row: r, id: p.id, type: p.type, title: p.title, posterPath: p.posterPath }],
-    importId,
-  );
+  const picked: Match = { row: r, id: p.id, type: p.type, title: p.title, posterPath: p.posterPath };
+  const saved = await save(userId, [picked], importId);
+  remember(userId, [picked]); // your pick: the next import knows this title
   refresh();
   return saved;
 }

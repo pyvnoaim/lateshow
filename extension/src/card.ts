@@ -4,7 +4,7 @@
 import type { ImportRow } from "@/lib/library/importing";
 import type { Progress } from "./prime";
 
-type Read = (onProgress: (p: Progress) => void) => Promise<{ rows: ImportRow[]; oldest: string }>;
+type Read = (onProgress: (p: Progress) => void, since: number) => Promise<{ rows: ImportRow[]; oldest: string }>;
 
 const CSS = `
 :host { all: initial; }
@@ -45,7 +45,15 @@ export function summary(rows: ImportRow[]): (string | { count: string })[] {
   ];
 }
 
-export function showCard(read: Read) {
+const day = (ms: number) =>
+  new Date(ms).toLocaleDateString("en", {
+    month: "short",
+    day: "numeric",
+    year: new Date(ms).getFullYear() === new Date().getFullYear() ? undefined : "numeric",
+  });
+
+export function showCard(source: string, read: Read) {
+  let last = 0; // the newest watch of the last import into Lateshow (ms), 0 before the first
   const host = document.createElement("div");
   const root = host.attachShadow({ mode: "closed" });
   const style = document.createElement("style");
@@ -92,43 +100,67 @@ export function showCard(read: Read) {
   };
   const screen = (...nodes: Node[]) => card.replaceChildren(head(), ...nodes);
 
-  const start = () => {
-    screen(line(["Reading your history, page by page. A long one takes a minute."]));
-    read((p) =>
-      screen(
-        line([
-          { count: `Page ${n(p.pages)} · ${plural(p.titles, "title")}` },
-          p.oldest ? ` · back to ${p.oldest}` : "",
-        ]),
-      ),
+  const start = (since: number) => {
+    screen(
+      line([
+        since ? "Reading what's new, page by page." : "Reading your history, page by page. A long one takes a minute.",
+      ]),
+    );
+    read(
+      (p) =>
+        screen(
+          line([
+            { count: `Page ${n(p.pages)} · ${plural(p.titles, "title")}` },
+            p.oldest ? ` · back to ${p.oldest}` : "",
+          ]),
+        ),
+      since,
     ).then(
-      ({ rows, oldest }) => done(rows, oldest),
-      (e: unknown) => screen(line([e instanceof Error ? e.message : String(e)]), button("Try again", "primary", start)),
+      ({ rows, oldest }) => done(rows, oldest, since),
+      (e: unknown) =>
+        screen(
+          line([e instanceof Error ? e.message : String(e)]),
+          button("Try again", "primary", () => start(since)),
+        ),
     );
   };
 
-  const done = (rows: ImportRow[], oldest: string) =>
-    screen(
-      line([
-        "Found ",
-        ...summary(rows),
-        oldest ? `, back to ${oldest}.` : ".",
-        " Lateshow matches them next, unclear ones you pick there.",
-      ]),
-      button("Import into Lateshow", "primary", () =>
-        window.open(`${__LATESHOW__}/settings?import=extension#account`, "_blank"),
-      ),
-      button("Read again", "text", start),
-    );
+  const done = (rows: ImportRow[], oldest: string, since = 0) =>
+    !rows.length && since
+      ? screen(
+          line([`Nothing new since your last import on ${day(since)}.`]),
+          button("Read everything", "text", () => start(0)),
+        )
+      : screen(
+          line([
+            "Found ",
+            ...summary(rows),
+            since ? `, new since ${day(since)}.` : oldest ? `, back to ${oldest}.` : ".",
+            " Lateshow matches them next, unclear ones you pick there.",
+          ]),
+          button("Import into Lateshow", "primary", () =>
+            window.open(`${__LATESHOW__}/settings?import=extension#account`, "_blank"),
+          ),
+          button("Read again", "text", () => start(last)),
+        );
 
-  // a finished read that wasn't imported yet: offer it, else start fresh
-  void chrome.storage.local.get("pending").then(({ pending }) => {
-    const p = pending as { rows?: ImportRow[]; oldest?: string } | undefined;
-    if (p?.rows?.length) done(p.rows, p.oldest ?? "");
-    else
-      screen(
-        line(["Reads your whole Prime Video watch history into Lateshow. Nothing is changed here."]),
-        button("Read my watch history", "primary", start),
-      );
-  });
+  // a finished read that wasn't imported yet: offer it. Else after an import only what's new, before one everything
+  void Promise.all([chrome.storage.local.get("pending"), chrome.storage.local.get("synced")]).then(
+    ([{ pending }, { synced }]) => {
+      last = (synced as Record<string, number> | undefined)?.[source] ?? 0;
+      const p = pending as { rows?: ImportRow[]; oldest?: string } | undefined;
+      if (p?.rows?.length) done(p.rows, p.oldest ?? "");
+      else if (last)
+        screen(
+          line([`Last import ${day(last)}. Reads only what you watched since.`]),
+          button("Read new", "primary", () => start(last)),
+          button("Read everything", "text", () => start(0)),
+        );
+      else
+        screen(
+          line([`Reads your whole ${source} watch history into Lateshow. Nothing is changed here.`]),
+          button("Read my watch history", "primary", () => start(0)),
+        );
+    },
+  );
 }

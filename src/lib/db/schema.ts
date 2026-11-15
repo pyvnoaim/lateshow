@@ -34,6 +34,25 @@ export const watched = sqliteTable(
   ],
 );
 
+/**
+ * Your matches from a site's own id to a TMDB title ("prime:amzn1.dv.gti…" to a series), from imports and your picks,
+ * so the next import of that title skips the search. Per user: nobody's pick decides for anyone else.
+ */
+export const titleLink = sqliteTable(
+  "title_link",
+  {
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    ref: text("ref").notNull(),
+    mediaType: text("media_type", { enum: ["movie", "tv"] }).notNull(),
+    tmdbId: integer("tmdb_id").notNull(),
+    title: text("title").notNull(),
+    posterPath: text("poster_path"),
+  },
+  (t) => [primaryKey({ columns: [t.userId, t.ref] })],
+);
+
 /** One run of Settings › Import (a file or the extension), so it can be removed again as a whole. */
 export const importBatch = sqliteTable(
   "import_batch",

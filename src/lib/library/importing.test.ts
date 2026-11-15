@@ -4,6 +4,7 @@ import {
   parseCsv,
   pickMatch,
   placeEpisodes,
+  primeSince,
   primeTitle,
   readExport,
   readPrimeHistory,
@@ -230,7 +231,7 @@ describe("Prime Video", () => {
     expect(show("Breadwinners")?.episodes?.[0]).toMatchObject({ season: 2, episode: 7 });
     expect(show("South Park")?.episodes?.[0]).toMatchObject({ season: undefined, episode: 4, name: "Wackelpudding" });
     expect(rows.filter((r) => r.type === "movie")).toEqual([
-      { title: "Scream 4", type: "movie", list: "watched", date: "2022-12-05" },
+      { title: "Scream 4", type: "movie", list: "watched", date: "2022-12-05", refs: ["prime:gti"] },
     ]);
   });
 
@@ -317,7 +318,20 @@ describe("Prime Video history data (the extension)", () => {
       type: "movie",
       list: "watched",
       date: "2026-07-04",
+      refs: ["prime:amzn1.dv.gti.m"],
     });
+    // a show carries its seasons' ids, so a confirmed match is remembered for every season
+    expect(rows.find((r) => r.title === "Highschool of the Dead")?.refs).toEqual(["prime:amzn1.dv.gti.season"]);
+  });
+
+  it("keeps only what came after the last import (Read new)", () => {
+    const since = Date.parse("2026-11-15T19:45:00Z");
+    const newer = primeSince(days, since);
+    expect(newer).toHaveLength(1);
+    expect(newer[0].titles.map((t) => t.children?.map((e) => e.title?.text))).toEqual([
+      ["Episode 2: Shadow of the DEAD"],
+    ]);
+    expect(primeSince(days, Date.parse("2026-11-16T00:00:00Z"))).toEqual([]);
   });
 });
 
