@@ -15,6 +15,7 @@ import { getSession } from "@/lib/auth";
 import { getWatchLinks, type WatchLink } from "@/lib/justwatch";
 import { setOnWatchlist, setRating, setWatched, type TitleRef } from "@/lib/library/actions";
 import { nextEpisode, parseEpisodeKeys, type EpisodeRef } from "@/lib/library/progress";
+import { getSeasonInfo } from "@/lib/library/inProgress";
 import { getTitleLibrary } from "@/lib/library/queries";
 import {
   cinemaDate,
@@ -77,13 +78,11 @@ export async function TitleView({ type, id }: { type: string; id: string }) {
   // the session above already made this render per request).
   const cinema = type === "movie" ? cinemaDate(t, region.code) : null;
   const inCinemasFrom = cinema && cinema > new Date().toISOString().slice(0, 10) ? cinema : undefined;
-  // Season sizes are in the title details already, so "up next" needs no extra request.
+  // "Up next" needs the real episode numbers (not always 1 to n per season), the same cached season requests the
+  // episode list below makes anyway
   const next =
     type === "tv" && lib.watched.length > 0
-      ? nextEpisode(
-          (t.seasons ?? []).map((s) => ({ number: s.season_number, episodeCount: s.episode_count })),
-          parseEpisodeKeys(lib.watched),
-        )
+      ? nextEpisode(await getSeasonInfo(t, region.lang), parseEpisodeKeys(lib.watched))
       : null;
 
   return (

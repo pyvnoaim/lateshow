@@ -17,7 +17,6 @@ export async function UserProfile({
     tab?: string | string[];
     more?: string | string[];
     year?: string | string[];
-    day?: string | string[];
   }>;
 }) {
   const [{ username }, session] = await Promise.all([params, getSession()]);

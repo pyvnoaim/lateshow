@@ -3,8 +3,21 @@ import { getLanguage } from "@/lib/region";
 import { getWatchLinks } from "@/lib/justwatch";
 import { nextEpisode, parseEpisodeKeys, showProgress } from "@/lib/library/progress";
 import { getRecentShows, getTitleLibrary } from "@/lib/library/queries";
-import { getEnglishName, getSeasons, getTitle, pickLogo, yourServicesFirst } from "@/lib/tmdb";
+import { getEnglishName, getSeasons, getTitle, pickLogo, yourServicesFirst, type Title } from "@/lib/tmdb";
+import type { SeasonInfo } from "@/lib/library/progress";
 import { getMyServiceIds } from "@/lib/settings/queries";
+
+/**
+ * Every regular season's real episode numbers (see SeasonInfo): one season request each, cached for days and shared
+ * with the title page's episode list.
+ */
+export async function getSeasonInfo(t: Title, lang: string): Promise<SeasonInfo[]> {
+  const numbers = (t.seasons ?? [])
+    .filter((s) => s.season_number > 0 && s.episode_count > 0)
+    .map((s) => s.season_number);
+  const seasons = await getSeasons(String(t.id), numbers, lang);
+  return seasons.map((s) => ({ number: s.number, episodes: s.episodes.map((e) => e.episode_number) }));
+}
 
 export type ShowInProgress = NonNullable<Awaited<ReturnType<typeof loadShow>>>;
 
@@ -25,8 +38,8 @@ async function loadShow(userId: string, tmdbId: number, fallbackName: string, co
   const lang = await getLanguage();
   const t = await getTitle("tv", String(tmdbId), lang).catch(() => null);
   if (!t) return null;
-  const seasons = (t.seasons ?? []).map((s) => ({ number: s.season_number, episodeCount: s.episode_count }));
-  const watched = parseEpisodeKeys((await getTitleLibrary(userId, "tv", t.id)).watched);
+  const [seasons, library] = await Promise.all([getSeasonInfo(t, lang), getTitleLibrary(userId, "tv", t.id)]);
+  const watched = parseEpisodeKeys(library.watched);
   const next = nextEpisode(seasons, watched);
   if (!next) return null;
   const name = t.name ?? fallbackName;

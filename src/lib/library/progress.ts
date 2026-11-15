@@ -1,12 +1,16 @@
 export type EpisodeRef = { season: number; episode: number };
-export type SeasonInfo = { number: number; episodeCount: number };
+/**
+ * A season's real episode numbers from TMDB. Not always 1 to n: some anime count on across seasons
+ * (Hunter x Hunter's season 3 is episodes 137 to 148), and watched rows store those numbers.
+ */
+export type SeasonInfo = { number: number; episodes: number[] };
 
 /** All regular episodes in airing order. Specials (season 0) don't count towards progress. */
 function allEpisodes(seasons: SeasonInfo[]): EpisodeRef[] {
   return seasons
     .filter((s) => s.number > 0)
     .toSorted((a, b) => a.number - b.number)
-    .flatMap((s) => Array.from({ length: s.episodeCount }, (_, i) => ({ season: s.number, episode: i + 1 })));
+    .flatMap((s) => s.episodes.toSorted((a, b) => a - b).map((episode) => ({ season: s.number, episode })));
 }
 
 const key = (e: EpisodeRef) => `${e.season}-${e.episode}`;

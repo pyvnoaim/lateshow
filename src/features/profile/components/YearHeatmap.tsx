@@ -1,4 +1,3 @@
-import Link from "next/link";
 import type { Day, Level } from "@/features/profile/yearGrid";
 import { watchTime } from "@/features/profile/history";
 import { DayPeek, type PeekTitle } from "./DayPeek";
@@ -16,24 +15,14 @@ const day = (d: Day) =>
 const watchedFor = (d: Day) => (d.minutes ? `${watchTime(d.minutes)} watched` : "Nothing watched");
 
 /**
- * One square per day, a column per week, like a contribution graph. A click on a day with watches opens its card
- * (`peek`, see DayPeek), the link itself goes to `dayHref(date)`, the full day view. `selected` is that view's day, ringed.
+ * One square per day, a column per week, like a contribution graph. A day with watches is a button that opens its
+ * card (`peek`, see DayPeek).
  */
-export function YearHeatmap({
-  days,
-  dayHref,
-  selected,
-  peek,
-}: {
-  days: Day[];
-  peek: (date: string) => Promise<PeekTitle[]>;
-  dayHref: (date: string) => string;
-  selected?: string;
-}) {
+export function YearHeatmap({ days, peek }: { days: Day[]; peek: (date: string) => Promise<PeekTitle[]> }) {
   return (
     <div className="flex flex-col gap-3">
       <DayPeek peek={peek}>
-        {/* p-1 (pulled back with -m-1): room for the open day's ring, the scroll box clips everything outside it */}
+        {/* p-1 (pulled back with -m-1): room for the open day's ring (aria-expanded), the scroll box clips everything outside it */}
         <div className="-m-1 overflow-x-auto p-1 pb-2">
           <div className="grid min-w-3xl auto-cols-fr grid-flow-col grid-rows-7 gap-1">
             {days.map((d) =>
@@ -47,16 +36,16 @@ export function YearHeatmap({
                   className={`aspect-square rounded-sm ${LEVELS[0]}`}
                 />
               ) : (
-                <Link
+                <button
                   key={d.date}
-                  href={dayHref(d.date)}
-                  scroll={false}
+                  type="button"
                   aria-label={`${day(d)}, ${watchedFor(d)}`}
-                  aria-current={d.date === selected ? "date" : undefined}
+                  aria-haspopup="dialog"
+                  aria-expanded="false"
                   data-day={d.date}
                   data-tip={day(d)}
                   data-tip-meta={watchedFor(d)}
-                  className={`aspect-square press rounded-sm ${LEVELS[d.level]} ${d.date === selected ? "ring-2 ring-fg" : ""}`}
+                  className={`aspect-square press rounded-sm ${LEVELS[d.level]} aria-expanded:ring-2 aria-expanded:ring-fg`}
                 />
               ),
             )}

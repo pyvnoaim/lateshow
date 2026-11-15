@@ -2,9 +2,15 @@ import { describe, expect, it } from "vitest";
 import { nextEpisode, parseEpisodeKeys, showProgress } from "./progress";
 
 const show = [
-  { number: 0, episodeCount: 3 },
-  { number: 2, episodeCount: 3 },
-  { number: 1, episodeCount: 2 },
+  { number: 0, episodes: [1, 2, 3] },
+  { number: 2, episodes: [1, 2, 3] },
+  { number: 1, episodes: [1, 2] },
+];
+// Hunter x Hunter on TMDB: seasons count on, season 3 is episodes 137 to 148
+const absolute = [
+  { number: 1, episodes: [1, 2] },
+  { number: 2, episodes: [3, 4] },
+  { number: 3, episodes: [5, 6] },
 ];
 
 describe("nextEpisode", () => {
@@ -23,6 +29,13 @@ describe("nextEpisode", () => {
         { season: 2, episode: 2 },
       ]),
     ).toEqual({ season: 2, episode: 3 });
+  });
+
+  it("follows a show that numbers its episodes on across seasons", () => {
+    expect(nextEpisode(absolute, [{ season: 2, episode: 4 }])).toEqual({ season: 3, episode: 5 });
+    const all = absolute.flatMap((s) => s.episodes.map((episode) => ({ season: s.number, episode })));
+    expect(nextEpisode(absolute, all)).toBeNull();
+    expect(showProgress(absolute, all).percent).toBe(100);
   });
 
   it("is null when you're caught up", () => {

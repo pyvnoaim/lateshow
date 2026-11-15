@@ -34,7 +34,7 @@ import { SignOutButton } from "./components/SignOutButton";
 import { YearHeatmap } from "./components/YearHeatmap";
 import { NewListForm } from "./components/NewListForm";
 import { yearGrid } from "./yearGrid";
-import { dayTitles, episodesLabel, historyEntries, watchTime } from "./history";
+import { dayTitles, episodesLabel, historyEntries } from "./history";
 import type { PeekTitle } from "./components/DayPeek";
 
 const HISTORY_PAGE = 300;
@@ -91,7 +91,6 @@ export async function Profile({
     tab?: string | string[];
     more?: string | string[];
     year?: string | string[];
-    day?: string | string[];
   }>;
   base?: string;
   owner?: Owner;
@@ -108,13 +107,11 @@ export async function Profile({
   };
   // yours: the watchlist has its own page (/watchlist). A friend's: their watchlist is a tab here.
   const tabs = TABS.filter((t) => (self ? t !== "watchlist" : t !== "friends"));
-  const { tab: raw, more, year: rawYear, day: rawDay } = await searchParams;
+  const { tab: raw, more, year: rawYear } = await searchParams;
   // /u/me is only a shortcut for links: with a username you land on /u/yourname, the address you can share
   if (self && base === "/u/me" && owner.username) {
     const query = new URLSearchParams(
-      Object.entries({ tab: raw, more, year: rawYear, day: rawDay }).filter(
-        (e): e is [string, string] => typeof e[1] === "string",
-      ),
+      Object.entries({ tab: raw, more, year: rawYear }).filter((e): e is [string, string] => typeof e[1] === "string"),
     );
     redirect(`/u/${owner.username}${query.size ? `?${query}` : ""}`);
   }
@@ -130,28 +127,17 @@ export async function Profile({
   const thisYear = now.getUTCFullYear();
   const y = Number(rawYear);
   const year = tab === "overview" && Number.isInteger(y) && y >= 1900 && y <= thisYear ? y : thisYear;
-  // ?day=2026-07-21: a clicked heatmap day, its titles show under the grid (UTC, like the grid). Only a day of the shown year.
-  const dayStart =
-    typeof rawDay === "string" && /^\d{4}-\d{2}-\d{2}$/.test(rawDay) ? Date.parse(`${rawDay}T00:00Z`) : NaN;
-  const day =
-    typeof rawDay === "string" && tab === "overview" && new Date(dayStart).getUTCFullYear() === year
-      ? rawDay
-      : undefined;
-  const yearQuery: Record<string, string> = year === thisYear ? {} : { year: String(year) };
-  const dayHref = (date: string) => `${base}?${new URLSearchParams({ ...yearQuery, day: date })}`;
-  const yearHref = `${base}${year === thisYear ? "" : `?year=${year}`}`;
   const name = owner.username || shownName(session.user);
   const hidden = !self && !owner.shareActivity;
   const lang = await getLanguage();
   // A friend who keeps their activity private: nothing of theirs is even read, not just hidden.
   const none = Promise.resolve([] as never[]);
-  const [stats, history, watchlist, times, watchYears, dayRows, friendCount, friends] = await Promise.all([
+  const [stats, history, watchlist, times, watchYears, friendCount, friends] = await Promise.all([
     hidden ? { movies: 0, episodes: 0, minutes: 0 } : getStats(uid),
     hidden || tab !== "history" ? none : getHistory(uid, pages * HISTORY_PAGE + 1),
     hidden ? none : getWatchlist(uid),
     hidden ? none : getWatchTimes(uid, new Date(Date.UTC(year, 0, 1)), new Date(Date.UTC(year + 1, 0, 1))),
     hidden || tab !== "overview" ? [] : getWatchYears(uid),
-    hidden || !day ? none : getWatchedBetween(uid, new Date(dayStart), new Date(dayStart + 86_400_000)),
     self ? getFriendCount(uid) : 0,
     self && tab === "friends"
       ? getFriends(uid).then((list) =>
@@ -182,7 +168,6 @@ export async function Profile({
   ]);
   const month = (d: Date) => d.toLocaleDateString("en", { month: "long", year: "numeric" });
   const empty = stats.movies + stats.episodes === 0;
-  const dayList = dayTitles(dayRows);
   // the heatmap's day card. Next binds uid and the username in encrypted, and access is checked again on every call:
   // signed in, and for a friend's profile still friends and still sharing (they may have turned it off since)
   const friendName = self ? null : owner.username;
@@ -336,61 +321,7 @@ export async function Profile({
               }
               asideAt="end"
             >
-              <YearHeatmap days={yearGrid(times, now, year)} dayHref={dayHref} selected={day} peek={peekDay} />
-              {day && (
-                // the full day (the card's "All n titles", or a day link opened in a new tab): every title as a poster
-                <div className="flex flex-col gap-5 md:flex-row md:gap-10">
-                  <div className="flex items-baseline gap-4 md:w-40 md:shrink-0 md:flex-col md:gap-1.5">
-                    <h3 className="text-section font-bold">
-                      {new Date(dayStart).toLocaleDateString("en", {
-                        weekday: "short",
-                        month: "short",
-                        day: "numeric",
-                        timeZone: "UTC",
-                      })}
-                    </h3>
-                    {dayList.length > 0 && (
-                      <p className="text-small text-muted nums">
-                        {watchTime(dayList.reduce((total, t) => total + t.minutes, 0))} ·{" "}
-                        {plural(dayList.length, "title")}
-                      </p>
-                    )}
-                    <Link
-                      href={yearHref}
-                      scroll={false}
-                      className="text-small text-muted transition-colors hover:text-fg"
-                    >
-                      Close
-                    </Link>
-                  </div>
-                  {dayList.length === 0 ? (
-                    <p className="text-body text-muted">Nothing watched that day.</p>
-                  ) : (
-                    <ol className="grid flex-1 grid-cols-3 content-start gap-x-4 gap-y-6 sm:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8">
-                      {dayList.map(({ row: r, episodes }) => {
-                        const poster = img(r.posterPath, "w185");
-                        return (
-                          <li key={`${r.mediaType}-${r.tmdbId}`}>
-                            <Link href={`/title/${r.mediaType}/${r.tmdbId}`} className="group flex flex-col gap-2">
-                              <span className="relative aspect-poster lift overflow-hidden rounded-poster bg-raised">
-                                {poster && (
-                                  <TmdbImage src={poster} lowSrc={img(r.posterPath, "w92")!} alt="" sizes="160px" />
-                                )}
-                              </span>
-                              <span className="min-w-0">
-                                <span className="block truncate text-label font-semibold">{r.title}</span>
-                                <span className="block truncate text-small text-muted nums">
-                                  {episodesLabel(episodes)}
-                                </span>
-                              </span>
-                            </Link>
-                          </li>
-                        );
-                      })}
-                    </ol>
-                  )}
-                </div>
-              )}
+              <YearHeatmap days={yearGrid(times, now, year)} peek={peekDay} />
             </Section>
             {recent.length > 0 && (
               <Section title="Recently watched">
@@ -535,7 +466,7 @@ export async function Profile({
 
 type WatchedRow = Awaited<ReturnType<typeof getHistory>>[number];
 
-/** One day's titles: small poster, title, which episodes. Side by side on wide screens. History tab and heatmap day. */
+/** One day's titles: small poster, title, which episodes. Side by side on wide screens. */
 function HistoryList({ entries }: { entries: { row: WatchedRow; episodes: WatchedRow[] }[] }) {
   return (
     <ol className="grid flex-1 gap-x-8 lg:grid-cols-2 2xl:grid-cols-3">

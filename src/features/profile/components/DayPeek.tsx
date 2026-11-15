@@ -7,16 +7,15 @@ import { TmdbImage } from "@/components/TmdbImage";
 
 export type PeekTitle = { key: string; title: string; meta: string; poster: string | null; href: string };
 
-const ROWS = 4; // more than this and the card shows a strip of every title plus a link to the full day view
 const WIDTH = 360; // w-90
 const GAP = 10;
 
-type Open = { date: string; label: string; time: string; href: string; rect: DOMRect };
+type Open = { date: string; label: string; time: string; rect: DOMRect };
 
 /**
- * The heatmap's day card: a click on a lit day (an `a[data-day]` inside) opens a small glass card at the square with
- * the day's titles, Esc, a click outside or scrolling closes it. The link itself still goes to `?day=` (the full
- * day view) for a new tab, and that's where "All n titles" leads. Phones get the card as a sheet at the bottom.
+ * The heatmap's day card: a click on a lit day (a `button[data-day]` inside) opens a small glass card at the square
+ * with the day's titles, most watched first. A busy day's list scrolls inside the card. Esc, a click outside or
+ * scrolling the page closes it. The open day's square has aria-expanded (its ring). Phones get the card as a sheet.
  */
 export function DayPeek({ peek, children }: { peek: (date: string) => Promise<PeekTitle[]>; children: ReactNode }) {
   const [open, setOpen] = useState<Open | null>(null);
@@ -27,20 +26,12 @@ export function DayPeek({ peek, children }: { peek: (date: string) => Promise<Pe
   const opener = useRef<HTMLElement | null>(null);
 
   const onClick = (e: MouseEvent) => {
-    const a = e.target instanceof Element ? e.target.closest<HTMLAnchorElement>("a[data-day]") : null;
-    // new tab, new window: let the browser follow the link
-    if (!a || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
-    e.preventDefault();
-    const date = a.dataset.day!;
-    opener.current = a;
+    const b = e.target instanceof Element ? e.target.closest<HTMLButtonElement>("button[data-day]") : null;
+    if (!b) return;
+    const date = b.dataset.day!;
+    opener.current = b;
     latest.current = date;
-    setOpen({
-      date,
-      label: a.dataset.tip ?? date,
-      time: a.dataset.tipMeta ?? "",
-      href: a.getAttribute("href")!,
-      rect: a.getBoundingClientRect(),
-    });
+    setOpen({ date, label: b.dataset.tip ?? date, time: b.dataset.tipMeta ?? "", rect: b.getBoundingClientRect() });
     const hit = cache.current.get(date);
     setTitles(hit ?? null);
     if (!hit)
@@ -54,11 +45,14 @@ export function DayPeek({ peek, children }: { peek: (date: string) => Promise<Pe
 
   useEffect(() => {
     if (!open) return;
+    // the squares are server rendered, so their open state is set on the element (it rings the square)
+    const square = opener.current;
+    square?.setAttribute("aria-expanded", "true");
     card.current?.focus({ preventScroll: true });
     const close = (refocus: boolean) => {
       latest.current = "";
       setOpen(null);
-      if (refocus) opener.current?.focus({ preventScroll: true });
+      if (refocus) square?.focus({ preventScroll: true });
     };
     const key = (e: KeyboardEvent) => e.key === "Escape" && close(true);
     // a press on another day closes this one first, its click then opens the new one
@@ -70,6 +64,7 @@ export function DayPeek({ peek, children }: { peek: (date: string) => Promise<Pe
     window.addEventListener("scroll", scroll, { capture: true, passive: true });
     window.addEventListener("resize", resize);
     return () => {
+      square?.setAttribute("aria-expanded", "false");
       document.removeEventListener("keydown", key);
       document.removeEventListener("pointerdown", down);
       window.removeEventListener("scroll", scroll, { capture: true });
@@ -80,8 +75,7 @@ export function DayPeek({ peek, children }: { peek: (date: string) => Promise<Pe
   return (
     <div onClick={onClick}>
       {children}
-      {open &&
-        createPortal(<Card open={open} titles={titles} cardRef={card} close={() => setOpen(null)} />, document.body)}
+      {open && createPortal(<Card open={open} titles={titles} cardRef={card} />, document.body)}
     </div>
   );
 }
@@ -90,12 +84,10 @@ function Card({
   open,
   titles,
   cardRef,
-  close,
 }: {
   open: Open;
   titles: PeekTitle[] | null;
   cardRef: React.RefObject<HTMLDivElement | null>;
-  close: () => void;
 }) {
   // under the square, flipped above it when the bottom of the window is near, kept inside the window sideways.
   // Phones: a sheet at the bottom instead (no style, the classes place it).
@@ -108,7 +100,6 @@ function Card({
         left: Math.min(Math.max(rect.left + rect.width / 2 - WIDTH / 2, 16), window.innerWidth - WIDTH - 16),
         ...(below ? { top: rect.bottom + GAP } : { bottom: window.innerHeight - rect.top + GAP }),
       };
-  const many = titles && titles.length > ROWS;
 
   return (
     <div
@@ -117,28 +108,16 @@ function Card({
       aria-label={open.label}
       tabIndex={-1}
       style={style}
-      className={`fixed z-50 flex pop flex-col gap-1 rounded-poster p-4 pb-3 glass-deep outline-none ${
+      className={`fixed z-50 flex pop flex-col gap-1 rounded-poster p-4 glass-deep outline-none ${
         phone ? "inset-x-4 bottom-4" : "w-90"
       }`}
     >
-      <div className="flex flex-col gap-2.5 px-1 pb-2">
-        <div className="flex items-baseline justify-between gap-4">
-          <span className="text-body font-semibold">{open.label}</span>
-          <span className="text-small text-muted nums">
-            {open.time.replace(" watched", "")}
-            {titles && titles.length > 1 && ` · ${titles.length} titles`}
-          </span>
-        </div>
-        {/* a busy day: every title as a sliver of its poster, so its size shows at once */}
-        {many && (
-          <div className="flex h-8 gap-1" aria-hidden>
-            {titles.map((t) => (
-              <span key={t.key} className="relative flex-1 overflow-hidden rounded-sm bg-raised">
-                {t.poster && <TmdbImage src={t.poster} lowSrc={t.poster} alt="" sizes="32px" />}
-              </span>
-            ))}
-          </div>
-        )}
+      <div className="flex items-baseline justify-between gap-4 px-1 pb-2">
+        <span className="text-body font-semibold">{open.label}</span>
+        <span className="text-small text-muted nums">
+          {open.time.replace(" watched", "")}
+          {titles && titles.length > 1 && ` · ${titles.length} titles`}
+        </span>
       </div>
       {titles === null ? (
         [0, 1].map((i) => (
@@ -153,8 +132,9 @@ function Card({
       ) : titles.length === 0 ? (
         <p className="px-1 py-2 text-small text-muted">Couldn&apos;t load this day. Try again.</p>
       ) : (
-        <ol className="flex flex-col">
-          {titles.slice(0, ROWS).map((t) => (
+        // a busy day scrolls inside the card (about 5 rows tall), the page stays put
+        <ol className="-mx-1 flex max-h-80 flex-col overflow-y-auto overscroll-contain px-1">
+          {titles.map((t) => (
             <li key={t.key}>
               <Link
                 href={t.href}
@@ -171,16 +151,6 @@ function Card({
             </li>
           ))}
         </ol>
-      )}
-      {many && (
-        <Link
-          href={open.href}
-          scroll={false}
-          onClick={close}
-          className="mt-1 px-1 pt-2.5 text-label font-semibold transition-colors hover:text-muted"
-        >
-          All {titles.length} titles
-        </Link>
       )}
     </div>
   );
