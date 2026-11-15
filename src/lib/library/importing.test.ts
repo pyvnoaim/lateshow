@@ -371,6 +371,24 @@ describe("primeTitle", () => {
   });
 });
 
+describe("watchMonths with undated episodes", () => {
+  it("leaves out episodes that have no day", () => {
+    const months = watchMonths([
+      {
+        title: "Gachiakuta",
+        type: "tv",
+        list: "watched",
+        date: "2025-10-08",
+        episodes: [
+          { season: 1, episode: 1, name: "a", undated: true },
+          { season: 1, episode: 6, name: "b", date: "2025-10-08" },
+        ],
+      },
+    ]);
+    expect(months).toEqual([{ month: "2025-10", count: 1 }]);
+  });
+});
+
 describe("Crunchyroll history (the extension)", () => {
   // shaped like content/v2/<account>/watch-history, trimmed from a real answer (ids kept short)
   const ep = (id: string, n: number, title: string, played: string, extra: Record<string, unknown> = {}) => ({

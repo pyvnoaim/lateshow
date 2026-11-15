@@ -540,7 +540,8 @@ export function watchMonths(rows: ImportRow[]): { month: string; count: number }
   const add = (d?: string) => d && counts.set(d.slice(0, 7), (counts.get(d.slice(0, 7)) ?? 0) + 1);
   for (const r of rows) {
     if (r.list !== "watched") continue;
-    if (r.episodes) r.episodes.forEach((e) => add(e.date ?? r.date));
+    // an undated episode (a season marked at once) has no month of its own
+    if (r.episodes) r.episodes.forEach((e) => !e.undated && add(e.date ?? r.date));
     else add(r.date);
   }
   const keys = [...counts.keys()].sort();

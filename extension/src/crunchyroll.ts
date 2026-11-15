@@ -48,7 +48,8 @@ const readHistory: ReadHistory = async (onProgress, since) => {
     onProgress({ pages, titles: entries.length, oldest: shortDay(entries.at(-1)?.date_played), at: Date.now() });
     // "Read new": a page that reaches back past the last import is the last one needed
     if (since && Date.parse(entries.at(-1)?.date_played ?? "") <= since) break;
-    next = page.meta?.next_page;
+    // only Crunchyroll's own API paths: the token goes along with every request
+    next = page.meta?.next_page?.startsWith("/content/v2/") ? page.meta.next_page : undefined;
     if (next) await pause(250); // gently, one page at a time
   }
   const kept = since ? entries.filter((e) => Date.parse(e.date_played ?? "") > since) : entries;
@@ -56,7 +57,12 @@ const readHistory: ReadHistory = async (onProgress, since) => {
   // entries that came without details: asked for, 50 at a time (most are dubs of an episode already there)
   const bare = [...new Set(kept.filter((e) => e.fully_watched && !e.panel).map((e) => e.id))];
   for (let i = 0; i < bare.length; i += 50) {
-    const found = (await api(`/content/v2/cms/objects/${bare.slice(i, i + 50).join(",")}?locale=en-US`)) as Page;
+    const found = (await api(
+      `/content/v2/cms/objects/${bare
+        .slice(i, i + 50)
+        .map(encodeURIComponent)
+        .join(",")}?locale=en-US`,
+    )) as Page;
     const byId = new Map((found.data ?? []).map((o) => [o.id, o as CrunchyrollEntry["panel"]]));
     for (const e of kept) if (!e.panel && byId.has(e.id)) e.panel = byId.get(e.id);
   }
