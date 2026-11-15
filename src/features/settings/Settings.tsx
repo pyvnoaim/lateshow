@@ -21,6 +21,9 @@ import { LanguagePicker } from "./components/LanguagePicker";
 import { DeleteAccount } from "./components/DeleteAccount";
 import { ImportHistory } from "./components/ImportHistory";
 import { PastImports } from "./components/PastImports";
+import { ExtensionKeys } from "./components/ExtensionKeys";
+import { getKeys } from "@/lib/extension/keys";
+import { connectExtension, disconnectExtension } from "@/lib/extension/actions";
 import { getImports } from "@/lib/library/queries";
 import { removeImport } from "@/lib/library/importActions";
 import { TextSetting } from "./components/TextSetting";
@@ -33,12 +36,19 @@ export async function Settings() {
   const session = await getSession();
   if (!session) redirect(`/login?next=${encodeURIComponent("/settings")}`);
   const region = await getRegion();
-  const [choices, mine, passkeys, imports] = await Promise.all([
+  const [choices, mine, passkeys, imports, keys] = await Promise.all([
     getServiceChoices(region.code).catch(() => []),
     getMyServiceIds(),
     getMyPasskeys(),
     getImports(session.user.id),
+    getKeys(session.user.id),
   ]);
+  const day = (d: Date) =>
+    d.toLocaleDateString("en", {
+      month: "short",
+      day: "numeric",
+      year: d.getFullYear() === new Date().getFullYear() ? undefined : "numeric",
+    });
 
   return (
     <div className="flex justify-center gap-section">
@@ -133,6 +143,17 @@ export async function Settings() {
                 remove={removeImport}
               />
             </div>
+          </Row>
+          <Row title="Extension" description="Marks what you finish on Prime Video, with the real time.">
+            <ExtensionKeys
+              connected={keys.map((k) => ({
+                id: k.id,
+                created: day(k.createdAt),
+                used: k.usedAt ? day(k.usedAt) : null,
+              }))}
+              connect={connectExtension}
+              disconnect={disconnectExtension}
+            />
           </Row>
           <Row title="Your data" description="Download or delete everything.">
             <DeleteAccount remove={deleteAccount}>
