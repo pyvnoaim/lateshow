@@ -42,3 +42,35 @@ export async function getJson(url: string, headers: Record<string, string> = {})
 }
 
 export const pause = (ms: number) => new Promise((r) => setTimeout(r, ms));
+
+/** Whether this page was opened by a sync from the popup (background.ts knows its tab), and from when to read */
+export async function syncJob(): Promise<{ since: number } | null> {
+  try {
+    return await chrome.runtime.sendMessage<{ since: number } | null>({ type: "lateshow:sync-job" });
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * A sync's read: no card, the rows go to background.ts, which imports them. A page that isn't ready yet (Crunchyroll's
+ * app hasn't asked its API, Netflix's profile isn't there) gets two more tries a few seconds apart.
+ */
+export async function autoRead(readHistory: ReadHistory, since: number) {
+  const send = (m: { type: string; [key: string]: unknown }) => chrome.runtime.sendMessage(m).catch(() => null);
+  for (let attempt = 1; ; attempt++) {
+    try {
+      const found = await readHistory((p) => void send({ type: "lateshow:sync-progress", titles: p.titles }), since);
+      await send({ type: "lateshow:sync-rows", rows: found.rows, skipped: found.skipped, newest: found.newest });
+      return;
+    } catch (e) {
+      if (attempt >= 3) return void send({ type: "lateshow:sync-error", message: (e as Error).message });
+      await pause(4000);
+    }
+  }
+}
+
+/** A history page: a sync's read when the popup opened it, else the card */
+export function historyPage(source: string, readHistory: ReadHistory, card: () => void) {
+  void syncJob().then((job) => (job ? autoRead(readHistory, job.since) : card()));
+}

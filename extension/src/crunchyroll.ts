@@ -5,7 +5,7 @@
 // (frame-video.ts). Read only on Crunchyroll's side.
 import { readCrunchyrollHistory, type CrunchyrollEntry, type ImportRow } from "@/lib/library/importing";
 import { showCard } from "./card";
-import { getJson, pause, reader, type ReadHistory } from "./reader";
+import { getJson, historyPage, pause, reader, type ReadHistory } from "./reader";
 import { watch, type Clock } from "./watch";
 
 type Auth = { auth: string | null; account: string | null };
@@ -83,7 +83,8 @@ const readHistory: ReadHistory = async (onProgress, since) => {
 
 const SOURCE = "Crunchyroll";
 // the address may carry a language (/de/history)
-if (/^(\/[a-z]{2}(-[a-z]{2})?)?\/history/.test(location.pathname)) showCard(SOURCE, reader(SOURCE, readHistory));
+if (/^(\/[a-z]{2}(-[a-z]{2})?)?\/history/.test(location.pathname))
+  historyPage(SOURCE, readHistory, () => showCard(SOURCE, reader(SOURCE, readHistory)));
 
 // --- marking what you finish
 

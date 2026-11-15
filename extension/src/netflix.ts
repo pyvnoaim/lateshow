@@ -4,7 +4,7 @@
 // its season, number and Netflix's own "watched to the end" point from Netflix's metadata. Read only on Netflix's side.
 import { readNetflixHistory, type ImportRow, type NetflixViewed } from "@/lib/library/importing";
 import { showCard } from "./card";
-import { getJson, pageFetch, pause, reader, type ReadHistory } from "./reader";
+import { getJson, historyPage, pageFetch, pause, reader, type ReadHistory } from "./reader";
 import { watch, type Clock } from "./watch";
 
 type Ids = { guid: string | null; build: string | null; name?: string | null };
@@ -137,7 +137,8 @@ async function finishedOnly(items: NetflixViewed[], onProgress: (done: number, a
 }
 
 const SOURCE = "Netflix";
-if (/\/(settings\/viewed|viewingactivity)/.test(location.pathname)) showCard(SOURCE, reader(SOURCE, readHistory));
+if (/\/(settings\/viewed|viewingactivity)/.test(location.pathname))
+  historyPage(SOURCE, readHistory, () => showCard(SOURCE, reader(SOURCE, readHistory)));
 
 // --- marking what you finish
 

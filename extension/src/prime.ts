@@ -4,7 +4,7 @@
 // Prime's remove action is never called.
 import { primeSince, primeTitle, readPrimeHistory, type ImportRow, type PrimeTitle } from "@/lib/library/importing";
 import { showCard } from "./card";
-import { getJson, pause, reader, type ReadHistory } from "./reader";
+import { getJson, historyPage, pause, reader, type ReadHistory } from "./reader";
 import { watch, type Clock } from "./watch";
 
 type Day = { date?: string; titles?: PrimeTitle[] };
@@ -78,7 +78,8 @@ const readHistory: ReadHistory = async (onProgress, since) => {
 
 const SOURCE = "Prime Video";
 // the address may carry a language (/-/de/settings/…)
-if (location.pathname.includes("/settings/watch-history")) showCard(SOURCE, reader(SOURCE, readHistory));
+if (location.pathname.includes("/settings/watch-history"))
+  historyPage(SOURCE, readHistory, () => showCard(SOURCE, reader(SOURCE, readHistory)));
 
 // --- marking what you finish
 

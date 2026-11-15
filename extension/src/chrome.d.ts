@@ -7,14 +7,19 @@ declare namespace chrome {
   namespace runtime {
     const onMessage: {
       addListener(
-        fn: (message: { type?: string }, sender: unknown, sendResponse: (response: unknown) => void) => boolean | void,
+        fn: (
+          message: { type?: string },
+          sender: { tab?: Tab },
+          sendResponse: (response: unknown) => void,
+        ) => boolean | void,
       ): void;
     };
   }
   namespace tabs {
     function query(q: { active: boolean; currentWindow: boolean }): Promise<Tab[]>;
     function sendMessage<T>(tabId: number, message: { type: string }): Promise<T>;
-    function create(p: { url: string }): Promise<Tab>;
+    function create(p: { url: string; active?: boolean }): Promise<Tab>;
+    function remove(tabId: number): Promise<void>;
     function update(tabId: number, p: { url: string }): Promise<Tab>;
   }
   namespace storage {
