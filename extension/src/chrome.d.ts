@@ -27,6 +27,13 @@ declare namespace chrome {
       addListener(fn: (changes: Record<string, { newValue?: unknown }>, area: string) => void): void;
     };
   }
+  namespace alarms {
+    function create(name: string, info: { periodInMinutes: number }): void;
+    const onAlarm: { addListener(fn: (alarm: { name: string }) => void): void };
+  }
+  namespace runtime {
+    function sendMessage<T>(message: { type: string; [key: string]: unknown }): Promise<T>;
+  }
   namespace permissions {
     function contains(p: { origins: string[] }): Promise<boolean>;
     function request(p: { origins: string[] }): Promise<boolean>;

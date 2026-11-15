@@ -1,11 +1,12 @@
 {
   "manifest_version": 3,
   "name": "Lateshow",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "Brings your watch history from streaming sites into Lateshow.",
   "icons": { "128": "icon-128.png" },
   "action": { "default_popup": "popup.html", "default_icon": { "128": "icon-128.png" } },
-  "permissions": ["storage", "activeTab"],
+  "permissions": ["storage", "activeTab", "alarms"],
+  "background": { "service_worker": "background.js", "scripts": ["background.js"] },
   "host_permissions": ["https://www.primevideo.com/*", "__LATESHOW__/*"],
   "content_scripts": [
     { "matches": ["https://www.primevideo.com/*"], "js": ["prime.js"] },

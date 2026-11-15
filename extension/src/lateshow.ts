@@ -51,6 +51,18 @@ async function handOver() {
   setTimeout(() => clearInterval(hello), 60_000);
 }
 
+// Connecting (Settings › Extension, opened by the popup with ?connect=extension): the page hands over the new key once
+// you clicked Connect there, this script keeps it and says so. Only this window's own message, only on that page.
+window.addEventListener("message", (e) => {
+  const d = e.data as { type?: string; key?: unknown } | null;
+  if (e.source !== window || d?.type !== "lateshow:extension-key" || typeof d.key !== "string") return;
+  if (location.pathname !== "/settings" || new URLSearchParams(location.search).get("connect") !== "extension") return;
+  void chrome.storage.local.set({ key: d.key }).then(() => {
+    log("connected");
+    window.postMessage({ type: "lateshow:extension-connected" }, location.origin);
+  });
+});
+
 // ponytail: a cheap address check twice a second, a content script can't see the app's own navigation
 const check = () => !started && wanted() && void handOver();
 check();

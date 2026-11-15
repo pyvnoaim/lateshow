@@ -36,7 +36,7 @@
         color: var(--fg);
         font-variant-numeric: tabular-nums;
       }
-      button {
+      button.primary {
         width: 100%;
         height: 40px;
         border: 0;
@@ -47,7 +47,64 @@
         font-weight: 600;
         cursor: pointer;
       }
-      button:active {
+      button {
+        font: inherit;
+        cursor: pointer;
+      }
+      button.text {
+        border: 0;
+        background: none;
+        color: var(--muted);
+        padding: 4px 0 14px;
+      }
+      button.text:hover {
+        color: var(--fg);
+      }
+      .row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 6px 0 12px;
+      }
+      .site {
+        display: block;
+        font-weight: 600;
+      }
+      .hint {
+        display: block;
+        color: var(--muted);
+        font-size: 13px;
+      }
+      .foot {
+        margin-top: 8px;
+        padding-top: 12px;
+        border-top: 1px solid rgba(255, 255, 255, 0.08);
+      }
+      .switch {
+        flex-shrink: 0;
+        width: 44px;
+        height: 26px;
+        border: 0;
+        border-radius: 999px;
+        padding: 3px;
+        display: flex;
+        background: rgba(255, 255, 255, 0.12);
+      }
+      .switch.on {
+        justify-content: flex-end;
+        background: linear-gradient(180deg, #f2f6fd, #a9c2ea);
+      }
+      .knob {
+        width: 20px;
+        height: 20px;
+        border-radius: 999px;
+        background: #8b8f98;
+      }
+      .switch.on .knob {
+        background: var(--bg);
+      }
+      button.primary:active {
         transform: scale(0.98);
       }
       button:disabled {
