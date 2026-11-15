@@ -27,9 +27,19 @@ function findWidget(o: unknown, seen = new Set<object>()): Widget | null {
 }
 
 async function getJson(url: string) {
-  const res = await pageFetch(url, { credentials: "include" });
-  if (!res.ok) throw new Error(`Prime Video answered ${res.status}.`);
-  return res.json();
+  // like Prime's own page asks: without these it may answer with an HTML page
+  const res = await pageFetch(url, {
+    credentials: "include",
+    headers: { accept: "application/json", "x-requested-with": "XMLHttpRequest" },
+  });
+  const text = await res.text();
+  try {
+    return JSON.parse(text) as unknown;
+  } catch {
+    // say what came back, so a changed Prime shows up as something to fix
+    const type = res.headers.get("content-type") ?? "no type";
+    throw new Error(`Prime Video answered ${res.status} (${type}) instead of data: ${text.slice(0, 60)}`);
+  }
 }
 
 async function readHistory() {
@@ -47,6 +57,17 @@ async function readHistory() {
   if (!widget) throw new Error("No watch history found here. Open your Prime Video watch history and try again.");
   const days = [...(widget.content?.content?.titles ?? [])];
   let token = widget.content?.content?.nextToken;
+  // how far back it got, for the popup (Prime doesn't say how much there is in all)
+  const report = (pages: number) =>
+    chrome.storage.local.set({
+      progress: {
+        pages,
+        titles: days.reduce((n, d) => n + (d.titles?.length ?? 0), 0),
+        oldest: days.at(-1)?.date ?? "",
+        at: Date.now(),
+      },
+    });
+  await report(1);
   // ponytail: 500 pages cap (a page is a few days), so a loop in Prime's paging can't run forever
   for (let page = 1; token && page < 500; page++) {
     await new Promise((r) => setTimeout(r, 250)); // gently, one page at a time
@@ -55,6 +76,7 @@ async function readHistory() {
     );
     days.push(...(next?.content?.content?.titles ?? []));
     token = next?.content?.content?.nextToken;
+    await report(page + 1);
   }
   return readPrimeHistory(days);
 }
@@ -67,6 +89,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       await chrome.storage.local.set({ pending: { source: "Prime Video", rows, skipped, at: Date.now() } });
       sendResponse({ ok: true });
     })
-    .catch((e: unknown) => sendResponse({ error: e instanceof Error ? e.message : String(e) }));
+    .catch((e: unknown) => sendResponse({ error: e instanceof Error ? e.message : String(e) }))
+    .finally(() => chrome.storage.local.remove("progress"));
   return true; // answers later
 });

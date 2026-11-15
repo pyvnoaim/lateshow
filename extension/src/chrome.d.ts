@@ -23,6 +23,9 @@ declare namespace chrome {
       set(items: Record<string, unknown>): Promise<void>;
       remove(key: string): Promise<void>;
     };
+    const onChanged: {
+      addListener(fn: (changes: Record<string, { newValue?: unknown }>, area: string) => void): void;
+    };
   }
   namespace permissions {
     function contains(p: { origins: string[] }): Promise<boolean>;
