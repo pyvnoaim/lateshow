@@ -1,5 +1,14 @@
 import { describe, expect, it } from "vitest";
-import { norm, parseCsv, pickMatch, placeEpisodes, readExport, readPrimeHistory, watchMonths } from "./importing";
+import {
+  norm,
+  parseCsv,
+  pickMatch,
+  placeEpisodes,
+  primeTitle,
+  readExport,
+  readPrimeHistory,
+  watchMonths,
+} from "./importing";
 
 describe("parseCsv", () => {
   it("handles quotes, commas, escaped quotes, CRLF and a BOM", () => {
@@ -309,5 +318,28 @@ describe("Prime Video history data (the extension)", () => {
       list: "watched",
       date: "2026-07-04",
     });
+  });
+});
+
+describe("primeTitle", () => {
+  it("drops Prime's tags, keeps a year, puts a moved article back", () => {
+    expect(primeTitle("Central Intelligence (Theatrical Version)")).toEqual({ title: "Central Intelligence" });
+    expect(primeTitle("Truth Or Dare (Unrated Director’s Cut)")).toEqual({ title: "Truth Or Dare" });
+    expect(primeTitle("Lights Out (2016)")).toEqual({ title: "Lights Out", year: 2016 });
+    expect(primeTitle("WHEEL OF TIME, THE (2021)")).toEqual({ title: "THE WHEEL OF TIME", year: 2021 });
+    expect(primeTitle("FROM (TV)")).toEqual({ title: "FROM" });
+    expect(primeTitle("Lost - Staffel 1 [dt./OV]")).toEqual({ title: "Lost - Staffel 1" });
+  });
+
+  it("skips trailers Prime counts as watched", () => {
+    const head = '"Date Watched","Type","Title","Episode Title","Global Title Identifier"';
+    const { rows, skipped } = readExport([
+      {
+        name: "p.csv",
+        text: [head, '"2026-01-01 20:00:00.000","Movie","Episode 0: Trailer Staffel 4","",""'].join("\n"),
+      },
+    ]);
+    expect(rows).toEqual([]);
+    expect(skipped).toBe(1);
   });
 });

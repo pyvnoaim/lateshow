@@ -218,17 +218,38 @@ function readNetflix(recs: Record<string, string>[]): { rows: ImportRow[]; skipp
  * carries its season ("The Boys - Season 1", "Lost - Staffel 1 [dt./OV]", "Hawaii Five-0, Season 8", "Lucifer:
  * Staffel 6", "Breadwinners Season 2", "House of David, S1", "South Park" none), the episode its number ("Episode 5: \"Good for the Soul\"", "Folge 3: ...").
  */
+/**
+ * A Prime Video title as TMDB names it: no dub or edition tags ("[dt./OV]", "(Uncut)", "(Theatrical Version)",
+ * "(TV)"), a "(2016)" becomes the year, an article moved to the end comes back ("WHEEL OF TIME, THE").
+ */
+export function primeTitle(raw: string): { title: string; year?: number } {
+  let title = raw.replace(/\s*\[[^\]]*\]\s*$/, "").trim();
+  let year: number | undefined;
+  for (let m; (m = /\s*\(([^()]*)\)$/.exec(title));) {
+    if (/^\d{4}$/.test(m[1])) year ??= Number(m[1]);
+    title = title.slice(0, m.index).trim();
+  }
+  const moved = /^(.*), (the|a|an|der|die|das)$/i.exec(title);
+  if (moved) title = `${moved[2]} ${moved[1]}`;
+  return { title, year };
+}
+
 function readPrime(recs: Record<string, string>[]): { rows: ImportRow[]; skipped: number } {
   let skipped = 0;
   const shows = new Map<string, ImportRow>();
   const films = new Map<string, ImportRow>();
   // walking it backwards keeps the first time you saw each episode or film
   for (const r of recs.toReversed()) {
-    const title = r.Title.replace(/\s*\[[^\]]*\]$/, "").trim(); // "[OV]", "[dt./OV]"
+    // a trailer Prime counts as watched ("Episode 0: Trailer Staffel 4") isn't a title
+    if (/\btrailer\b/i.test(`${r.Title} ${r["Episode Title"]}`)) {
+      skipped++;
+      continue;
+    }
+    const { title, year } = primeTitle(r.Title);
     if (!title) continue;
     const date = day(r["Date Watched"]);
     if (r.Type !== "Series") {
-      if (!films.has(norm(title))) films.set(norm(title), { title, type: "movie", list: "watched", date });
+      if (!films.has(norm(title))) films.set(norm(title), { title, year, type: "movie", list: "watched", date });
       continue;
     }
     const s = /^(.*?)[\s,:-]*\b(?:(?:season|staffel|series)\s+|s)(\d+)$/i.exec(title);
@@ -242,7 +263,7 @@ function readPrime(recs: Record<string, string>[]): { rows: ImportRow[]; skipped
     const episode = e ? Number(e[1]) : undefined;
     const name = (e ? e[2] : r["Episode Title"])?.replace(/^"(.*)"$/, "$1").trim() || `Episode ${episode}`;
     let show = shows.get(norm(series));
-    if (!show) shows.set(norm(series), (show = { title: series, type: "tv", list: "watched", episodes: [] }));
+    if (!show) shows.set(norm(series), (show = { title: series, year, type: "tv", list: "watched", episodes: [] }));
     show.date = date; // latest day
     if (!show.episodes!.some((x) => x.season === season && x.episode === episode && norm(x.name) === norm(name)))
       show.episodes!.push({ season, episode, name, date });

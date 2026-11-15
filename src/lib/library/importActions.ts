@@ -70,7 +70,12 @@ async function match(r: ImportRow): Promise<Match | Unsure | null> {
     return { row: r, id: t.id, type: t.media_type, title: t.title ?? t.name ?? r.title, posterPath: t.poster_path };
   }
   // Netflix episodes only fit a series
-  const hits = (await searchForImport(r.title).catch(() => [])).filter((h) => !r.episodes || h.type === "tv");
+  const find = async (q: string) =>
+    (await searchForImport(q).catch(() => [])).filter((h) => !r.episodes || h.type === "tv");
+  let hits = await find(r.title);
+  // "Jack in the Box 2 - Awakening", "Sharknado - More Sharks, More 'Nado!": a subtitle TMDB writes otherwise.
+  // Nothing found: the part before it, and with no exact name that's always a pick, never a guess
+  if (!hits.length && r.title.includes(" - ")) hits = await find(r.title.split(" - ")[0]);
   if (!hits.length) return null;
   const m = pickMatch(
     r,
