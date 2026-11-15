@@ -10,14 +10,20 @@ const wanted = () =>
 
 let started = false;
 
+// a few console lines, so a handoff that doesn't happen says where it stopped
+const log = (...args: unknown[]) => console.info("[Lateshow]", ...args);
+
 async function handOver() {
   started = true;
   const p = (await chrome.storage.local.get("pending")).pending as Pending | undefined;
+  log(p?.rows?.length ? `${p.rows.length} rows from ${p.source} to hand over` : "nothing to hand over");
   if (!p?.rows?.length) return;
   let sent = false;
   window.addEventListener("message", (e) => {
-    if (sent || e.source !== window || (e.data as { type?: string })?.type !== "lateshow:import-ready") return;
+    if (sent || (e.data as { type?: string })?.type !== "lateshow:import-ready") return;
+    if (e.source !== window) return log("a ready message from somewhere else, ignored");
     sent = true;
+    log("the page is ready, handing over");
     window.postMessage({ type: "lateshow:import-rows", rows: p.rows, skipped: p.skipped }, location.origin);
     void chrome.storage.local.remove("pending");
   });

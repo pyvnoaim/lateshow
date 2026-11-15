@@ -60,6 +60,7 @@ export function ImportHistory() {
   const [unsure, setUnsure] = useState<Unsure[]>([]);
   const [error, setError] = useState("");
   const [over, setOver] = useState(false);
+  const [incoming, setIncoming] = useState(false);
 
   const running = useRef(false);
 
@@ -125,9 +126,13 @@ export function ImportHistory() {
   useEffect(() => {
     const take = (e: MessageEvent) => {
       const d = e.data as { type?: string; rows?: unknown; skipped?: unknown } | null;
-      if (e.source !== window || e.origin !== location.origin) return;
-      // the script may start after this page said ready: it says hello, the page answers
-      if (d?.type === "lateshow:import-hello") window.postMessage({ type: "lateshow:import-ready" }, location.origin);
+      // this window only. Not checked: the origin, Firefox stamps an extension script's messages with its own
+      if (e.source !== window) return;
+      // the script may start after this page said ready: it says hello, the page answers (and shows it's coming)
+      if (d?.type === "lateshow:import-hello") {
+        setIncoming(true);
+        window.postMessage({ type: "lateshow:import-ready" }, location.origin);
+      }
       if (d?.type !== "lateshow:import-rows") return;
       if (!Array.isArray(d.rows) || d.rows.length > 20000) return;
       void run(d.rows as ImportRow[], typeof d.skipped === "number" ? d.skipped : 0);
@@ -272,6 +277,7 @@ export function ImportHistory() {
           className="sr-only"
         />
       </label>
+      {incoming && !error && <p className="text-small text-muted">Getting your history from the extension…</p>}
       {error && (
         <p role="alert" className="text-small text-danger">
           {error}
