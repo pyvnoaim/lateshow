@@ -63,6 +63,13 @@ export function ImportHistory() {
   const [incoming, setIncoming] = useState(false);
 
   const running = useRef(false);
+  const view = useRef<HTMLDivElement>(null);
+  // the import screen and its result come into view (Settings › Import sits far down the page)
+  useEffect(() => {
+    if (phase === "idle") return;
+    const still = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    view.current?.scrollIntoView({ behavior: still ? "auto" : "smooth", block: "center" });
+  }, [phase]);
   const batch = useRef(""); // this run's import id, picks join it
 
   async function start(list: FileList | null) {
@@ -179,7 +186,12 @@ export function ImportHistory() {
     if (saved) setTotals((t) => add(t, saved));
   }
 
-  if (phase === "working") return <ImportProgress rows={rows} done={progress.done} until={progress.until} />;
+  if (phase === "working")
+    return (
+      <div ref={view} className="w-full">
+        <ImportProgress rows={rows} done={progress.done} until={progress.until} />
+      </div>
+    );
 
   if (phase === "done") {
     const stats = [
@@ -191,7 +203,7 @@ export function ImportHistory() {
     ].filter((s) => s.n > 0);
     const lost = totals.notFound + totals.skipped;
     return (
-      <div className="flex flex-col gap-6">
+      <div ref={view} className="flex flex-col gap-6">
         <div className="flex flex-col gap-5" aria-live="polite">
           <p className="text-body font-semibold text-balance">
             {stats.length ? "Your history is in" : "Nothing new, it was all here already"}
