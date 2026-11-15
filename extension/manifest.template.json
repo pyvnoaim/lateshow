@@ -68,6 +68,7 @@
     "gecko": {
       "id": "extension@lateshow.pyvno.xyz",
       "strict_min_version": "140.0",
+      "update_url": "https://lateshow.pyvno.xyz/extension/updates.json",
       "data_collection_permissions": {
         "required": ["websiteContent", "browsingActivity", "websiteActivity"]
       }
