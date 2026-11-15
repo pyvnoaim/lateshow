@@ -1,0 +1,1 @@
+ALTER TABLE `extension_key` ADD `browser` text;

@@ -162,6 +162,7 @@ export async function Settings() {
                 id: k.id,
                 created: day(k.createdAt),
                 used: k.usedAt ? day(k.usedAt) : null,
+                browser: k.browser,
               }))}
               connect={connectExtension}
               disconnect={disconnectExtension}

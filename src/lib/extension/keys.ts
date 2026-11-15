@@ -4,6 +4,7 @@ import { and, desc, eq } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import { user } from "@/lib/db/auth-schema";
 import { extensionKey } from "@/lib/db/schema";
+import { browserName } from "./browser";
 
 /**
  * The extension's own key: "ls_<id>_<secret>". The id finds the row, only a hash of the secret is stored and compared
@@ -13,15 +14,15 @@ const hash = (secret: string) => createHash("sha256").update(secret).digest("hex
 const FORMAT = /^ls_([\w-]{12})_([\w-]{32})$/;
 
 /** A new key for this user, returned once (the browser keeps it, Lateshow only its hash) */
-export async function newKey(userId: string) {
+export async function newKey(userId: string, userAgent: string | null) {
   const id = randomBytes(9).toString("base64url");
   const secret = randomBytes(24).toString("base64url");
-  await db.insert(extensionKey).values({ id, userId, hash: hash(secret) });
+  await db.insert(extensionKey).values({ id, userId, hash: hash(secret), browser: browserName(userAgent) });
   return `ls_${id}_${secret}`;
 }
 
-/** Whose key this is ("Authorization: Bearer ls_…"), null for a wrong or disconnected one */
-export async function userForKey(header: string | null): Promise<string | null> {
+/** Whose key this is ("Authorization: Bearer ls_…"), null for a wrong or disconnected one. Notes the browser using it. */
+export async function userForKey(header: string | null, userAgent: string | null = null): Promise<string | null> {
   const m = FORMAT.exec(header?.replace(/^Bearer\s+/i, "") ?? "");
   if (!m) return null;
   const row = await db.select().from(extensionKey).where(eq(extensionKey.id, m[1])).get();
@@ -29,14 +30,23 @@ export async function userForKey(header: string | null): Promise<string | null> 
   const a = Buffer.from(row.hash, "hex");
   const b = Buffer.from(hash(m[2]), "hex");
   if (a.length !== b.length || !timingSafeEqual(a, b)) return null;
-  await db.update(extensionKey).set({ usedAt: new Date() }).where(eq(extensionKey.id, row.id));
+  const browser = browserName(userAgent);
+  await db
+    .update(extensionKey)
+    .set({ usedAt: new Date(), ...(browser && { browser }) })
+    .where(eq(extensionKey.id, row.id));
   return row.userId;
 }
 
 /** Your connected browsers, newest first, for Settings */
 export function getKeys(userId: string) {
   return db
-    .select({ id: extensionKey.id, createdAt: extensionKey.createdAt, usedAt: extensionKey.usedAt })
+    .select({
+      id: extensionKey.id,
+      createdAt: extensionKey.createdAt,
+      usedAt: extensionKey.usedAt,
+      browser: extensionKey.browser,
+    })
     .from(extensionKey)
     .where(eq(extensionKey.userId, userId))
     .orderBy(desc(extensionKey.createdAt));

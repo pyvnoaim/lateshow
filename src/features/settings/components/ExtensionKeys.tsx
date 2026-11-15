@@ -4,7 +4,8 @@ import { useSearchParams } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { buttonStyles } from "@/components/ui/button";
 
-export type Connected = { id: string; created: string; used: string | null };
+/** `browser`: "Chrome on macOS", null until a key connected or used since 2026-11-15 says */
+export type Connected = { id: string; created: string; used: string | null; browser: string | null };
 
 /**
  * Settings › Extension. Your connected browsers with Disconnect. Opened by the extension with ?connect=extension it
@@ -70,7 +71,10 @@ export function ExtensionKeys({
           {shown.map((c) => (
             <li key={c.id} className="flex flex-wrap items-baseline justify-between gap-x-6 gap-y-1">
               <span className="text-label">
-                Connected {c.created} <span className="text-muted">· {c.used ? `used ${c.used}` : "not used yet"}</span>
+                {c.browser ?? "A browser"}{" "}
+                <span className="text-muted">
+                  · connected {c.created} · {c.used ? `used ${c.used}` : "not used yet"}
+                </span>
               </span>
               <button
                 type="button"

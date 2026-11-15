@@ -5,7 +5,7 @@ import { markFromExtension, undoMark } from "@/lib/extension/mark";
 // make your browser call this. ponytail: no rate limit, a key can only mark its own user's watches.
 
 async function withKey(request: Request, run: (userId: string, body: unknown) => Promise<unknown>) {
-  const userId = await userForKey(request.headers.get("authorization"));
+  const userId = await userForKey(request.headers.get("authorization"), request.headers.get("user-agent"));
   if (!userId) return Response.json({ error: "Connect the extension in Lateshow's Settings again." }, { status: 401 });
   const body: unknown = await request.json().catch(() => null);
   try {

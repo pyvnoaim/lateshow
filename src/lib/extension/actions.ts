@@ -1,6 +1,7 @@
 "use server";
 
 import { refresh } from "next/cache";
+import { headers } from "next/headers";
 import { z } from "zod";
 import { getSession } from "@/lib/auth";
 import { dropKey, newKey } from "./keys";
@@ -13,7 +14,7 @@ async function requireUserId() {
 
 /** Settings › Extension › Connect (you clicked it, signed in): a new key, handed to the extension on this page only */
 export async function connectExtension(): Promise<string> {
-  const key = await newKey(await requireUserId());
+  const key = await newKey(await requireUserId(), (await headers()).get("user-agent"));
   refresh();
   return key;
 }

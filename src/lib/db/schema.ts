@@ -69,6 +69,8 @@ export const extensionKey = sqliteTable(
     hash: text("hash").notNull(),
     createdAt: integer("created_at", { mode: "timestamp_ms" }).default(now).notNull(),
     usedAt: integer("used_at", { mode: "timestamp_ms" }),
+    /** "Chrome on macOS", from the User-Agent when connected or last used (Settings tells browsers apart by it) */
+    browser: text("browser"),
   },
   (t) => [index("extension_key_by_user").on(t.userId)],
 );

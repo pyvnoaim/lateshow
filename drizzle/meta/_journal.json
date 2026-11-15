@@ -148,6 +148,13 @@
       "when": 1794765810037,
       "tag": "0020_easy_prowler",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "6",
+      "when": 1794767839311,
+      "tag": "0021_curly_shriek",
+      "breakpoints": true
     }
   ]
 }
