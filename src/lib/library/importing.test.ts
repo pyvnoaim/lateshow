@@ -505,3 +505,46 @@ describe("readNetflixHistory", () => {
     ]);
   });
 });
+
+describe("readNetflixHistory with Netflix's metadata", () => {
+  it("uses the real numbers and leaves out what you only started", () => {
+    const at = (d: string) => new Date(`${d}T21:00:00`).getTime();
+    const show = { series: 70300800, seriesTitle: "BoJack Horseman", seasonDescriptor: "Season 5" };
+    const { rows, skipped } = readNetflixHistory([
+      {
+        ...show,
+        movieID: 2,
+        date: at("2026-11-12"),
+        episodeTitle: "Free Churro",
+        season: 5,
+        episode: 6,
+        finished: true,
+      },
+      { movieID: 9, date: at("2026-11-11"), title: "Mickey 17", finished: false }, // started, 42 seconds in
+      { ...show, movieID: 1, date: at("2026-11-10"), episodeTitle: "Episode 1", season: 5, episode: 1, finished: true },
+      {
+        ...show,
+        movieID: 3,
+        date: at("2026-11-09"),
+        episodeTitle: "Brand New Couch",
+        season: 5,
+        episode: 2,
+        finished: false,
+      },
+    ]);
+    expect(skipped).toBe(2);
+    expect(rows).toEqual([
+      {
+        title: "BoJack Horseman",
+        type: "tv",
+        list: "watched",
+        refs: ["netflix:70300800"],
+        date: "2026-11-12",
+        episodes: [
+          { season: 5, episode: 1, name: "Episode 1", date: "2026-11-10" },
+          { season: 5, episode: 6, name: "Free Churro", date: "2026-11-12" },
+        ],
+      },
+    ]);
+  });
+});

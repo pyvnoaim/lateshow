@@ -78,9 +78,63 @@ const readHistory: ReadHistory = async (onProgress, since) => {
     await pause(250); // gently, one page at a time
   }
   const kept = since ? items.filter((v) => (v.date ?? 0) > since) : items;
+  await finishedOnly(kept, (done, all) =>
+    onProgress({
+      pages: 0,
+      titles: kept.length,
+      oldest: "",
+      at: Date.now(),
+      step: `Checking what you finished · ${done} of ${all}`,
+    }),
+  );
   const newest = Math.max(0, ...items.map((v) => v.date ?? 0));
   return { ...readNetflixHistory(kept), oldest: shortDay(kept.at(-1)?.date), newest };
 };
+
+type Bookmark = { offset?: number };
+type MetaEpisode = { id?: number; episodeId?: number; seq?: number; watchedToEndOffset?: number; bookmark?: Bookmark };
+type TitleMeta = {
+  video?: {
+    runtime?: number;
+    watchedToEndOffset?: number;
+    bookmark?: Bookmark;
+    seasons?: { seq?: number; episodes?: MetaEpisode[] }[];
+  };
+};
+
+/**
+ * Netflix's history lists what you only started too, and episodes by name only. Its metadata, one request per show or
+ * film, knows each episode's real numbers and where you stopped: past Netflix's own "watched to the end" point (a
+ * film: 90% of it) is finished. Best effort, a title it can't look up stays as the history has it.
+ * ponytail: the bookmark is your last watch, a finished episode you later rewatched partly counts as unfinished.
+ */
+async function finishedOnly(items: NetflixViewed[], onProgress: (done: number, all: number) => void) {
+  const ids = [...new Set(items.map((v) => v.series ?? v.movieID).filter((id): id is number => Boolean(id)))];
+  const found = new Map<number, { season?: number; episode?: number; finished?: boolean }>();
+  for (const [i, id] of ids.entries()) {
+    onProgress(i, ids.length);
+    try {
+      const v = ((await getJson(`/nq/website/memberapi/release/metadata?movieid=${id}`)) as TitleMeta).video;
+      const done = (b: Bookmark | undefined, end: number | undefined) =>
+        b?.offset === undefined || !end ? undefined : b.offset >= end;
+      if (!v?.seasons) found.set(id, { finished: done(v?.bookmark, v?.watchedToEndOffset ?? (v?.runtime ?? 0) * 0.9) });
+      for (const s of v?.seasons ?? [])
+        for (const e of s.episodes ?? [])
+          found.set(e.episodeId ?? e.id ?? 0, {
+            season: s.seq,
+            episode: e.seq,
+            finished: done(e.bookmark, e.watchedToEndOffset),
+          });
+    } catch {
+      // not found (gone from Netflix): as the history has it
+    }
+    await pause(150); // gently
+  }
+  for (const v of items) {
+    const f = v.movieID ? found.get(v.movieID) : undefined;
+    if (f) Object.assign(v, f);
+  }
+}
 
 const SOURCE = "Netflix";
 if (/\/(settings\/viewed|viewingactivity)/.test(location.pathname)) showCard(SOURCE, reader(SOURCE, readHistory));

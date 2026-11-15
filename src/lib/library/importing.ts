@@ -411,6 +411,10 @@ export type NetflixViewed = {
   seasonDescriptor?: string; // "Season 5", "Part 2", "Limited Series"
   series?: number; // a show's id, none for a film
   seriesTitle?: string;
+  /** from Netflix's metadata (the extension looks each title up): its real numbers, and whether you finished it */
+  season?: number;
+  episode?: number;
+  finished?: boolean;
 };
 
 /**
@@ -432,6 +436,11 @@ export function readNetflixHistory(items: NetflixViewed[]): { rows: ImportRow[];
     // Netflix sometimes sends a name of only spaces: such an entry can't be matched, it's counted as skipped
     const seriesTitle = v.seriesTitle?.trim();
     const title = v.title?.trim();
+    // Netflix lists what you only started too: what its metadata says you didn't finish stays out
+    if (v.finished === false) {
+      skipped++;
+      continue;
+    }
     if (v.series && seriesTitle) {
       let show = shows.get(v.series);
       if (!show)
@@ -440,10 +449,12 @@ export function readNetflixHistory(items: NetflixViewed[]): { rows: ImportRow[];
           (show = { title: seriesTitle, type: "tv", list: "watched", refs: [`netflix:${v.series}`], episodes: [] }),
         );
       show.date = date; // latest day
-      const season = v.seasonDescriptor ? seasonOf(v.seasonDescriptor, seriesTitle) : undefined;
+      const season = v.season ?? (v.seasonDescriptor ? seasonOf(v.seasonDescriptor, seriesTitle) : undefined);
       const name = v.episodeTitle?.trim() || title || "";
-      if (name && !show.episodes!.some((e) => e.season === season && norm(e.name) === norm(name)))
-        show.episodes!.push({ season, name, date });
+      const same = (e: { season?: number; episode?: number; name: string }) =>
+        e.season === season && (v.episode !== undefined ? e.episode === v.episode : norm(e.name) === norm(name));
+      if (name && !show.episodes!.some(same))
+        show.episodes!.push({ season, ...(v.episode !== undefined && { episode: v.episode }), name, date });
     } else if (v.movieID && title && !v.series) {
       if (!films.has(v.movieID))
         films.set(v.movieID, { title, type: "movie", list: "watched", date, refs: [`netflix:${v.movieID}`] });

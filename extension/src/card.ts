@@ -114,10 +114,14 @@ export function showCard(source: string, read: Read) {
     read(
       (p) =>
         screen(
-          line([
-            { count: `Page ${n(p.pages)} · ${plural(p.titles, "title")}` },
-            p.oldest ? ` · back to ${p.oldest}` : "",
-          ]),
+          line(
+            p.step
+              ? [p.step]
+              : [
+                  { count: `Page ${n(p.pages)} · ${plural(p.titles, "title")}` },
+                  p.oldest ? ` · back to ${p.oldest}` : "",
+                ],
+          ),
         ),
       since,
     ).then(

@@ -2,7 +2,8 @@
 // reload loses nothing) until Lateshow has it, and how a site's own page is asked for data with your sign-in there.
 import type { ImportRow } from "@/lib/library/importing";
 
-export type Progress = { pages: number; titles: number; oldest: string; at: number };
+/** `step`: a later step of the read in words (Netflix checking what you finished), shown instead of the pages */
+export type Progress = { pages: number; titles: number; oldest: string; at: number; step?: string };
 export type Found = { rows: ImportRow[]; skipped: number; oldest: string; newest: number };
 export type ReadHistory = (onProgress: (p: Progress) => void, since: number) => Promise<Found>;
 
