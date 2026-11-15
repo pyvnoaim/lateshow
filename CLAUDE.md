@@ -113,7 +113,7 @@ pure logic extracted with a `*.test.ts` beside it, no barrel files, move code to
 - Every page: press feel, shaped skeletons (no spinners for loading; rooms' small braille Spinner means waiting on people, not loading), reserved image space + blur-up, optimistic toggles, tabular nums,
   visible focus ring, empty states with one action, Esc closes overlays, `/` opens search.
 - Screenshot desktop and phone after every UI change before calling it done.
-- Drafts canvas: https://claude.ai/artifact/UXEhyDuz5aXMMJfxGpT6zX (extension install: /extension page, Settings, Import, Home hint, phone)
+- Drafts canvas: https://claude.ai/artifact/VRNHtYW2ECA1jKqxx1vT3F (extension popup by where you are). Install: Settings › Extension with three states (chosen 2026-11-15, built)
 
 ## Built
 
