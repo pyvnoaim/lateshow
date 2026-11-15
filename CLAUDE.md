@@ -26,7 +26,7 @@ Read `node_modules/next/dist/docs/` before using Next APIs (see AGENTS.md).
   dist manifest.json. Chrome: chrome://extensions › Developer mode › Load unpacked › dist. Its readers turn a site's
   history into import rows (`readPrimeHistory` in lib/library/importing.ts, tested there), the popup opens
   /settings?import=extension and a content script hands the rows to ImportHistory (page says ready, script posts once).
-  No API route, no extension sign-in yet (comes with sync). Read new: after an import the extension remembers its newest watch per site (`synced`), the card then pages only back to it. Auto-marking groundwork (2026-11-15): Settings › Extension connects a browser (own key `ls_<id>_<secret>`,
+  Imports need no API route (the page imports). Read new: after an import the extension remembers its newest watch per site (`synced`), the card then pages only back to it. Auto-marking groundwork (2026-11-15): Settings › Extension connects a browser (own key `ls_<id>_<secret>`,
   hashed, /api/extension/mark + /me, Bearer only, no cookie), `background.ts` queues marks and retries, `watch.ts`
   follows the main <video> with `lib/watchProgress.ts` (tested) and asks through a site Adapter (what's playing, ad,
   credits, profile), `toast.ts` shows Marked · Undo or Which one?. The Prime adapter waits for the player snippet.
