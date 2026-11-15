@@ -29,6 +29,7 @@ import { yearGrid } from "./yearGrid";
 import { episodesLabel, historyEntries } from "./history";
 
 const HISTORY_PAGE = 300;
+const MAX_PAGES = 1000;
 const TABS = ["overview", "history", "watchlist", "lists", "friends"] as const;
 type Tab = (typeof TABS)[number];
 
@@ -104,7 +105,8 @@ export async function Profile({
   const tab: Tab = tabs.find((t) => t === raw) ?? "overview";
   // History pages by "Show older", each one adds HISTORY_PAGE rows (they render from the db alone, no TMDB calls).
   // ponytail: every click rerenders the earlier pages too, bounded by the user's own rows. A cursor if that gets slow.
-  const pages = tab === "history" ? Math.max(Math.floor(Number(more)) || 1, 1) : 1;
+  // MAX_PAGES (300k rows) keeps the LIMIT a sane integer whatever ?more= says, and the link stops there so it can't loop
+  const pages = tab === "history" ? Math.min(Math.max(Math.floor(Number(more)) || 1, 1), MAX_PAGES) : 1;
 
   const uid = owner.id;
   const now = new Date();
@@ -313,7 +315,7 @@ export async function Profile({
                   </ol>
                 </section>
               ))}
-              {history.length > pages * HISTORY_PAGE && (
+              {history.length > pages * HISTORY_PAGE && pages < MAX_PAGES && (
                 <Link
                   href={`${base}?tab=history&more=${pages + 1}`}
                   scroll={false}
