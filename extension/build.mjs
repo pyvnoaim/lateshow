@@ -23,5 +23,6 @@ await build({
 const manifest = (await readFile(`${dir}manifest.json`, "utf8")).replaceAll("__LATESHOW__", lateshow);
 await writeFile(`${out}manifest.json`, manifest);
 await copyFile(`${dir}popup.html`, `${out}popup.html`);
-await copyFile(fileURLToPath(new URL("../src/app/apple-icon.png", import.meta.url)), `${out}icon.png`);
+// icon.png: src/app/icon.svg rendered once at 128 px with a transparent background (apple-icon.png is opaque, iOS)
+await copyFile(`${dir}icon.png`, `${out}icon.png`);
 console.log(`Built extension/dist for ${lateshow}`);
