@@ -88,6 +88,8 @@
   --duration-hover: 200ms;
   --duration-lift: 240ms;
   --duration-rise: 520ms;
+  --duration-deal: 720ms; /* "Can't decide?": a pick dealt in */
+  --duration-curtain: 950ms; /* its picture opening from the bottom */
   --duration-shimmer: 2200ms; /* one sweep of the skeleton light */
   --delay-skeleton: 150ms; /* skeletons only show if loading takes longer than this */
   --duration-page-out: 140ms; /* page switch: the old page leaves fast */
@@ -631,6 +633,28 @@
   animation: rise var(--duration-rise) var(--ease-spring) both;
 }
 
+/* "Can't decide?" picks: dealt in one after another (rise with a slight scale), the picture opens from the bottom
+   like a curtain while it settles from a zoom. Reduced motion: just there. */
+@utility deal {
+  animation: deal var(--duration-deal) var(--ease-spring) both;
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+@utility curtain {
+  animation: curtain var(--duration-curtain) var(--ease-spring) both;
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+/* the shuffle icon while the next picks load */
+@utility shuffling {
+  animation: shuffling 700ms var(--ease-spring) infinite;
+  @media (prefers-reduced-motion: reduce) {
+    animation: none;
+  }
+}
+
 /* Sign in poster wall: each column holds its posters twice (+ one trailing gap) and moves up by half, so the loop has no jump */
 @utility drift {
   animation: drift 80s linear infinite;
@@ -750,6 +774,31 @@
 @keyframes sk-in {
   from {
     opacity: 0;
+  }
+}
+@keyframes deal {
+  from {
+    opacity: 0;
+    transform: translateY(32px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+@keyframes curtain {
+  from {
+    clip-path: inset(100% 0 0 0);
+    transform: scale(1.12);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+    transform: scale(1);
+  }
+}
+@keyframes shuffling {
+  50% {
+    transform: translateX(3px) rotate(-8deg);
   }
 }
 @keyframes rise {
