@@ -1,0 +1,12 @@
+{
+  "addons": {
+    "extension@lateshow.pyvno.xyz": {
+      "updates": [
+        {
+          "version": "0.6.1",
+          "update_link": "https://lateshow.pyvno.xyz/extension/lateshow-0.6.1.xpi"
+        }
+      ]
+    }
+  }
+}
