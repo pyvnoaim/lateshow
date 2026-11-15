@@ -21,6 +21,7 @@ import { shownName } from "@/lib/username";
 import {
   getHistory,
   getRecentTitles,
+  getWatchedBetween,
   getWatchYears,
   getStats,
   getWatchlist,
@@ -85,7 +86,12 @@ export async function Profile({
   base = "/u/me",
   owner: friend,
 }: {
-  searchParams: Promise<{ tab?: string | string[]; more?: string | string[]; year?: string | string[] }>;
+  searchParams: Promise<{
+    tab?: string | string[];
+    more?: string | string[];
+    year?: string | string[];
+    day?: string | string[];
+  }>;
   base?: string;
   owner?: Owner;
 }) {
@@ -101,11 +107,13 @@ export async function Profile({
   };
   // yours: the watchlist has its own page (/watchlist). A friend's: their watchlist is a tab here.
   const tabs = TABS.filter((t) => (self ? t !== "watchlist" : t !== "friends"));
-  const { tab: raw, more, year: rawYear } = await searchParams;
+  const { tab: raw, more, year: rawYear, day: rawDay } = await searchParams;
   // /u/me is only a shortcut for links: with a username you land on /u/yourname, the address you can share
   if (self && base === "/u/me" && owner.username) {
     const query = new URLSearchParams(
-      Object.entries({ tab: raw, more, year: rawYear }).filter((e): e is [string, string] => typeof e[1] === "string"),
+      Object.entries({ tab: raw, more, year: rawYear, day: rawDay }).filter(
+        (e): e is [string, string] => typeof e[1] === "string",
+      ),
     );
     redirect(`/u/${owner.username}${query.size ? `?${query}` : ""}`);
   }
@@ -121,17 +129,28 @@ export async function Profile({
   const thisYear = now.getUTCFullYear();
   const y = Number(rawYear);
   const year = tab === "overview" && Number.isInteger(y) && y >= 1900 && y <= thisYear ? y : thisYear;
+  // ?day=2026-07-21: a clicked heatmap day, its titles show under the grid (UTC, like the grid). Only a day of the shown year.
+  const dayStart =
+    typeof rawDay === "string" && /^\d{4}-\d{2}-\d{2}$/.test(rawDay) ? Date.parse(`${rawDay}T00:00Z`) : NaN;
+  const day =
+    typeof rawDay === "string" && tab === "overview" && new Date(dayStart).getUTCFullYear() === year
+      ? rawDay
+      : undefined;
+  const yearQuery: Record<string, string> = year === thisYear ? {} : { year: String(year) };
+  const dayHref = (date: string) => `${base}?${new URLSearchParams({ ...yearQuery, day: date })}`;
+  const yearHref = `${base}${year === thisYear ? "" : `?year=${year}`}`;
   const name = owner.username || shownName(session.user);
   const hidden = !self && !owner.shareActivity;
   const lang = await getLanguage();
   // A friend who keeps their activity private: nothing of theirs is even read, not just hidden.
   const none = Promise.resolve([] as never[]);
-  const [stats, history, watchlist, times, watchYears, friendCount, friends] = await Promise.all([
+  const [stats, history, watchlist, times, watchYears, dayRows, friendCount, friends] = await Promise.all([
     hidden ? { movies: 0, episodes: 0, minutes: 0 } : getStats(uid),
     hidden || tab !== "history" ? none : getHistory(uid, pages * HISTORY_PAGE + 1),
     hidden ? none : getWatchlist(uid),
     hidden ? none : getWatchTimes(uid, new Date(Date.UTC(year, 0, 1)), new Date(Date.UTC(year + 1, 0, 1))),
     hidden || tab !== "overview" ? [] : getWatchYears(uid),
+    hidden || !day ? none : getWatchedBetween(uid, new Date(dayStart), new Date(dayStart + 86_400_000)),
     self ? getFriendCount(uid) : 0,
     self && tab === "friends"
       ? getFriends(uid).then((list) =>
@@ -294,7 +313,33 @@ export async function Profile({
               }
               asideAt="end"
             >
-              <YearHeatmap days={yearGrid(times, now, year)} />
+              <YearHeatmap days={yearGrid(times, now, year)} dayHref={dayHref} selected={day} />
+              {day && (
+                <div className="flex flex-col gap-1 md:flex-row md:gap-8">
+                  <div className="flex items-baseline gap-4 md:w-28 md:shrink-0 md:flex-col md:gap-1 md:pt-3">
+                    <h3 className="text-small font-medium">
+                      {new Date(dayStart).toLocaleDateString("en", {
+                        weekday: "short",
+                        month: "short",
+                        day: "numeric",
+                        timeZone: "UTC",
+                      })}
+                    </h3>
+                    <Link
+                      href={yearHref}
+                      scroll={false}
+                      className="text-small text-muted transition-colors hover:text-fg"
+                    >
+                      Close
+                    </Link>
+                  </div>
+                  {dayRows.length === 0 ? (
+                    <p className="text-body text-muted md:pt-3">Nothing watched that day.</p>
+                  ) : (
+                    <HistoryList entries={historyEntries(dayRows, () => day)[0]?.[1] ?? []} />
+                  )}
+                </div>
+              )}
             </Section>
             {recent.length > 0 && (
               <Section title="Recently watched">
@@ -318,27 +363,7 @@ export async function Profile({
                 // wide screens: the day in a left column, its titles side by side, so a day is one band, not a tall list
                 <section key={day} className="flex flex-col gap-1 md:flex-row md:gap-8">
                   <h2 className="text-small font-medium text-muted md:w-28 md:shrink-0 md:pt-3">{day}</h2>
-                  <ol className="grid flex-1 gap-x-8 lg:grid-cols-2 2xl:grid-cols-3">
-                    {entries.map(({ row: r, episodes }) => {
-                      const poster = img(r.posterPath, "w92");
-                      return (
-                        <li key={r.id}>
-                          <Link
-                            href={`/title/${r.mediaType}/${r.tmdbId}`}
-                            className="group -mx-3 flex items-center gap-4 rounded-thumb px-3 py-2 transition-colors duration-200 hover:bg-fg/5"
-                          >
-                            <span className="relative aspect-poster w-10 shrink-0 overflow-hidden rounded-md bg-raised">
-                              {poster && <TmdbImage src={poster} lowSrc={poster} alt="" sizes="40px" />}
-                            </span>
-                            <span className="min-w-0 flex-1">
-                              <span className="block truncate text-body font-medium">{r.title}</span>
-                              <span className="block text-small text-muted nums">{episodesLabel(episodes)}</span>
-                            </span>
-                          </Link>
-                        </li>
-                      );
-                    })}
-                  </ol>
+                  <HistoryList entries={entries} />
                 </section>
               ))}
               {history.length > pages * HISTORY_PAGE && pages < MAX_PAGES && (
@@ -454,6 +479,35 @@ export async function Profile({
           ))}
       </div>
     </div>
+  );
+}
+
+type WatchedRow = Awaited<ReturnType<typeof getHistory>>[number];
+
+/** One day's titles: small poster, title, which episodes. Side by side on wide screens. History tab and heatmap day. */
+function HistoryList({ entries }: { entries: { row: WatchedRow; episodes: WatchedRow[] }[] }) {
+  return (
+    <ol className="grid flex-1 gap-x-8 lg:grid-cols-2 2xl:grid-cols-3">
+      {entries.map(({ row: r, episodes }) => {
+        const poster = img(r.posterPath, "w92");
+        return (
+          <li key={r.id}>
+            <Link
+              href={`/title/${r.mediaType}/${r.tmdbId}`}
+              className="group -mx-3 flex items-center gap-4 rounded-thumb px-3 py-2 transition-colors duration-200 hover:bg-fg/5"
+            >
+              <span className="relative aspect-poster w-10 shrink-0 overflow-hidden rounded-md bg-raised">
+                {poster && <TmdbImage src={poster} lowSrc={poster} alt="" sizes="40px" />}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-body font-medium">{r.title}</span>
+                <span className="block text-small text-muted nums">{episodesLabel(episodes)}</span>
+              </span>
+            </Link>
+          </li>
+        );
+      })}
+    </ol>
   );
 }
 

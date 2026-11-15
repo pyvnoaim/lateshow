@@ -61,6 +61,15 @@ export async function getWatchTimes(userId: string, since: Date, until?: Date) {
     );
 }
 
+/** Everything watched from `since` up to `until`, newest first: one heatmap day's titles. */
+export async function getWatchedBetween(userId: string, since: Date, until: Date) {
+  return db
+    .select()
+    .from(watched)
+    .where(and(eq(watched.userId, userId), gte(watched.watchedAt, since), lt(watched.watchedAt, until)))
+    .orderBy(desc(watched.watchedAt));
+}
+
 /** The years (UTC) this user watched something in, newest first, so the heatmap offers only those. */
 export async function getWatchYears(userId: string) {
   // ponytail: reads every row of the user through the (user_id, watched_at) index. Fine for a big import, cache if not
