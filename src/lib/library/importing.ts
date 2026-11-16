@@ -495,6 +495,43 @@ export function readCrunchyrollWatchlist(items: CrunchyrollWatchlistItem[]): Imp
   return [...rows.values()];
 }
 
+/** Netflix's answer for `["mylist", {from, to}, ["title", "releaseYear", "summary"]]` (its Falcor pathEvaluator) */
+export type NetflixListAnswer = {
+  jsonGraph?: {
+    mylist?: Record<string, { $type?: string; value?: unknown }>;
+    videos?: Record<
+      string,
+      { title?: { value?: string }; releaseYear?: { value?: number }; summary?: { value?: { type?: string } } }
+    >;
+  };
+};
+
+/**
+ * Netflix's My List into watchlist rows, in the list's order, each with its Netflix id. Past the list's end Netflix
+ * answers empty slots, they're skipped. A film keeps its year, a show's `releaseYear` is its latest season's (both
+ * One Pieces say 2026), so it's left out: the extension fills in the first season's from Netflix's metadata.
+ */
+export function readNetflixWatchlist(answer: NetflixListAnswer): ImportRow[] {
+  const { mylist = {}, videos = {} } = answer.jsonGraph ?? {};
+  const rows: ImportRow[] = [];
+  for (const slot of Object.values(mylist)) {
+    const id = Array.isArray(slot?.value) && slot.value[0] === "videos" ? String(slot.value[1]) : null;
+    const v = id ? videos[id] : undefined;
+    const title = v?.title?.value?.trim();
+    const type = v?.summary?.value?.type;
+    if (!title || (type !== "movie" && type !== "show")) continue;
+    const year = type === "movie" ? v?.releaseYear?.value : undefined;
+    rows.push({
+      title,
+      ...(year && { year }),
+      type: type === "movie" ? "movie" : "tv",
+      list: "watchlist",
+      refs: [`netflix:${id}`],
+    });
+  }
+  return rows;
+}
+
 /** One card of Prime Video's watchlist (its page data and /api/paginateCollection): a film or a series' season */
 export type PrimeWatchlistCard = {
   displayTitle?: string;

@@ -59,8 +59,10 @@ Read `node_modules/next/dist/docs/` before using Next APIs (see AGENTS.md).
   Watchlists (2026-11-16, a sync brings them unless the popup's "Bring watchlists along" is off):
   Crunchyroll content/v2/discover/<account>/watchlist (series ids), Prime GET /mystuff/watchlist/all/ as JSON plus
   POST /api/paginateCollection (form: the page's fixed scheme fields + the container's token/target/startIndex).
-  Netflix My List not yet: /browse/my-list is My Netflix with carousels (13 at first, the rest through a persisted
-  GraphQL query), ids only in React props (`Video:<id>` two levels above `standard-card`), find a sturdier source.
+  Netflix My List (2026-11-16): the old Falcor API, POST /nq/website/memberapi/release/pathEvaluator with
+  `original_path=/shakti/<any build>/pathEvaluator` (without it 412), `path=["mylist",{from:0,to:1999},["title",
+  "releaseYear","summary"]]`, all of it in one go, empty atoms past the end. A show's releaseYear is its latest
+  season's, so its year comes from the metadata's first season (anime One Piece 1999 vs live action 2023).
   Sync only adds to the watchlist, never removes (decided 2026-11-16): Lateshow's list is yours, the sites feed it.
   Something you removed here comes back while it's still on the site's list (or switch watchlists off).
   Profiles: only yours marks (Netflix userInfo name, Crunchyroll /accounts/v1/me/multiprofile `is_selected`, Prime

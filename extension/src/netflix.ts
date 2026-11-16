@@ -2,7 +2,13 @@
 // page's Show more makes, with your Netflix sign-in, for the profile you're on) into Lateshow import rows
 // (readNetflixHistory, tested). On a player page it marks what you finish (watch.ts): the episode from the address,
 // its season, number and Netflix's own "watched to the end" point from Netflix's metadata. Read only on Netflix's side.
-import { readNetflixHistory, type ImportRow, type NetflixViewed } from "@/lib/library/importing";
+import {
+  readNetflixHistory,
+  readNetflixWatchlist,
+  type ImportRow,
+  type NetflixListAnswer,
+  type NetflixViewed,
+} from "@/lib/library/importing";
 import { showCard } from "./card";
 import { getJson, historyPage, pageFetch, pause, reader, type ReadHistory } from "./reader";
 import { watch, type Clock } from "./watch";
@@ -63,7 +69,7 @@ async function page(n: number, { guid, build }: Ids) {
 const shortDay = (ms?: number) =>
   ms ? new Date(ms).toLocaleDateString("en", { month: "long", day: "numeric", year: "numeric" }) : "";
 
-const readHistory: ReadHistory = async (onProgress, since) => {
+const readHistory: ReadHistory = async (onProgress, since, opts) => {
   const ids = await ask();
   if (!ids.guid) throw new Error("Netflix didn't say which profile this is. Reload this page, then try again.");
   const items: NetflixViewed[] = [];
@@ -88,8 +94,50 @@ const readHistory: ReadHistory = async (onProgress, since) => {
     }),
   );
   const newest = Math.max(0, ...items.map((v) => v.date ?? 0));
-  return { ...readNetflixHistory(kept), oldest: shortDay(kept.at(-1)?.date), newest, profile: ids.name ?? null };
+  const read = readNetflixHistory(kept);
+  // My List along (a sync with the popup's switch on), best effort
+  if (opts?.watchlist) read.rows.push(...(await myList(ids.build).catch(() => [])));
+  return { ...read, oldest: shortDay(kept.at(-1)?.date), newest, profile: ids.name ?? null };
 };
+
+/**
+ * My List of the profile you're on, from Netflix's Falcor API (the old one, not the history's AUI): one request for
+ * all of it. Without `original_path` it answers 412, any build id there will do. A show's year is its first season's,
+ * from its metadata (the list's is the latest season's, which can't tell the anime One Piece from the live action).
+ */
+async function myList(build: string | null): Promise<ImportRow[]> {
+  const path = encodeURIComponent(`/shakti/${build ?? "release"}/pathEvaluator`);
+  const res = await pageFetch(
+    `/nq/website/memberapi/release/pathEvaluator?withSize=true&materialize=true&original_path=${path}`,
+    {
+      method: "POST",
+      credentials: "include",
+      headers: { "content-type": "application/x-www-form-urlencoded" },
+      // ponytail: the first 2000, past what a list holds (Netflix answers them in one go)
+      body:
+        "path=" +
+        encodeURIComponent(JSON.stringify(["mylist", { from: 0, to: 1999 }, ["title", "releaseYear", "summary"]])),
+    },
+  );
+  if (!res.ok) throw new Error(`Netflix answered ${res.status} for My List`);
+  const rows = readNetflixWatchlist((await res.json()) as NetflixListAnswer);
+  for (const row of rows) {
+    if (row.type !== "tv") continue;
+    try {
+      const v = (
+        (await getJson(`/nq/website/memberapi/release/metadata?movieid=${row.refs![0].slice(8)}`)) as {
+          video?: { seasons?: { year?: number }[] };
+        }
+      ).video;
+      const first = Math.min(...(v?.seasons ?? []).map((s) => s.year ?? Infinity));
+      if (Number.isFinite(first)) row.year = first;
+    } catch {
+      // no year: matched by name, like Prime's shows
+    }
+    await pause(150); // gently
+  }
+  return rows;
+}
 
 type Bookmark = { offset?: number };
 type MetaEpisode = { id?: number; episodeId?: number; seq?: number; watchedToEndOffset?: number; bookmark?: Bookmark };

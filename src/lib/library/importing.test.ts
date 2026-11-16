@@ -10,6 +10,7 @@ import {
   readCrunchyrollWatchlist,
   readExport,
   readNetflixHistory,
+  readNetflixWatchlist,
   readPrimeHistory,
   readPrimeWatchlist,
   watchMonths,
@@ -573,6 +574,42 @@ describe("readCrunchyrollWatchlist", () => {
       { title: "My Hero Academia", type: "tv", list: "watchlist", refs: ["crunchyroll:G6NQ5DWZ6"] },
       { title: "JUJUTSU KAISEN 0", type: "movie", list: "watchlist" },
     ]);
+  });
+});
+
+describe("readNetflixWatchlist", () => {
+  it("keeps the list's order and ids, a film's year, no show year, skips the empty slots past the end", () => {
+    // trimmed from Netflix's real answer (2026-11-16): both One Pieces say 2026, the latest season's year
+    const ref = (id: number) => ({ $type: "ref", value: ["videos", String(id)] });
+    const video = (title: string, releaseYear: number, type: string) => ({
+      title: { $type: "atom", value: title },
+      releaseYear: { $type: "atom", value: releaseYear },
+      summary: { $type: "atom", value: { type, unifiedEntityId: "Video:1", id: 1, isOriginal: false } },
+    });
+    expect(
+      readNetflixWatchlist({
+        jsonGraph: {
+          mylist: {
+            "0": ref(80107103),
+            "1": ref(80217863),
+            "2": ref(80230399),
+            "3": ref(1), // gone from Netflix: no video
+            "4": { $type: "atom" },
+            "5": { $type: "atom" },
+          },
+          videos: {
+            "80107103": video("One Piece", 2026, "show"),
+            "80217863": video("ONE PIECE", 2026, "show"),
+            "80230399": video("Extraction", 2020, "movie"),
+          },
+        },
+      }),
+    ).toEqual([
+      { title: "One Piece", type: "tv", list: "watchlist", refs: ["netflix:80107103"] },
+      { title: "ONE PIECE", type: "tv", list: "watchlist", refs: ["netflix:80217863"] },
+      { title: "Extraction", year: 2020, type: "movie", list: "watchlist", refs: ["netflix:80230399"] },
+    ]);
+    expect(readNetflixWatchlist({})).toEqual([]);
   });
 });
 
