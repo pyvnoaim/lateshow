@@ -23,12 +23,15 @@ export type HeroSlide = {
 };
 
 /**
- * Rotating hero: a new title every --duration-slide with a crossfade. Pauses while you hover it,
+ * Rotating hero: a new title every --duration-slide with a crossfade. Pauses while you hover it or watch its trailer,
  * never rotates for people who turned off motion. The dashes jump to a slide.
  */
 export function HeroCarousel({ slides }: { slides: HeroSlide[] }) {
   const [index, setIndex] = useState(0);
-  const [paused, setPaused] = useState(false);
+  const [hovered, setHovered] = useState(false);
+  // a trailer open over it: the pointer has left for the dialog, but the slide (and its trailer) must stay
+  const [watching, setWatching] = useState(false);
+  const paused = hovered || watching;
   const slide = slides[index];
 
   // The active dash's fill animation is the clock: when it ends, the next slide comes. Pausing pauses the
@@ -36,7 +39,7 @@ export function HeroCarousel({ slides }: { slides: HeroSlide[] }) {
   const next = () => setIndex((i) => (i + 1) % slides.length);
 
   return (
-    <div onPointerEnter={() => setPaused(true)} onPointerLeave={() => setPaused(false)}>
+    <div onPointerEnter={() => setHovered(true)} onPointerLeave={() => setHovered(false)}>
       <HeroShell
         media={slides.map((s, i) => (
           <div
@@ -97,7 +100,18 @@ export function HeroCarousel({ slides }: { slides: HeroSlide[] }) {
             )}
           </div>
           <div className="flex flex-wrap items-center gap-3 pt-2">
-            {slide.trailerKey && <Trailer youtubeKey={slide.trailerKey} title={slide.name} variant="primary" />}
+            {slide.trailerKey && (
+              <Trailer
+                youtubeKey={slide.trailerKey}
+                title={slide.name}
+                variant="primary"
+                onOpenChange={(open) => {
+                  setWatching(open);
+                  // the dialog swallowed the pointer's leave: closed, it runs again
+                  if (!open) setHovered(false);
+                }}
+              />
+            )}
             <Link href={slide.href} className={buttonStyles("glass")}>
               Details
             </Link>

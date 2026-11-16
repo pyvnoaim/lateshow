@@ -10,12 +10,19 @@ export function Trailer({
   youtubeKey,
   title,
   variant = "pill",
+  onOpenChange,
 }: {
   youtubeKey: string;
   title: string;
   variant?: "pill" | "primary" | "text";
+  /** told when the trailer opens and closes (the hero carousel holds still meanwhile) */
+  onOpenChange?: (open: boolean) => void;
 }) {
-  const [open, setOpen] = useState(false);
+  const [open, setOpenState] = useState(false);
+  const setOpen = (o: boolean) => {
+    setOpenState(o);
+    onOpenChange?.(o);
+  };
   const close = useRef<HTMLButtonElement>(null);
 
   // Clicking into the YouTube player moves keyboard focus into its frame, and the page never sees Esc again.
