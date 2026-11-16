@@ -123,9 +123,10 @@ export async function match(r: ImportRow, links: Links = new Map()): Promise<Mat
     if (!t) return null;
     return { row: r, id: t.id, type: t.media_type, title: t.title ?? t.name ?? r.title, posterPath: t.poster_path };
   }
-  // Netflix episodes only fit a series
+  // a series only fits a series: rows say "tv" only when the site knows (Netflix episodes, Prime, Crunchyroll),
+  // Letterboxd calls everything a film, so a film row still looks at both
   const find = async (q: string) =>
-    (await searchForImport(q).catch(() => [])).filter((h) => !r.episodes || h.type === "tv");
+    (await searchForImport(q).catch(() => [])).filter((h) => r.type !== "tv" || h.type === "tv");
   let hits = await find(r.title);
   // "Jack in the Box 2 - Awakening", "Sharknado - More Sharks, More 'Nado!": a subtitle TMDB writes otherwise.
   // Nothing found: the part before it, and with no exact name that's always a pick, never a guess
