@@ -41,7 +41,7 @@ export function readSearch(s: SearchParams) {
     q: (one(s.q) ?? "").trim().slice(0, 100),
     type: (type === "movie" ? "movie" : type === "series" ? "tv" : "all") as TypeFilter,
     genre: GENRES.find((g) => g.slug === one(s.genre)) ?? null,
-    // how many "Show more" steps (24 titles each) a genre shows, capped so a URL can't ask TMDB for 50 pages
+    // how many "Show more" steps (24 titles each) browsing shows, capped so a URL can't ask TMDB for 50 pages
     more: Math.min(Math.max(Number.parseInt(one(s.more) ?? "1", 10) || 1, 1), MAX_MORE),
   };
 }

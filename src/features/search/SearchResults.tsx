@@ -25,12 +25,10 @@ export async function SearchResults({ searchParams }: { searchParams: Promise<Se
   const region = await getRegion();
   const cards = s.q
     ? filterCards(await searchTitles(s.q, region.lang), s.type, s.genre)
-    : s.genre
-      ? await genreTitles(s, region.code, region.lang)
-      : (await getTrending(s.type, 1, region.lang).catch(() => [])).slice(0, 12);
+    : await browseTitles(s, region.code, region.lang);
   const filtered = s.type !== "all" || s.genre !== null;
   // a full page means TMDB likely has more: offer the next 24 (in the URL, so back and links keep it)
-  const more = !s.q && s.genre !== null && cards.length === s.more * PER_STEP && s.more < MAX_MORE;
+  const more = !s.q && cards.length === s.more * PER_STEP && s.more < MAX_MORE;
 
   return (
     <>
@@ -114,18 +112,23 @@ function Filters({ s }: { s: SearchState }) {
 }
 
 /**
- * The first `more` steps of 24 popular titles in a genre. Each TMDB page gives 20 movies and 20 series, so step n
- * needs pages up to about n * 24 / 40, deduped (a title can sit on two pages while popularity moves).
+ * The first `more` steps of 24 titles: trending, or popular in a genre. A genre page gives 20 movies and 20 series,
+ * trending 20 in all (people included, filtered out), deduped (a title can sit on two pages while popularity moves).
  */
-async function genreTitles(s: SearchState, country: string, lang: string) {
-  if (!s.genre) return [];
+async function browseTitles(s: SearchState, country: string, lang: string) {
   const want = s.more * PER_STEP;
+  const genre = s.genre;
   // 20 per kind and page, only the kinds this genre has (Horror has no series genre on TMDB)
-  const kinds = (["movie", "tv"] as const).filter((k) => (s.type === "all" || s.type === k) && s.genre![k] !== null);
-  const perPage = Math.max(kinds.length, 1) * 20;
+  const kinds = genre
+    ? (["movie", "tv"] as const).filter((k) => (s.type === "all" || s.type === k) && genre[k] !== null)
+    : [];
+  // ponytail: trending keeps about 14 of its 20 once people and doubles are out, so count on 12
+  const perPage = genre ? Math.max(kinds.length, 1) * 20 : 12;
   const pages = Math.ceil(want / perPage) + 1;
   const all = await Promise.all(
-    Array.from({ length: pages }, (_, i) => getGenreTitles(s.type, s.genre!, country, lang, i + 1).catch(() => [])),
+    Array.from({ length: pages }, (_, i) =>
+      (genre ? getGenreTitles(s.type, genre, country, lang, i + 1) : getTrending(s.type, i + 1, lang)).catch(() => []),
+    ),
   );
   const seen = new Set<string>();
   return all
