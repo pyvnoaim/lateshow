@@ -116,7 +116,9 @@ export function remember(userId: string, matches: Match[]) {
  * title search, then title and year decide (or ask).
  */
 export async function match(r: ImportRow, links: Links = new Map()): Promise<Match | Unsure | null> {
-  const known = r.refs?.map((ref) => links.get(ref)).find(Boolean);
+  // a series row never takes a remembered film (one remembered before series only matched series, Trinity Seven's
+  // film for the anime): it matches again and the new match replaces the link
+  const known = r.refs?.map((ref) => links.get(ref)).find((l) => l && (r.type !== "tv" || l.type === "tv"));
   if (known) return { row: r, ...known };
   if (r.imdbId) {
     const t = await findByImdbId(r.imdbId).catch(() => null);
