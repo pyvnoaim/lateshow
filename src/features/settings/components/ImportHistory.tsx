@@ -65,6 +65,12 @@ export function ImportHistory({ waiting = [], children }: { waiting?: Open[]; ch
   const [progress, setProgress] = useState({ done: 0, until: 0 });
   const [totals, setTotals] = useState<Totals>({ ...EMPTY, notFound: 0, skipped: 0 });
   const [unsure, setUnsure] = useState<Open[]>(waiting);
+  // a sync from this page refreshes it: the server's list then is the one to show (a sync settles older questions)
+  const [shown, setShown] = useState(waiting);
+  if (waiting !== shown) {
+    setShown(waiting);
+    setUnsure(waiting);
+  }
   const [error, setError] = useState("");
   const [over, setOver] = useState(false);
   const [incoming, setIncoming] = useState(false);
