@@ -77,20 +77,28 @@ jobs:
           npx -y web-ext@8.10.0 sign --channel=unlisted --source-dir extension/dist --artifacts-dir signed \
             --api-key "$AMO_JWT_ISSUER" --api-secret "$AMO_JWT_SECRET" \
             --upload-source-code extension/lateshow-extension-source.zip --approval-timeout 1800000
-          mkdir -p public/extension
-          rm -f public/extension/*.xpi
-          cp signed/*.xpi "public/extension/lateshow-$VERSION.xpi"
-          node -e '
-            const v = process.env.VERSION;
-            const link = `https://lateshow.pyvno.xyz/extension/lateshow-${v}.xpi`;
-            const doc = { addons: { "extension@lateshow.pyvno.xyz": { updates: [{ version: v, update_link: link }] } } };
-            require("fs").writeFileSync("public/extension/updates.json", JSON.stringify(doc, null, 2) + "\n");
-          '
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add public/extension
-          git commit -m "Extension $VERSION, signed by Mozilla"
-          # main may have moved while Mozilla signed (a push minutes later): only public/extension changed here
-          git pull --rebase origin main
-          git push
+          # Published files are written fresh on the newest main, never merged: another run may have published while
+          # Mozilla signed. An older version than the one already out is signed but not published.
+          for attempt in 1 2 3; do
+            git fetch -q origin main
+            git checkout -q -B publish origin/main
+            current=$(node -p "try{require('./public/extension/updates.json').addons['extension@lateshow.pyvno.xyz'].updates.at(-1).version}catch{''}")
+            newer=$(node -e "const a=process.argv[1].split('.').map(Number),b=(process.argv[2]||'0').split('.').map(Number);for(let i=0;i<3;i++){if(a[i]!==b[i]){console.log(a[i]>b[i]);process.exit()}}console.log(false)" "$VERSION" "$current")
+            if [ "$newer" != "true" ]; then echo "::notice::$current is already out, $VERSION stays signed but unpublished"; exit 0; fi
+            mkdir -p public/extension
+            rm -f public/extension/*.xpi
+            cp signed/*.xpi "public/extension/lateshow-$VERSION.xpi"
+            node -e '
+              const v = process.env.VERSION;
+              const link = `https://lateshow.pyvno.xyz/extension/lateshow-${v}.xpi`;
+              const doc = { addons: { "extension@lateshow.pyvno.xyz": { updates: [{ version: v, update_link: link }] } } };
+              require("fs").writeFileSync("public/extension/updates.json", JSON.stringify(doc, null, 2) + "\n");
+            '
+            git add public/extension
+            git commit -q -m "Extension $VERSION, signed by Mozilla"
+            if git push -q origin publish:main; then break; fi
+            if [ "$attempt" = 3 ]; then exit 1; fi
+          done
           if [ -n "$WEBHOOK" ]; then curl -fsS -X POST "$WEBHOOK"; fi
