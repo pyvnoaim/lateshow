@@ -1,6 +1,6 @@
 import "server-only";
 import { randomBytes } from "node:crypto";
-import { and, eq, gt, isNull, or } from "drizzle-orm";
+import { and, eq, gt, isNotNull, isNull, or } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/lib/db/client";
 import { importBatch as imports, rating, watched, watchlist } from "@/lib/db/schema";
@@ -170,6 +170,15 @@ export async function runBatch(userId: string, raw: ImportRow[], rawImportId: st
   const unsure = results.filter((r): r is Unsure => r !== null && "candidates" in r);
   const saved = await save(userId, matches, importId);
   remember(userId, matches);
+  // a title asked about before and read again now (the next sync) is settled by this answer, not asked twice
+  const seen = new Set(rows.map(openKey));
+  const older = await db
+    .select({ id: imports.id, open: imports.open })
+    .from(imports)
+    .where(and(eq(imports.userId, userId), isNotNull(imports.open)));
+  for (const b of older)
+    if ((b.open as Unsure[]).some((u) => seen.has(openKey(u.row))))
+      await keepOpen(b.id, (open) => open.filter((u) => !seen.has(openKey(u.row))));
   if (unsure.length) await keepOpen(importId, (open) => [...open, ...unsure]);
   return {
     ...saved,
