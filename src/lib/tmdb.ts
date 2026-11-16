@@ -54,7 +54,7 @@ export type Title = {
   vote_average: number;
   seasons?: { season_number: number; episode_count: number }[];
   credits: { cast: { id: number; name: string; character: string; profile_path: string | null }[] };
-  videos: { results: { key: string; site: string; type: string; official: boolean }[] };
+  videos: { results: { key: string; site: string; type: string; official: boolean; name?: string }[] };
   recommendations: { results: Card[] };
   "watch/providers": {
     results: Record<
@@ -76,9 +76,14 @@ export type Title = {
 
 export type Video = Title["videos"]["results"][number];
 
-/** Official YouTube trailer first, any YouTube trailer second. */
+// versions for blind or deaf viewers, listed as trailers too ("Audio Described Trailer", "ASL", "Hörfilm")
+const ACCESS = /audio[ -]?descri|audiodeskri|h[öo]rfilm|\bAD\b|sign language|\bASL\b|geb[äa]rdensprache/i;
+
+/** Official YouTube trailer first, any YouTube trailer second. The plain cut before an audio described or sign one. */
 export function pickTrailer(videos: Video[]) {
-  const trailers = videos.filter((v) => v.site === "YouTube" && v.type === "Trailer");
+  const youtube = videos.filter((v) => v.site === "YouTube" && v.type === "Trailer");
+  const plain = youtube.filter((v) => !ACCESS.test(v.name ?? ""));
+  const trailers = plain.length ? plain : youtube;
   return trailers.find((v) => v.official) ?? trailers[0];
 }
 

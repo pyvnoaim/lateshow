@@ -68,6 +68,15 @@ describe("pickTrailer", () => {
     expect(pickTrailer([v("x", "Trailer", true, "Vimeo"), v("b", "Trailer", false)])?.key).toBe("b");
     expect(pickTrailer([v("x", "Trailer", true, "Vimeo")])).toBeUndefined();
   });
+
+  it("skips audio described and sign language cuts while a plain one exists", () => {
+    const named = (key: string, name: string): Video => ({ ...v(key, "Trailer", true), name });
+    expect(pickTrailer([named("ad", "Official Audio Described Trailer"), named("p", "Official Trailer")])?.key).toBe(
+      "p",
+    );
+    expect(pickTrailer([named("asl", "Trailer (ASL)"), named("p2", "Trailer 2")])?.key).toBe("p2");
+    expect(pickTrailer([named("ad", "Trailer | AD")])?.key).toBe("ad");
+  });
 });
 
 describe("pickLogo", () => {
