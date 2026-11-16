@@ -26,7 +26,7 @@ import { ExtensionKeys } from "./components/ExtensionKeys";
 import { getKeys } from "@/lib/extension/keys";
 import { connectExtension, disconnectExtension } from "@/lib/extension/actions";
 import { latestExtension } from "@/lib/extension/latest";
-import { getImports, getOpenPicks } from "@/lib/library/queries";
+import { getImports, getLastImports, getOpenPicks } from "@/lib/library/queries";
 import { removeImport } from "@/lib/library/importActions";
 import { TextSetting } from "./components/TextSetting";
 import { Passkeys } from "./components/Passkeys";
@@ -38,7 +38,7 @@ export async function Settings() {
   const session = await getSession();
   if (!session) redirect(`/login?next=${encodeURIComponent("/settings")}`);
   const region = await getRegion();
-  const [choices, mine, passkeys, imports, keys, waiting, latest] = await Promise.all([
+  const [choices, mine, passkeys, imports, keys, waiting, latest, lastImports] = await Promise.all([
     getServiceChoices(region.code).catch(() => []),
     getMyServiceIds(),
     getMyPasskeys(),
@@ -46,7 +46,10 @@ export async function Settings() {
     getKeys(session.user.id),
     getOpenPicks(session.user.id),
     latestExtension(),
+    getLastImports(session.user.id),
   ]);
+  // ponytail: "today" by the server's day (UTC in Docker), close enough for a "last synced"
+  const dayOrToday = (d: Date) => (d.toDateString() === new Date().toDateString() ? "today" : day(d));
   const day = (d: Date) =>
     d.toLocaleDateString("en", {
       month: "short",
@@ -162,6 +165,9 @@ export async function Settings() {
                     choices
                       .filter((c) => ["Netflix", "Prime Video", "Crunchyroll"].includes(c.name))
                       .map((c) => [c.name, img(c.logoPath, "w92")!]),
+                  )}
+                  last={Object.fromEntries(
+                    [...lastImports].flatMap(([source, at]) => (at ? [[source, dayOrToday(at)]] : [])),
                   )}
                   remove={removeImport}
                 />

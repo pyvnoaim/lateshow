@@ -217,6 +217,16 @@ export async function getOpenPicks(userId: string) {
   return rows.flatMap((r) => (r.open as Unsure[]).map((u) => ({ ...u, importId: r.id })));
 }
 
+/** When each source last came in, a sync that found nothing new included (Settings › Import says "last …") */
+export async function getLastImports(userId: string) {
+  const rows = await db
+    .select({ source: importBatch.source, at: max(importBatch.createdAt) })
+    .from(importBatch)
+    .where(eq(importBatch.userId, userId))
+    .groupBy(importBatch.source);
+  return new Map(rows.map((r) => [r.source, r.at]));
+}
+
 /** Your past imports that still hold something, newest first: what Settings › Import can remove again. */
 export async function getImports(userId: string) {
   const watches = db

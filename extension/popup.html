@@ -248,10 +248,31 @@
         overflow: hidden;
       }
       .fill {
+        width: 0;
         height: 100%;
         border-radius: 999px;
         background: linear-gradient(90deg, #a9c2ea, #f2f6fd);
-        transition: width 0.4s ease;
+        transition: width 0.6s ease;
+      }
+      /* reading: how much there is isn't known yet, a light runs along */
+      .bar.running .fill {
+        width: 35%;
+        animation: run 1.4s ease-in-out infinite;
+      }
+      @keyframes run {
+        from {
+          transform: translateX(-100%);
+        }
+        to {
+          transform: translateX(300%);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        .bar.running .fill {
+          animation: none;
+          width: 100%;
+          opacity: 0.4;
+        }
       }
       .big {
         font-size: 20px;

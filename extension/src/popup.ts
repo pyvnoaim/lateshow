@@ -123,24 +123,32 @@ function connectScreen() {
   app.append(hero, connect, first);
 }
 
+/** A running sync's moving parts, updated in place (rebuilding the card each step made it flicker) */
+function progress(card: HTMLElement, s: SyncState) {
+  const fill = card.querySelector<HTMLElement>(".fill");
+  if (fill && s.phase === "importing" && s.total) fill.style.width = `${Math.round((100 * (s.done ?? 0)) / s.total)}%`;
+  const line =
+    s.phase === "reading"
+      ? `Reading in a background tab · ${plural(s.read ?? 0, "title")}`
+      : `Matching · ${(s.done ?? 0).toLocaleString("en")} of ${plural(s.total ?? 0, "title")}`;
+  card.querySelector(".note")!.textContent = `${line}. You can close this.`;
+}
+
 /** D: a sync that runs, or one that just ended */
 function syncCard(s: SyncState) {
   const site = SITES.find((x) => x.site === s.site);
   const card = el("section", "sync");
+  card.dataset.phase = s.phase;
   const head = el("div", "sync-head");
   if (site) head.append(badge(site, 22));
   if (s.phase === "reading" || s.phase === "importing") {
     head.append(el("span", "", `Syncing ${s.site}`));
-    const bar = el("div", "bar");
+    // reading: how much there is isn't known, a light runs. Matching: the share of titles done
+    const bar = el("div", s.phase === "reading" ? "bar running" : "bar");
     const fill = el("div", "fill");
-    const share = s.phase === "importing" && s.total ? 0.5 + (0.5 * (s.done ?? 0)) / s.total : 0.15;
-    fill.style.width = `${Math.round(share * 100)}%`;
     bar.append(fill);
-    const line =
-      s.phase === "reading"
-        ? `Reading in a background tab · ${plural(s.read ?? 0, "title")}`
-        : `Matching · ${(s.done ?? 0).toLocaleString("en")} of ${plural(s.total ?? 0, "title")}`;
-    card.append(head, bar, el("p", "note", `${line}. You can close this.`));
+    card.append(head, bar, el("p", "note"));
+    progress(card, s);
     return card;
   }
   if (s.phase === "error") {
@@ -160,7 +168,7 @@ function syncCard(s: SyncState) {
   head.append(close);
   card.append(head);
   const counts = [r.episodes && plural(r.episodes, "episode"), r.films && plural(r.films, "film")].filter(Boolean);
-  card.append(el("p", "big", counts.length ? `${counts.join(" · ")} new` : "Nothing new since the last sync"));
+  card.append(el("p", "big", counts.length ? `${counts.join(" · ")} new` : "All of it was in Lateshow already"));
   if (r.unsure) {
     const look = el("button", "look");
     look.append(el("span", "", `${plural(r.unsure, "title")} need a look in Lateshow`), icon(CHEVRON));
@@ -204,13 +212,16 @@ function recentList(recent: Recent[]) {
 
 /** C: one line per site, when it last synced, Sync, and the switch that marks what you finish there */
 function siteList(settings: Settings, synced: Record<string, number>, busy: boolean) {
+  const sameDay = (a: number) => new Date(a).toDateString() === new Date().toDateString();
+  const time = (a: number) => new Date(a).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
   const sec = el("section", "sites");
   for (const s of SITES) {
     const on = settings.autoMark?.[s.site] !== false;
     const profile = settings.profiles?.[s.site];
     const line = el("div", "site");
     const text = el("div", "text");
-    const last = synced[s.site] ? `synced ${day(synced[s.site])}` : "never synced";
+    const at = synced[s.site];
+    const last = at ? `synced ${sameDay(at) ? `today ${time(at)}` : day(at)}` : "never synced";
     const sub = el("span", "sub", profile ? `${last} · profile ${profile} · ` : last);
     if (profile) {
       // another profile marks from now on: the next one that finishes something there
@@ -249,7 +260,6 @@ function siteList(settings: Settings, synced: Record<string, number>, busy: bool
 let connectedAs: string | null | undefined;
 
 async function render() {
-  app.replaceChildren();
   // Firefox lets you decide site access yourself: asked once, inside a click
   if (!(await chrome.permissions.contains({ origins: ORIGINS }))) {
     const allow = el("button", "primary", "Allow access");
@@ -261,34 +271,53 @@ async function render() {
         el("p", "note", "No prompt? Turn it on by hand: about:addons, Lateshow, Permissions, then every site there."),
       );
     });
-    app.append(el("p", "note", "Lateshow needs access to Netflix, Prime Video, Crunchyroll and Lateshow."), allow);
+    app.replaceChildren(
+      el("p", "note", "Lateshow needs access to Netflix, Prime Video, Crunchyroll and Lateshow."),
+      allow,
+    );
     return;
   }
   connectedAs ??= await account();
   who.replaceChildren();
-  if (!connectedAs) return connectScreen();
+  if (!connectedAs) {
+    app.replaceChildren();
+    return connectScreen();
+  }
   who.append(el("span", "avatar", connectedAs.replace("@", "").slice(0, 1).toUpperCase()), connectedAs);
 
-  const [settings, synced, state, recent, job] = await Promise.all([
+  const [settings, syncedAt, synced, state, recent, job] = await Promise.all([
     store<Settings>("settings"),
+    store<Record<string, number>>("syncedAt"),
     store<Record<string, number>>("synced"),
     store<SyncState>("syncState"),
     store<Recent[]>("recent"),
     store<{ started?: number }>("job"),
   ]);
+  // built aside and swapped in at once: emptying first showed a blank popup for a moment
+  const out: Node[] = [];
   const running = state && (state.phase === "reading" || state.phase === "importing");
-  if (state && (running || Date.now() - state.at < SHOW_DONE)) app.append(syncCard(state));
+  if (state && (running || Date.now() - state.at < SHOW_DONE)) out.push(syncCard(state));
   const marks = recentList(recent ?? []);
-  if (marks) app.append(marks);
+  if (marks) out.push(marks);
   // busy while a tab reads or what it read is imported (the tab is gone by then)
   const busy =
     Boolean(job && Date.now() - (job.started ?? 0) < STALE) ||
     Boolean(state?.phase === "importing" && Date.now() - state.at < STALE);
-  app.append(...siteList(settings ?? {}, synced ?? {}, busy));
+  // when it last synced, else (synced before 0.6.6) how far it had read
+  out.push(...siteList(settings ?? {}, { ...synced, ...syncedAt }, busy));
+  app.replaceChildren(...out);
 }
 
-// the sync, a mark or a switch changes storage: the popup follows, one render after another
+// the sync, a mark or a switch changes storage: the popup follows, one render after another. A running sync's
+// progress only updates its card (its light keeps running, nothing jumps)
 let rendering = Promise.resolve();
 const rerender = () => void (rendering = rendering.then(render, render));
-chrome.storage.onChanged.addListener(rerender);
+chrome.storage.onChanged.addListener((changes) => {
+  const keys = Object.keys(changes);
+  const s = changes.syncState?.newValue as SyncState | undefined;
+  const card = app.querySelector<HTMLElement>(".sync[data-phase]");
+  if (keys.length === 1 && s && card?.dataset.phase === s.phase && ["reading", "importing"].includes(s.phase))
+    return progress(card, s);
+  rerender();
+});
 rerender();

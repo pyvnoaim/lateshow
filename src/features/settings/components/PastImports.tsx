@@ -38,11 +38,14 @@ const what = (i: PastImport) =>
 export function PastImports({
   imports,
   logos,
+  last,
   remove,
 }: {
   imports: PastImport[];
   /** the services' own logos (TMDB's, through next/image), by source name */
   logos: Record<string, string>;
+  /** when each source last came in, a sync that brought nothing new too */
+  last: Record<string, string>;
   remove: (id: string) => Promise<void>;
 }) {
   const [open, setOpen] = useState<string | null>(null);
@@ -75,7 +78,7 @@ export function PastImports({
             : `Syncing · matching ${n(sync.state!.done ?? 0)} of ${n(sync.state!.total ?? 0)}`
           : [watches && plural(watches, "watch", "watches"), listed && `${n(listed)} on your watchlist`]
               .filter(Boolean)
-              .concat(`last ${runs[0].when}`)
+              .concat(`last ${last[source] ?? runs[0].when}`)
               .join(" · ");
         const isOpen = open === source;
         return (

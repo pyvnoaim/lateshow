@@ -134,6 +134,11 @@ async function importRows(job: Job, rows: unknown[], newest: number) {
       const synced = (await local<Record<string, number>>("synced")) ?? {};
       await chrome.storage.local.set({ synced: { ...synced, [job.site]: Math.max(synced[job.site] ?? 0, newest) } });
     }
+    // when it last synced (the popup says so), apart from how far it read
+    {
+      const at = (await local<Record<string, number>>("syncedAt")) ?? {};
+      await chrome.storage.local.set({ syncedAt: { ...at, [job.site]: Date.now() } });
+    }
     await setState({ site: job.site, phase: "done", result: total });
   } catch (e) {
     await setState({ site: job.site, phase: "error", message: (e as Error).message || "The import stopped." });
