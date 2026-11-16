@@ -84,10 +84,22 @@ export default function PrivacyPage() {
             export file itself never leaves your browser, only the rows read from it.
           </li>
           <li>
-            <strong>The Lateshow extension</strong>, if you connect it: a key for that browser (we keep only a
-            fingerprint of it) and when it was last used. It sends a title only once you finished watching it, with the
-            time and the streaming service. Your progress, pauses or what you started but didn&apos;t finish stay in
-            your browser. Disconnect it any time in Settings.
+            <strong>The Lateshow extension</strong> (Firefox and Chrome), if you connect it: a key for that browser (we
+            keep only a fingerprint of it), which browser it is and when it was last used. It works only on Netflix,
+            Prime Video and Crunchyroll, signed in there as you, and reads only their own data:
+            <ul className="mt-2 flex list-disc flex-col gap-1.5 pl-5">
+              <li>
+                When you finish an episode or film there, it sends that title with the time and the service. Your
+                progress, pauses or what you started but didn&apos;t finish stay in your browser.
+              </li>
+              <li>
+                When you press Sync (or Import on a history page), it sends that site&apos;s watch history since the
+                last sync (titles, seasons, episodes, days) and, unless you switch it off, the titles on its watchlist.
+              </li>
+            </ul>
+            It reads no other site, no browsing history and no passwords, and sends nothing to anyone but Lateshow. What
+            it sends is used only for your Lateshow library, never sold, shared or used for ads. Disconnect it any time
+            in Settings, and remove an import there.
           </li>
           <li>
             <strong>Friends</strong>: who you are friends with and the invite links you made.
