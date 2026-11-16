@@ -161,6 +161,12 @@ export async function match(r: ImportRow, links: Links = new Map()): Promise<Mat
     if (h && norm(h.title) === norm(r.title))
       return { row: r, id: h.id, type: h.type, title: h.title, posterPath: h.posterPath };
   }
+  // ponytail: a watchlist title never asks, TMDB's top hit is it (the anime, not its films). Cheap if wrong: it's
+  // only on your list. Ask instead if wrong ones show up there
+  if (r.list === "watchlist" && m.candidates.length) {
+    const h = m.candidates[0];
+    return { row: r, id: h.id, type: h.type, title: h.title, posterPath: h.posterPath };
+  }
   return {
     row: r,
     candidates: m.candidates.map((c) => ({
