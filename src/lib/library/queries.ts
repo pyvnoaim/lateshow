@@ -210,11 +210,11 @@ export const getMyWatchlistKeys = cache(async () => {
 /** The unclear titles your imports still wait on, with the import each belongs to (Settings › Import lists them) */
 export async function getOpenPicks(userId: string) {
   const rows = await db
-    .select({ id: importBatch.id, open: importBatch.open })
+    .select({ id: importBatch.id, source: importBatch.source, open: importBatch.open })
     .from(importBatch)
     .where(and(eq(importBatch.userId, userId), isNotNull(importBatch.open)))
     .orderBy(desc(importBatch.createdAt));
-  return rows.flatMap((r) => (r.open as Unsure[]).map((u) => ({ ...u, importId: r.id })));
+  return rows.flatMap((r) => (r.open as Unsure[]).map((u) => ({ ...u, importId: r.id, source: r.source })));
 }
 
 /** When each source last came in, a sync that found nothing new included (Settings › Import says "last …") */

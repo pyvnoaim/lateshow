@@ -40,8 +40,8 @@ async function readFiles(list: FileList) {
 }
 
 /** What the file says about an unclear title: a watchlist row, its episodes, its year, or when you watched it. */
-function fileNote(row: ImportRow) {
-  if (row.list === "watchlist") return row.year ? `On your watchlist there · ${row.year}` : "On your watchlist there";
+function fileNote(row: ImportRow, source: string) {
+  if (row.list === "watchlist") return `On your ${source} watchlist${row.year ? ` · ${row.year}` : ""}`;
   if (row.episodes) return `${row.episodes.length} episode${row.episodes.length === 1 ? "" : "s"} in your file`;
   if (row.year) return `${row.year} in your file`;
   if (row.date)
@@ -50,7 +50,7 @@ function fileNote(row: ImportRow) {
 }
 
 /** An unclear title and the import it belongs to (a pick joins that import) */
-export type Open = Unsure & { importId: string };
+export type Open = Unsure & { importId: string; source: string };
 
 /**
  * Settings › Import: drop a Letterboxd export ZIP, IMDb CSVs or Netflix's viewing history. Rows go to the server in batches (progress shown),
@@ -135,7 +135,7 @@ export function ImportHistory({ waiting = [], children }: { waiting?: Open[]; ch
       }
       sum = add(sum, r);
       sum.notFound += r.notFound;
-      open.push(...r.unsure.map((u) => ({ ...u, importId })));
+      open.push(...r.unsure.map((u) => ({ ...u, importId, source })));
       i = end;
     }
     setTotals(sum);
@@ -201,7 +201,7 @@ export function ImportHistory({ waiting = [], children }: { waiting?: Open[]; ch
           <div className="flex items-start justify-between gap-3 pt-1 pl-2">
             <span className="min-w-0">
               <span className="block text-label font-medium text-balance">{u.row.title}</span>
-              <span className="block text-caption text-muted">{fileNote(u.row)}</span>
+              <span className="block text-caption text-muted">{fileNote(u.row, u.source)}</span>
             </span>
             <button
               type="button"
