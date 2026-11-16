@@ -2,8 +2,10 @@
 
 Paste these into the developer dashboard (chrome.google.com/webstore/devconsole). Visibility: **Unlisted**.
 Upload: `pnpm ext:chrome` → `extension/lateshow-chrome.zip`.
-Images: `screenshot-1280x800.png`, `promo-440x280.png` (remade from `slide.html` / `tile.html` with the popup's
-`stub.js` demo data, see the comment in each file), icon = the 128 px one in the zip.
+Images: `screenshot-1280x800.png`, `promo-440x280.png`, icon = the 128 px one in the zip. To remake them: copy
+`extension/dist` to a folder as `popup/`, add `<script src="stub.js">` (demo data, no real account) before popup.js
+in its popup.html, put `slide.html`, `tile.html` and `stub.js` next to it, serve the folder and screenshot the pages
+at 1280×800 and 440×280 (`npx playwright screenshot --viewport-size=1280,800 <url> out.png`).
 
 ## Store listing
 
