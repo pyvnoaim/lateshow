@@ -1,7 +1,5 @@
 import "server-only";
-import { eq } from "drizzle-orm";
-import { db } from "@/lib/db/client";
-import { userServices } from "@/lib/db/schema";
+import { serviceIdsFor } from "@/lib/settings/queries";
 import { getFriendsWatchlisting } from "@/lib/friends/queries";
 import { getWatchLinks } from "@/lib/justwatch";
 import {
@@ -51,11 +49,7 @@ const day = (iso: string) =>
 export async function getWatchlistView(userId: string, country: string, lang: string) {
   const [rows, mine, friendsWant] = await Promise.all([
     getWatchlist(userId),
-    db
-      .select({ id: userServices.providerId })
-      .from(userServices)
-      .where(eq(userServices.userId, userId))
-      .then((r) => r.map((x) => x.id)),
+    serviceIdsFor(userId, country),
     getFriendsWatchlisting(userId),
   ]);
   const now = new Date();

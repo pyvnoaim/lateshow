@@ -81,7 +81,11 @@ export async function Settings() {
           </Row>
         </Group>
         <Group {...GROUPS[1]}>
-          <Row stack title="Your services" description={`Picks come only from the ones you pay for.`}>
+          <Row
+            stack
+            title="Your services"
+            description="Picks come only from the ones you use, free ones and Prime channels too."
+          >
             {choices.length === 0 ? (
               <p className="text-body text-muted">Couldn&apos;t load the services right now. Try again in a minute.</p>
             ) : (

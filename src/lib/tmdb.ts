@@ -62,6 +62,8 @@ export type Title = {
       | {
           link: string;
           flatrate?: { provider_id: number; provider_name: string; logo_path: string }[];
+          free?: { provider_id: number; provider_name: string; logo_path: string }[];
+          ads?: { provider_id: number; provider_name: string; logo_path: string }[];
           rent?: { provider_id: number; provider_name: string }[];
           buy?: { provider_id: number; provider_name: string }[];
         }
@@ -226,11 +228,16 @@ export async function getUpcomingInCinemas(country: string, lang: string = DEFAU
     .toSorted((a, b) => a.date!.localeCompare(b.date!));
 }
 
-/** TMDB's provider name as people say it: "Paramount Plus" -> "Paramount+", "Amazon Prime Video" -> "Prime Video". */
+/**
+ * TMDB's provider name as people say it: "Paramount Plus" -> "Paramount+", "Amazon Prime Video" -> "Prime Video".
+ * A channel you add in Prime Video or Apple TV is that service: "Paramount+ Amazon Channel" -> "Paramount+".
+ */
 export function serviceName(name: string): string {
   return name
+    .replace(/\s+(Amazon|Apple TV)\s+Channel$/i, "")
+    .replace(/^Amazon (.+) Channel$/i, "$1")
     .replace(/\s+(Standard\s+)?with\s+Ads$/i, "")
-    .replace(/^Amazon Prime Video/, "Prime Video")
+    .replace(/^Amazon Prime Video( Free)?/, "Prime Video")
     .replace(/\s+Plus$/i, "+");
 }
 
@@ -250,18 +257,19 @@ export function titleToCard(t: Title, type: MediaType): Card {
 
 export type Service = { id: number; name: string; logoPath: string };
 
-/** Services in the country that include this title in a subscription (Netflix, Prime Video...), TMDB's order. Amazon
- * add-on channels stay out (ADN's in Germany is only that), as in the Settings picker. */
+/**
+ * Services in the country where this title streams without renting or buying it (Netflix, a Prime channel, ARD
+ * Mediathek...), subscriptions first in TMDB's order, each service once.
+ */
 export function subscriptionServices(t: Pick<Title, "watch/providers">, country: string): Service[] {
-  return (
-    t["watch/providers"].results[country]?.flatrate
-      ?.filter((p) => !/channel/i.test(p.provider_name))
-      .map((p) => ({
-        id: p.provider_id,
-        name: serviceName(p.provider_name),
-        logoPath: p.logo_path,
-      })) ?? []
-  );
+  const r = t["watch/providers"].results[country];
+  const byName = new Map<string, Service>();
+  for (const p of [...(r?.flatrate ?? []), ...(r?.free ?? []), ...(r?.ads ?? [])]) {
+    if (NOT_A_SERVICE.test(p.provider_name)) continue;
+    const name = serviceName(p.provider_name);
+    if (!byName.has(name)) byName.set(name, { id: p.provider_id, name, logoPath: p.logo_path });
+  }
+  return [...byName.values()];
 }
 
 /** `with_watch_providers` for discover: any of these services ("8|337"). Nothing when there are none. */
@@ -275,25 +283,29 @@ type Provider = {
   display_priorities?: Record<string, number>;
 };
 
-// TMDB's list mixes in rent/buy stores, free tiers, ad tiers and Amazon add-on channels. Only subscriptions stay.
-// JustWatch TV+ is JustWatch's own free channel
-const NOT_A_SUBSCRIPTION =
-  /store|channel|free|with ads|^amazon video$|google play|rakuten|videobuster|^youtube$|^justwatch/i;
+// Stores where you rent or buy a title aren't a service you use, nor JustWatch's own channels (TMDB's data comes from
+// JustWatch). Everything else is, free or paid, a Prime channel too
+const NOT_A_SERVICE = /store|^amazon video$|google play|rakuten|videobuster|^youtube$|^justwatch/i;
 
-/** Movie and series provider lists as one: subscriptions only, each service once, most important in the country first. Pure. */
-export function mergeProviders(lists: Provider[][], country: string): Service[] {
-  const byName = new Map<string, Service>();
+/**
+ * Movie and series provider lists as one: no stores, each service once (its channels under its name, `ids` holds
+ * every TMDB id it goes by), most important in the country first. Pure.
+ */
+export function mergeProviders(lists: Provider[][], country: string): (Service & { ids: number[] })[] {
+  const byName = new Map<string, Service & { ids: number[] }>();
   for (const p of lists
     .flat()
-    .filter((p) => !NOT_A_SUBSCRIPTION.test(p.provider_name))
+    .filter((p) => !NOT_A_SERVICE.test(p.provider_name))
     .toSorted((a, b) => (a.display_priorities?.[country] ?? 999) - (b.display_priorities?.[country] ?? 999))) {
     const name = serviceName(p.provider_name);
-    if (!byName.has(name)) byName.set(name, { id: p.provider_id, name, logoPath: p.logo_path });
+    const s = byName.get(name);
+    if (!s) byName.set(name, { id: p.provider_id, name, logoPath: p.logo_path, ids: [p.provider_id] });
+    else if (!s.ids.includes(p.provider_id)) s.ids.push(p.provider_id);
   }
   return [...byName.values()];
 }
 
-/** Streaming services available in the country, for the settings picker. */
+/** Every service in the country, most important first, for the settings picker (it shows the top ones, then all). */
 export async function getServiceChoices(country: string) {
   "use cache";
   cacheLife("days");
@@ -302,9 +314,14 @@ export async function getServiceChoices(country: string) {
       tmdb<{ results: Provider[] }>(`/watch/providers/${type}`, { watch_region: country }).then((d) => d.results),
     ),
   );
-  // ponytail: TMDB lists 100+ in big countries, most are niche. The top 12 are what people actually pay for
-  // (Germany: Netflix to YouTube Premium, after it Hayu, MUBI and smaller). A country where 12 is too few: raise it
-  return mergeProviders(lists, country).slice(0, 12);
+  return mergeProviders(lists, country);
+}
+
+/** Your services' ids plus the ids their channels go by (Paramount+ also counts on Prime's Paramount+ channel). */
+export async function withChannelIds(ids: number[], country: string): Promise<number[]> {
+  if (!ids.length) return ids;
+  const all = await getServiceChoices(country).catch(() => []);
+  return [...new Set([...ids, ...all.filter((s) => s.ids.some((i) => ids.includes(i))).flatMap((s) => s.ids)])];
 }
 
 /** Most popular titles on any of these services right now. `all` alternates movie and series. */

@@ -1,7 +1,5 @@
 import "server-only";
-import { eq } from "drizzle-orm";
-import { db } from "@/lib/db/client";
-import { userServices } from "@/lib/db/schema";
+import { serviceIdsFor } from "@/lib/settings/queries";
 import { discoverPicks, searchKeywordIds, type MediaType } from "@/lib/tmdb";
 import { isEmptyMood, parseMood } from "./mood";
 import { roomServices, seededShuffle } from "./swipe";
@@ -28,15 +26,7 @@ async function moodParams(mood: string, kind: MediaType): Promise<Record<string,
  * Too few on those services: from any subscription in the country instead.
  */
 export async function pickForMood(code: string, kind: MediaType, mood: string, memberIds: string[], country: string) {
-  const perPerson = await Promise.all(
-    memberIds.map((id) =>
-      db
-        .select({ id: userServices.providerId })
-        .from(userServices)
-        .where(eq(userServices.userId, id))
-        .then((rows) => rows.map((r) => r.id)),
-    ),
-  );
+  const perPerson = await Promise.all(memberIds.map((id) => serviceIdsFor(id, country)));
   const services = roomServices(perPerson);
   const params = await moodParams(mood, kind);
   let pool = await discoverPicks(kind, params, country, services).catch(() => []);

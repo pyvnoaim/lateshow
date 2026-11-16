@@ -1,7 +1,5 @@
 import "server-only";
-import { eq } from "drizzle-orm";
-import { db } from "@/lib/db/client";
-import { userServices } from "@/lib/db/schema";
+import { serviceIdsFor } from "@/lib/settings/queries";
 import { discoverOnSubscription, type MediaType } from "@/lib/tmdb";
 import { roomServices, seededShuffle } from "./swipe";
 
@@ -21,15 +19,7 @@ export async function buildDeck(
   /** a list's titles instead of discover (still shuffled per round) */
   fromIds?: number[],
 ) {
-  const perPerson = await Promise.all(
-    memberIds.map((id) =>
-      db
-        .select({ id: userServices.providerId })
-        .from(userServices)
-        .where(eq(userServices.userId, id))
-        .then((rows) => rows.map((r) => r.id)),
-    ),
-  );
+  const perPerson = await Promise.all(memberIds.map((id) => serviceIdsFor(id, country)));
   const services = roomServices(perPerson);
   if (fromIds) return { services, deck: seededShuffle(fromIds, `${code}:${round}`).slice(0, size) };
   const first = (round % 4) + 1; // discover pages 1-2, then 2-3... so each round brings new titles

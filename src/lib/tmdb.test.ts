@@ -99,6 +99,9 @@ describe("serviceName", () => {
     expect(serviceName("Amazon Prime Video")).toBe("Prime Video");
     expect(serviceName("Netflix Standard with Ads")).toBe("Netflix");
     expect(serviceName("Netflix")).toBe("Netflix");
+    expect(serviceName("Paramount Plus Apple TV channel")).toBe("Paramount+");
+    expect(serviceName("Amazon Arthaus Channel")).toBe("Arthaus");
+    expect(serviceName("Amazon Prime Video Free with Ads")).toBe("Prime Video");
   });
 });
 
@@ -119,20 +122,27 @@ describe("mergeProviders", () => {
     );
     expect(merged.map((s) => s.name)).toEqual(["Disney+", "Netflix", "Prime Video", "Niche"]);
   });
-  it("drops stores, free and ad tiers, and add-on channels", () => {
+  it("drops rent and buy stores, keeps free services, a channel goes under its service with both ids", () => {
     const merged = mergeProviders(
       [
         [
           p(1, "Amazon Video"),
           p(2, "Apple TV Store"),
-          p(3, "MUBI Amazon Channel"),
-          p(4, "Amazon Prime Video with Ads"),
-          p(5, "WOW"),
+          p(531, "Paramount Plus", 1),
+          p(582, "Paramount+ Amazon Channel", 17),
+          p(4, "Amazon Prime Video with Ads", 3),
+          p(5, "ARD Mediathek", 4),
+          p(2173, "Anime Digital Network Amazon Channel", 5),
         ],
       ],
       "DE",
     );
-    expect(merged.map((s) => s.name)).toEqual(["WOW"]);
+    expect(merged.map((s) => [s.name, s.ids])).toEqual([
+      ["Paramount+", [531, 582]],
+      ["Prime Video", [4]],
+      ["ARD Mediathek", [5]],
+      ["Anime Digital Network", [2173]],
+    ]);
   });
 });
 
@@ -145,14 +155,26 @@ describe("alternate", () => {
 });
 
 describe("subscriptionServices", () => {
-  it("leaves out Amazon add-on channels", () => {
-    const flatrate = [
-      { provider_id: 283, provider_name: "Crunchyroll", logo_path: "/c.png" },
-      { provider_id: 2173, provider_name: "Anime Digital Network Amazon Channel", logo_path: "/a.png" },
-    ];
-    const t = { "watch/providers": { results: { DE: { flatrate } } } } as unknown as Parameters<
-      typeof subscriptionServices
-    >[0];
-    expect(subscriptionServices(t, "DE").map((s) => s.name)).toEqual(["Crunchyroll"]);
+  it("subscriptions, then free ones, a channel as its service, each once", () => {
+    const pr = (provider_id: number, provider_name: string) => ({ provider_id, provider_name, logo_path: "/x.png" });
+    const t = {
+      "watch/providers": {
+        results: {
+          DE: {
+            flatrate: [
+              pr(283, "Crunchyroll"),
+              pr(1968, "Crunchyroll Amazon Channel"),
+              pr(2173, "Anime Digital Network Amazon Channel"),
+            ],
+            free: [pr(219, "ARD Mediathek")],
+          },
+        },
+      },
+    } as unknown as Parameters<typeof subscriptionServices>[0];
+    expect(subscriptionServices(t, "DE").map((s) => s.name)).toEqual([
+      "Crunchyroll",
+      "Anime Digital Network",
+      "ARD Mediathek",
+    ]);
   });
 });
