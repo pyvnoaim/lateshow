@@ -120,12 +120,26 @@ jobs:
         with:
           node-version: 22
           cache: pnpm
-      - name: Is this version published already?
+      - name: Does Chrome have this version already?
         id: version
+        env:
+          CWS_CLIENT_ID: ${{ secrets.CWS_CLIENT_ID }}
+          CWS_CLIENT_SECRET: ${{ secrets.CWS_CLIENT_SECRET }}
+          CWS_REFRESH_TOKEN: ${{ secrets.CWS_REFRESH_TOKEN }}
         run: |
+          if [ -z "$CWS_REFRESH_TOKEN" ] || [ -z "$CWS_PUBLISHER" ]; then echo "::notice::Chrome Web Store not set up, skipping"; echo "new=false" >> "$GITHUB_OUTPUT"; exit 0; fi
           v=$(node -p "require('./extension/manifest.template.json').version")
-          echo "version=$v" >> "$GITHUB_OUTPUT"
-          if grep -q "\"version\": \"$v\"" public/extension/updates.json 2>/dev/null; then
+          token=$(curl -fsS https://oauth2.googleapis.com/token -d client_id="$CWS_CLIENT_ID" \
+            -d client_secret="$CWS_CLIENT_SECRET" -d refresh_token="$CWS_REFRESH_TOKEN" -d grant_type=refresh_token \
+            | node -pe 'JSON.parse(require("fs").readFileSync(0)).access_token')
+          echo "::add-mask::$token"
+          echo "token=$token" >> "$GITHUB_OUTPUT"
+          status=$(curl -fsS "https://chromewebstore.googleapis.com/v2/publishers/$CWS_PUBLISHER/items/$CWS_ITEM:fetchStatus" \
+            -H "Authorization: Bearer $token")
+          echo "status: $status"
+          # published or in review (submitted) with this version: nothing to do. Not Firefox's updates.json, AMO can lag
+          if echo "$status" | node -e 'const v=process.argv[1];const s=require("fs").readFileSync(0,"utf8");process.exit(s.match(/"crxVersion":\s*"([^"]+)"/g)?.some(m=>m.endsWith(`"${v}"`))?0:1)' "$v"; then
+            echo "::notice::Chrome has $v already (published or in review)"
             echo "new=false" >> "$GITHUB_OUTPUT"
           else
             echo "new=true" >> "$GITHUB_OUTPUT"
@@ -135,16 +149,9 @@ jobs:
       - name: Upload to the Chrome Web Store and submit for review
         if: steps.version.outputs.new == 'true'
         env:
-          CWS_CLIENT_ID: ${{ secrets.CWS_CLIENT_ID }}
-          CWS_CLIENT_SECRET: ${{ secrets.CWS_CLIENT_SECRET }}
-          CWS_REFRESH_TOKEN: ${{ secrets.CWS_REFRESH_TOKEN }}
+          token: ${{ steps.version.outputs.token }}
         run: |
-          if [ -z "$CWS_REFRESH_TOKEN" ] || [ -z "$CWS_PUBLISHER" ]; then echo "::notice::Chrome Web Store not set up, skipping"; exit 0; fi
           pnpm ext:chrome
-          token=$(curl -fsS https://oauth2.googleapis.com/token -d client_id="$CWS_CLIENT_ID" \
-            -d client_secret="$CWS_CLIENT_SECRET" -d refresh_token="$CWS_REFRESH_TOKEN" -d grant_type=refresh_token \
-            | node -pe 'JSON.parse(require("fs").readFileSync(0)).access_token')
-          echo "::add-mask::$token"
           api="https://chromewebstore.googleapis.com"
           item="publishers/$CWS_PUBLISHER/items/$CWS_ITEM"
           up=$(curl -sS -X POST "$api/upload/v2/$item:upload" -H "Authorization: Bearer $token" \

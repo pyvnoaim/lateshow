@@ -190,7 +190,9 @@ lists (/l/<id>, see Todo), update bar after a deploy (`UpdateBar`: build id from
       CI job `chrome` (2026-11-16): a new version is uploaded (Chrome Web Store API v2) and sent to review, Google
       publishes it Unlisted once it passes. Secrets CWS_CLIENT_ID/CWS_CLIENT_SECRET/CWS_REFRESH_TOKEN (Google Cloud
       project "Chrome Web Store API", OAuth client "lateshow-ci" Desktop app, consent screen In production, made with
-      `pnpm ext:chrome-token`), repo variable CWS_PUBLISHER_ID. Left: Settings › Extension gets "Add to Chrome".
+      `pnpm ext:chrome-token`), repo variable CWS_PUBLISHER_ID. Settings › Extension has "Add to Chrome" (2026-11-16), hidden until
+      `CHROME_STORE_URL` in `src/lib/site.ts` is set: set it once Google approves. CI asks the store (fetchStatus
+      crxVersion) whether a version is there, not Firefox's updates.json.
 - [ ] Later: genre/mood row, imports from TMDB account and Trakt (both have ids).
 - [ ] Watch together = a browser extension (drafts on the canvas, approved 2026-11-11): syncs the streaming site's
       player for everyone in a room, on a laptop. Rejected: a manual 3-2-1 countdown flow without the extension.
