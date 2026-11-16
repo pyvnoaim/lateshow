@@ -20,12 +20,17 @@ const { BETTER_AUTH_SECRET, BETTER_AUTH_URL } = env("auth");
 export const LOGIN_CODE_MINUTES = CODE_MINUTES;
 
 const SEND_PATH = "/email-otp/send-verification-otp";
+const CHANGE_PATH = "/email-otp/request-email-change";
 const sendLog = new Map<string, number[]>();
 // Better Auth swallows errors from sendVerificationOTP and answers success, so a failed mail is noted here
 // and turned into an error after the route, or the sign-in screen would wait for a mail that never comes.
 // ponytail: keyed by address, not by request, so two overlapping sends to one address can swap their outcome.
 // Rare (both limits apply). Also relies on Better Auth awaiting the send: never set advanced.backgroundTasks.
 const failedSends = new Set<string>();
+const newEmail = (body: unknown) => {
+  const e = (body as { newEmail?: unknown } | undefined)?.newEmail;
+  return typeof e === "string" ? e.toLowerCase() : null;
+};
 /** The address exactly as Better Auth keys it (lowercased, not trimmed), only for a real sign-in code request. */
 function signInEmail(body: unknown) {
   const b = body as { email?: unknown; type?: unknown } | undefined;
@@ -49,7 +54,9 @@ export const auth = betterAuth({
   },
   hooks: {
     before: createAuthMiddleware(async (ctx) => {
-      const email = ctx.path === SEND_PATH ? signInEmail(ctx.body) : null;
+      // the change-email code goes to an address you type, so it shares the per-address limit of sign-in codes
+      const email =
+        ctx.path === SEND_PATH ? signInEmail(ctx.body) : ctx.path === CHANGE_PATH ? newEmail(ctx.body) : null;
       if (email && !takeSendSlot(sendLog, email, Date.now()))
         throw new APIError("TOO_MANY_REQUESTS", { message: "Too many codes for this address" });
     }),
