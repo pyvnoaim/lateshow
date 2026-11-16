@@ -1,6 +1,6 @@
 "use server";
 
-import { and, eq, ne } from "drizzle-orm";
+import { and, eq, inArray, ne } from "drizzle-orm";
 import { refresh } from "next/cache";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
@@ -12,6 +12,8 @@ import { roomMember, roomMood, roomPick, roomVote, userServices } from "@/lib/db
 import { LANGUAGE_COOKIE, LANGUAGES } from "@/lib/languages";
 import { checkUsername } from "@/lib/username";
 import { isAvatarValue } from "@/lib/avatar";
+import { getCountry } from "@/lib/region";
+import { withChannelIds } from "@/lib/tmdb";
 
 const providerId = z.number().int().positive();
 
@@ -24,7 +26,9 @@ export async function setMyService(id: number, on: boolean) {
   if (on) {
     await db.insert(userServices).values({ userId, providerId: pid }).onConflictDoNothing();
   } else {
-    await db.delete(userServices).where(and(eq(userServices.userId, userId), eq(userServices.providerId, pid)));
+    // every id the service goes by: one saved under another of its ids (a channel, an ad tier) would stay ticked
+    const ids = await withChannelIds([pid], await getCountry());
+    await db.delete(userServices).where(and(eq(userServices.userId, userId), inArray(userServices.providerId, ids)));
   }
   refresh();
 }
