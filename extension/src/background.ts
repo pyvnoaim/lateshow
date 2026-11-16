@@ -69,6 +69,8 @@ export type SyncState = {
   message?: string;
   /** the site's profile it synced */
   profile?: string | null;
+  /** sites waiting their turn (Sync clicked while one ran), first is next */
+  queued?: string[];
   at: number;
 };
 type Job = { site: string; tabId: number; since: number; started: number };
@@ -83,7 +85,24 @@ const HISTORY: Record<string, string> = {
 const BATCH = 40;
 
 const local = <T>(k: string) => chrome.storage.local.get(k).then((r) => r[k] as T | undefined);
-const setState = (s: Omit<SyncState, "at">) => chrome.storage.local.set({ syncState: { ...s, at: Date.now() } });
+// the queue rides along in the state, so the popup and Settings show "Queued" without asking twice
+const setState = async (s: Omit<SyncState, "at" | "queued">) => {
+  const queued = (await local<string[]>("syncQueue")) ?? [];
+  await chrome.storage.local.set({ syncState: { ...s, queued, at: Date.now() } });
+  // a sync that ended hands over to the next one waiting
+  if (s.phase === "done" || s.phase === "error") void next();
+};
+async function setQueue(queued: string[]) {
+  await chrome.storage.local.set({ syncQueue: queued });
+  const state = await local<SyncState>("syncState");
+  if (state) await chrome.storage.local.set({ syncState: { ...state, queued } });
+}
+async function next() {
+  const [site, ...rest] = (await local<string[]>("syncQueue")) ?? [];
+  if (!site) return;
+  await setQueue(rest);
+  await startSync(site);
+}
 
 async function endJob(job: Job | undefined) {
   await chrome.storage.local.remove("job");
@@ -95,7 +114,13 @@ async function startSync(site: string) {
   // still reading (the tab), or importing what it read (the tab is gone then, the state says so): one at a time
   const state = await local<SyncState>("syncState");
   const importing = state?.phase === "importing" && Date.now() - state.at < STALE;
-  if (!HISTORY[site] || importing || (running && Date.now() - running.started < STALE)) return;
+  if (!HISTORY[site]) return;
+  // one at a time: a Sync clicked meanwhile waits its turn (once, never the one running)
+  if (importing || (running && Date.now() - running.started < STALE)) {
+    const queued = (await local<string[]>("syncQueue")) ?? [];
+    if (site !== (running?.site ?? state?.site) && !queued.includes(site)) await setQueue([...queued, site]);
+    return;
+  }
   if (running) await endJob(running);
   const synced = (await local<Record<string, number>>("synced")) ?? {};
   const tab = await chrome.tabs.create({ url: HISTORY[site], active: false });

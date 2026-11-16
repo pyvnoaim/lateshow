@@ -220,7 +220,7 @@ function recentList(recent: Recent[]) {
 }
 
 /** C: one line per site, when it last synced, Sync, and the switch that marks what you finish there */
-function siteList(settings: Settings, synced: Record<string, number>, busy: boolean) {
+function siteList(settings: Settings, synced: Record<string, number>, busy: string | null, queued: string[]) {
   const sameDay = (a: number) => new Date(a).toDateString() === new Date().toDateString();
   const time = (a: number) => new Date(a).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
   const sec = el("section", "sites");
@@ -246,8 +246,10 @@ function siteList(settings: Settings, synced: Record<string, number>, busy: bool
     }
     text.append(el("span", "", s.site), sub);
     const sync = el("button", "sync-btn");
-    sync.append(icon(SYNC, 12), document.createTextNode("Sync"));
-    sync.disabled = busy;
+    // while one runs the others queue: a click puts it in line, the running one and a queued one can't be clicked
+    const waiting = queued.includes(s.site);
+    sync.append(icon(SYNC, 12), document.createTextNode(waiting ? "Queued" : "Sync"));
+    sync.disabled = busy === s.site || waiting;
     sync.setAttribute("aria-label", `Sync ${s.site} history`);
     sync.addEventListener("click", () => void chrome.runtime.sendMessage({ type: "lateshow:sync", site: s.site }));
     const sw = el("button", `switch ${on ? "on" : ""}`);
@@ -330,10 +332,11 @@ async function render() {
   if (marks) out.push(marks);
   // busy while a tab reads or what it read is imported (the tab is gone by then)
   const busy =
-    Boolean(job && Date.now() - (job.started ?? 0) < STALE) ||
-    Boolean(state?.phase === "importing" && Date.now() - state.at < STALE);
+    (job && Date.now() - (job.started ?? 0) < STALE) || (state?.phase === "importing" && Date.now() - state.at < STALE)
+      ? (state?.site ?? null)
+      : null;
   // when it last synced, else (synced before 0.6.6) how far it had read
-  out.push(...siteList(settings ?? {}, { ...synced, ...syncedAt }, busy));
+  out.push(...siteList(settings ?? {}, { ...synced, ...syncedAt }, busy, busy ? (state?.queued ?? []) : []));
   app.replaceChildren(...out);
 }
 

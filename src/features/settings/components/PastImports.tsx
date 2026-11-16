@@ -29,6 +29,7 @@ type SyncState = {
   done?: number;
   total?: number;
   message?: string;
+  queued?: string[];
   at: number;
 };
 
@@ -95,6 +96,8 @@ export function PastImports({
                   : `last ${runs[0].when}`,
               )
               .join(" · ");
+        // while another syncs, a click puts this one in line (the extension runs them one after another)
+        const queued = sync.busy && Boolean(sync.state?.queued?.includes(source));
         const isOpen = open === source;
         return (
           <li key={source} className="flex flex-col">
@@ -122,12 +125,12 @@ export function PastImports({
               {site && canSync && (
                 <button
                   type="button"
-                  disabled={running || sync.busy}
+                  disabled={running || queued}
                   onClick={() => sync.start(source)}
                   className={buttonStyles("glass", "xs")}
                 >
                   <RefreshCw size={13} strokeWidth={2.2} aria-hidden />
-                  {running ? "Syncing" : "Sync"}
+                  {running ? "Syncing" : queued ? "Queued" : "Sync"}
                 </button>
               )}
               <button
