@@ -4,6 +4,7 @@ import { Download, Globe } from "lucide-react";
 import { useSearchParams } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { buttonStyles } from "@/components/ui/button";
+import { CHROME_STORE_URL } from "@/lib/site";
 import { Invite, ListBox, ListRow } from "./ListBox";
 import { useExtension } from "./useExtension";
 
@@ -97,7 +98,20 @@ export function ExtensionKeys({
           </a>
         </Invite>
       )}
-      {offerAdd && ext.kind === "chrome" && (
+      {offerAdd && ext.kind === "chrome" && CHROME_STORE_URL && (
+        <Invite
+          glow
+          icon={logo}
+          title="Get the Lateshow extension"
+          text="Free, and it updates by itself. Come back here to connect it."
+        >
+          <a href={CHROME_STORE_URL} target="_blank" rel="noreferrer" className={buttonStyles("primary", "sm")}>
+            <Download size={16} strokeWidth={2} aria-hidden />
+            Add to Chrome
+          </a>
+        </Invite>
+      )}
+      {offerAdd && ext.kind === "chrome" && !CHROME_STORE_URL && (
         <p className="text-small text-pretty text-muted">
           For Chrome it&apos;s coming to the Chrome Web Store. Zen and Firefox have it now.
         </p>
