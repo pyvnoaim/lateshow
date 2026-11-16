@@ -96,7 +96,18 @@ const readHistory: ReadHistory = async (onProgress, since, opts) => {
   const newest = Math.max(0, ...items.map((v) => v.date ?? 0));
   const read = readNetflixHistory(kept);
   // My List along (a sync with the popup's switch on), best effort
-  if (opts?.watchlist) read.rows.push(...(await myList(ids.build).catch(() => [])));
+  if (opts?.watchlist)
+    read.rows.push(
+      ...(await myList(ids.build, (done, all) =>
+        onProgress({
+          pages: 0,
+          titles: kept.length,
+          oldest: "",
+          at: Date.now(),
+          step: `Reading My List · ${done} of ${all}`,
+        }),
+      ).catch(() => [])),
+    );
   return { ...read, oldest: shortDay(kept.at(-1)?.date), newest, profile: ids.name ?? null };
 };
 
@@ -105,7 +116,7 @@ const readHistory: ReadHistory = async (onProgress, since, opts) => {
  * all of it. Without `original_path` it answers 412, any build id there will do. A show's year is its first season's,
  * from its metadata (the list's is the latest season's, which can't tell the anime One Piece from the live action).
  */
-async function myList(build: string | null): Promise<ImportRow[]> {
+async function myList(build: string | null, onProgress: (done: number, all: number) => void): Promise<ImportRow[]> {
   const path = encodeURIComponent(`/shakti/${build ?? "release"}/pathEvaluator`);
   const res = await pageFetch(
     `/nq/website/memberapi/release/pathEvaluator?withSize=true&materialize=true&original_path=${path}`,
@@ -121,8 +132,10 @@ async function myList(build: string | null): Promise<ImportRow[]> {
   );
   if (!res.ok) throw new Error(`Netflix answered ${res.status} for My List`);
   const rows = readNetflixWatchlist((await res.json()) as NetflixListAnswer);
-  for (const row of rows) {
-    if (row.type !== "tv") continue;
+  // ponytail: years for the first 300 shows (~2 min), the rest match by name, so a sync stays inside its 5 minutes
+  const shows = rows.filter((r) => r.type === "tv").slice(0, 300);
+  for (const [i, row] of shows.entries()) {
+    onProgress(i, shows.length);
     try {
       const v = (
         (await getJson(`/nq/website/memberapi/release/metadata?movieid=${row.refs![0].slice(8)}`)) as {
