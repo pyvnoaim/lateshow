@@ -144,14 +144,15 @@ chrome.tabs.onUpdated.addListener((tabId, info, tab) => {
   if (info.status !== "complete") return;
   void local<Job>("job").then(async (job) => {
     if (job?.tabId !== tabId) return;
-    const want = new URL(HISTORY[job.site]).hostname;
+    // the history page, maybe with a language in front (/de/history), else signed out or a profile to pick
+    const want = new URL(HISTORY[job.site]);
     const url = tab.url ? new URL(tab.url) : null;
-    if (url && url.hostname === want && !/login|signin|sign-in/i.test(url.pathname)) return;
+    if (url && url.hostname === want.hostname && url.pathname.includes(want.pathname)) return;
     await endJob(job);
     await setState({
       site: job.site,
       phase: "error",
-      message: `Sign in to ${job.site} in this browser, then sync again.`,
+      message: `Open ${job.site} in this browser, signed in and on your profile, then sync again.`,
     });
   });
 });
