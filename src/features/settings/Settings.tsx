@@ -158,6 +158,11 @@ export async function Settings() {
                     titles: i.titles,
                     posters: i.posters.map((p) => img(p, "w92")!),
                   }))}
+                  logos={Object.fromEntries(
+                    choices
+                      .filter((c) => ["Netflix", "Prime Video", "Crunchyroll"].includes(c.name))
+                      .map((c) => [c.name, img(c.logoPath, "w92")!]),
+                  )}
                   remove={removeImport}
                 />
               </ImportHistory>

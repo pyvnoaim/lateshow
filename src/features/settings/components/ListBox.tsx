@@ -59,12 +59,6 @@ export function Invite({
     <div
       className={`relative flex w-full flex-wrap items-center gap-4 overflow-hidden rounded-group p-5 ${glow ? "bg-accent/8 ring-1 ring-accent/18" : "bg-fg/4"}`}
     >
-      {glow && (
-        <span
-          aria-hidden
-          className="pointer-events-none absolute -top-24 -right-10 size-60 rounded-full bg-radial from-accent/25 to-accent/0"
-        />
-      )}
       <span aria-hidden className="relative flex size-12 shrink-0 items-center justify-center">
         {icon}
       </span>

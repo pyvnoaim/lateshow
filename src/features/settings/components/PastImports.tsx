@@ -20,11 +20,7 @@ export type PastImport = {
 };
 
 // the extension syncs these by itself (Sync), the others come from a file
-const SYNCED: Record<string, { badge: string; color: string }> = {
-  Netflix: { badge: "N", color: "bg-netflix" },
-  "Prime Video": { badge: "pv", color: "bg-prime" },
-  Crunchyroll: { badge: "C", color: "bg-crunchyroll" },
-};
+const SYNCED = ["Netflix", "Prime Video", "Crunchyroll"];
 type SyncState = { site: string; phase: string; read?: number; done?: number; total?: number; at: number };
 
 const n = (x: number) => x.toLocaleString("en");
@@ -39,7 +35,16 @@ const what = (i: PastImport) =>
  * extension reads), opening into a timeline of its imports with what each brought and Remove (asks first, it takes
  * back only what that import added, see removeImport).
  */
-export function PastImports({ imports, remove }: { imports: PastImport[]; remove: (id: string) => Promise<void> }) {
+export function PastImports({
+  imports,
+  logos,
+  remove,
+}: {
+  imports: PastImport[];
+  /** the services' own logos (TMDB's, through next/image), by source name */
+  logos: Record<string, string>;
+  remove: (id: string) => Promise<void>;
+}) {
   const [open, setOpen] = useState<string | null>(null);
   const [asking, setAsking] = useState<string | null>(null);
   const [gone, setGone] = useState<string[]>([]);
@@ -61,7 +66,8 @@ export function PastImports({ imports, remove }: { imports: PastImport[]; remove
       {groups.map(({ source, runs }) => {
         const watches = runs.reduce((s, r) => s + r.watches, 0);
         const listed = runs.reduce((s, r) => s + r.listed, 0);
-        const site = SYNCED[source];
+        const site = SYNCED.includes(source);
+        const logo = logos[source];
         const running = sync.state?.site === source && ["reading", "importing"].includes(sync.state.phase);
         const sub = running
           ? sync.state!.phase === "reading"
@@ -75,12 +81,18 @@ export function PastImports({ imports, remove }: { imports: PastImport[]; remove
         return (
           <li key={source} className="flex flex-col">
             <div className="flex items-center gap-3.5 py-4">
-              <span
-                aria-hidden
-                className={`flex size-8 shrink-0 items-center justify-center rounded-poster text-caption font-bold ${site ? `${site.color} text-white` : "bg-fg/6 text-fg/80"}`}
-              >
-                {site ? site.badge : <FileUp size={15} strokeWidth={2} />}
-              </span>
+              {logo ? (
+                <span aria-hidden className="relative size-8 shrink-0 overflow-hidden rounded-poster">
+                  <Image src={logo} alt="" fill sizes="32px" className="object-cover" />
+                </span>
+              ) : (
+                <span
+                  aria-hidden
+                  className="flex size-8 shrink-0 items-center justify-center rounded-poster bg-fg/6 text-fg/80"
+                >
+                  <FileUp size={15} strokeWidth={2} />
+                </span>
+              )}
               <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                 <span className="truncate text-label font-medium">{source}</span>
                 <span className="text-caption text-muted nums">{sub}</span>

@@ -7,10 +7,11 @@ import type { Recent, SyncState } from "./background";
 const STALE = 5 * 60_000;
 
 const PRIME = "https://www.primevideo.com";
+// logo: the service's own (extension/logos, TMDB's provider logo)
 const SITES = [
-  { site: "Netflix", badge: "N", color: "#e50914", url: "https://www.netflix.com/settings/viewed" },
-  { site: "Prime Video", badge: "pv", color: "#1a98ff", url: `${PRIME}/settings/watch-history` },
-  { site: "Crunchyroll", badge: "C", color: "#f47521", url: "https://www.crunchyroll.com/history" },
+  { site: "Netflix", logo: "netflix", url: "https://www.netflix.com/settings/viewed" },
+  { site: "Prime Video", logo: "prime", url: `${PRIME}/settings/watch-history` },
+  { site: "Crunchyroll", logo: "crunchyroll", url: "https://www.crunchyroll.com/history" },
 ];
 const ORIGINS = [
   `${PRIME}/*`,
@@ -74,9 +75,10 @@ function when(ms: number) {
 const plural = (n: number, one: string, many = `${one}s`) => `${n.toLocaleString("en")} ${n === 1 ? one : many}`;
 
 function badge(s: (typeof SITES)[number], size = 26) {
-  const b = el("span", "badge", s.badge);
-  b.style.background = s.color;
-  b.style.width = b.style.height = `${size}px`;
+  const b = el("img", "badge");
+  b.src = `logos/${s.logo}.png`;
+  b.alt = "";
+  b.width = b.height = size;
   return b;
 }
 

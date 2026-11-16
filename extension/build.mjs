@@ -1,7 +1,7 @@
 // Builds the extension into extension/dist (load that folder in Chrome or Firefox).
 // `node extension/build.mjs` for Lateshow in production, `--dev` for http://localhost:3000.
 import { build } from "esbuild";
-import { copyFile, mkdir, readFile, rm, writeFile } from "node:fs/promises";
+import { copyFile, cp, mkdir, readFile, rm, writeFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 
 const dir = fileURLToPath(new URL(".", import.meta.url));
@@ -49,6 +49,8 @@ await writeFile(`${out}manifest.json`, `${JSON.stringify(manifest, null, 2)}\n`)
 await copyFile(`${dir}popup.html`, `${out}popup.html`);
 // icon.png: src/app/icon.svg rendered once at 128 px with a transparent background (apple-icon.png is opaque, iOS)
 await copyFile(`${dir}icon.png`, `${out}icon-128.png`); // a new name: Firefox kept showing the old icon.png
+// the services' logos for the popup (TMDB's provider logos at 92 px, kept here: the popup asks no other site)
+await cp(`${dir}logos`, `${out}logos`, { recursive: true });
 console.log(
   `Built extension/dist for ${lateshow}${process.argv.includes("--test") ? " (TEST: marks after 2% watched)" : ""}`,
 );
