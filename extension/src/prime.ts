@@ -73,7 +73,12 @@ const readHistory: ReadHistory = async (onProgress, since) => {
     report(page + 1);
   }
   const kept = since ? primeSince(days, since) : days;
-  return { ...readPrimeHistory(kept), oldest: kept.at(-1)?.date ?? "", newest: newestIn(days) };
+  return {
+    ...readPrimeHistory(kept),
+    oldest: kept.at(-1)?.date ?? "",
+    newest: newestIn(days),
+    profile: activeProfile(),
+  };
 };
 
 const SOURCE = "Prime Video";

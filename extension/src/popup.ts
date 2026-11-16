@@ -161,7 +161,7 @@ function syncCard(s: SyncState) {
   const r = s.result ?? { episodes: 0, films: 0, series: 0, unsure: 0, notFound: 0 };
   const ok = el("span", "ok");
   ok.append(icon(CHECK, 14));
-  head.append(ok, el("span", "", `${s.site} is in sync`));
+  head.append(ok, el("span", "", s.profile ? `${s.site} is in sync · ${s.profile}` : `${s.site} is in sync`));
   const close = el("button", "x", "×");
   close.setAttribute("aria-label", "Hide");
   close.addEventListener("click", () => void chrome.storage.local.remove("syncState"));

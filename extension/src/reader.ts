@@ -4,7 +4,8 @@ import type { ImportRow } from "@/lib/library/importing";
 
 /** `step`: a later step of the read in words (Netflix checking what you finished), shown instead of the pages */
 export type Progress = { pages: number; titles: number; oldest: string; at: number; step?: string };
-export type Found = { rows: ImportRow[]; skipped: number; oldest: string; newest: number };
+/** `profile`: the site's profile this was read for (a sync checks it's yours), null when the site didn't say */
+export type Found = { rows: ImportRow[]; skipped: number; oldest: string; newest: number; profile?: string | null };
 export type ReadHistory = (onProgress: (p: Progress) => void, since: number) => Promise<Found>;
 
 /** A site's read for the card: `since` is the last import's newest watch (Read new), 0 for everything */
@@ -61,7 +62,13 @@ export async function autoRead(readHistory: ReadHistory, since: number) {
   for (let attempt = 1; ; attempt++) {
     try {
       const found = await readHistory((p) => void send({ type: "lateshow:sync-progress", titles: p.titles }), since);
-      await send({ type: "lateshow:sync-rows", rows: found.rows, skipped: found.skipped, newest: found.newest });
+      await send({
+        type: "lateshow:sync-rows",
+        rows: found.rows,
+        skipped: found.skipped,
+        newest: found.newest,
+        profile: found.profile ?? null,
+      });
       return;
     } catch (e) {
       if (attempt >= 3) return void send({ type: "lateshow:sync-error", message: (e as Error).message });

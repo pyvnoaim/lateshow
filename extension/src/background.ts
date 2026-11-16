@@ -67,6 +67,8 @@ export type SyncState = {
   total?: number;
   result?: { episodes: number; films: number; series: number; unsure: number; notFound: number };
   message?: string;
+  /** the site's profile it synced */
+  profile?: string | null;
   at: number;
 };
 type Job = { site: string; tabId: number; since: number; started: number };
@@ -111,8 +113,23 @@ async function startSync(site: string) {
   }, 180_000);
 }
 
-async function importRows(job: Job, rows: unknown[], newest: number) {
+async function importRows(job: Job, rows: unknown[], newest: number, profile: string | null) {
   await endJob(job);
+  // only your profile's history comes in, the same rule as marking: the first one is yours, the popup changes it
+  if (profile) {
+    const settings = (await local<{ profiles?: Record<string, string> }>("settings")) ?? {};
+    const mine = settings.profiles?.[job.site];
+    if (mine && mine !== profile)
+      return setState({
+        site: job.site,
+        phase: "error",
+        message: `${job.site} is on ${profile}, not ${mine}. Switch to ${mine} there and sync again.`,
+      });
+    if (!mine)
+      await chrome.storage.local.set({
+        settings: { ...settings, profiles: { ...settings.profiles, [job.site]: profile } },
+      });
+  }
   const total = { episodes: 0, films: 0, series: 0, unsure: 0, notFound: 0 };
   let importId: string | undefined;
   try {
@@ -139,7 +156,7 @@ async function importRows(job: Job, rows: unknown[], newest: number) {
       const at = (await local<Record<string, number>>("syncedAt")) ?? {};
       await chrome.storage.local.set({ syncedAt: { ...at, [job.site]: Date.now() } });
     }
-    await setState({ site: job.site, phase: "done", result: total });
+    await setState({ site: job.site, phase: "done", result: total, profile });
   } catch (e) {
     await setState({ site: job.site, phase: "error", message: (e as Error).message || "The import stopped." });
   }
@@ -175,6 +192,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     rows?: unknown[];
     newest?: number;
     message?: string;
+    profile?: string | null;
   };
   if (msg.type === "lateshow:mark") {
     const id = crypto.randomUUID();
@@ -200,7 +218,8 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       if (!mine) return;
       if (msg.type === "lateshow:sync-progress")
         await setState({ site: mine.site, phase: "reading", read: msg.titles ?? 0 });
-      if (msg.type === "lateshow:sync-rows") await importRows(mine, msg.rows ?? [], msg.newest ?? 0);
+      if (msg.type === "lateshow:sync-rows")
+        await importRows(mine, msg.rows ?? [], msg.newest ?? 0, (msg.profile as string | null | undefined) ?? null);
       if (msg.type === "lateshow:sync-error") {
         await endJob(mine);
         await setState({ site: mine.site, phase: "error", message: msg.message ?? "Reading stopped." });

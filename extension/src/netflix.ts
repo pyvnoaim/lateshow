@@ -88,7 +88,7 @@ const readHistory: ReadHistory = async (onProgress, since) => {
     }),
   );
   const newest = Math.max(0, ...items.map((v) => v.date ?? 0));
-  return { ...readNetflixHistory(kept), oldest: shortDay(kept.at(-1)?.date), newest };
+  return { ...readNetflixHistory(kept), oldest: shortDay(kept.at(-1)?.date), newest, profile: ids.name ?? null };
 };
 
 type Bookmark = { offset?: number };

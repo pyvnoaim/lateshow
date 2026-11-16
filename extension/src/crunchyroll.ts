@@ -78,7 +78,18 @@ const readHistory: ReadHistory = async (onProgress, since) => {
   for (const e of kept) if (!e.panel && details.has(e.id)) e.panel = details.get(e.id);
 
   const newest = Math.max(0, ...entries.map((e) => Date.parse(e.date_played ?? "") || 0));
-  return { ...readCrunchyrollHistory(kept), oldest: shortDay(kept.at(-1)?.date_played), newest };
+  // whose history this is (the selected profile, even while Crunchyroll's picker shows over the page)
+  const selected = (
+    (await api("/accounts/v1/me/multiprofile").catch(() => null)) as {
+      profiles?: { profile_name?: string; is_selected?: boolean }[];
+    } | null
+  )?.profiles?.find((p) => p.is_selected)?.profile_name;
+  return {
+    ...readCrunchyrollHistory(kept),
+    oldest: shortDay(kept.at(-1)?.date_played),
+    newest,
+    profile: selected ?? null,
+  };
 };
 
 const SOURCE = "Crunchyroll";
