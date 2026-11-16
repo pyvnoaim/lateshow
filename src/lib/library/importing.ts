@@ -495,6 +495,45 @@ export function readCrunchyrollWatchlist(items: CrunchyrollWatchlistItem[]): Imp
   return [...rows.values()];
 }
 
+/** One card of Prime Video's watchlist (its page data and /api/paginateCollection): a film or a series' season */
+export type PrimeWatchlistCard = {
+  displayTitle?: string;
+  title?: string;
+  entityType?: string; // "Movie", "TV Show"
+  releaseYear?: string;
+  titleID?: string;
+};
+
+/**
+ * Prime Video's watchlist into watchlist rows: a series once however many of its seasons are on it ("Halo - Season 1",
+ * "REACHER (TV) - SEASON 01", "Hunter x Hunter - Staffel 1" are the show), a film with its year. A series' year is
+ * its season's, so it's left out.
+ */
+export function readPrimeWatchlist(cards: PrimeWatchlistCard[]): ImportRow[] {
+  const rows = new Map<string, ImportRow>();
+  for (const c of cards) {
+    const raw = (c.displayTitle ?? c.title)?.trim();
+    if (!raw) continue;
+    if (c.entityType === "Movie") {
+      const { title, year } = primeTitle(raw);
+      const y = Number(c.releaseYear) || year;
+      if (title)
+        rows.set(`f:${norm(title)}`, {
+          title,
+          ...(y && { year: y }),
+          type: "movie",
+          list: "watchlist",
+          ...(c.titleID && { refs: [`prime:${c.titleID}`] }),
+        });
+      continue;
+    }
+    const show = primeTitle(raw.replace(/\s*[-–:]?\s*\b(season|staffel)\s*\d+\s*$/i, "")).title;
+    if (show && !rows.has(`s:${norm(show)}`))
+      rows.set(`s:${norm(show)}`, { title: show, type: "tv", list: "watchlist" });
+  }
+  return [...rows.values()];
+}
+
 /** One title in Prime Video's own watch history data (the page's watch-history widget and its paging API). */
 export type PrimeTitle = {
   titleType?: string; // "movie", "season", "episode"

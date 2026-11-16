@@ -11,6 +11,7 @@ import {
   readExport,
   readNetflixHistory,
   readPrimeHistory,
+  readPrimeWatchlist,
   watchMonths,
 } from "./importing";
 
@@ -571,6 +572,28 @@ describe("readCrunchyrollWatchlist", () => {
     ).toEqual([
       { title: "My Hero Academia", type: "tv", list: "watchlist", refs: ["crunchyroll:G6NQ5DWZ6"] },
       { title: "JUJUTSU KAISEN 0", type: "movie", list: "watchlist" },
+    ]);
+  });
+});
+
+describe("readPrimeWatchlist", () => {
+  it("makes a series of its seasons and keeps a film's year", () => {
+    expect(
+      readPrimeWatchlist([
+        { displayTitle: "Halo - Season 1", entityType: "TV Show", releaseYear: "2022", titleID: "B01" },
+        { displayTitle: "Halo - Season 2", entityType: "TV Show", releaseYear: "2024" },
+        { displayTitle: "REACHER (TV) - SEASON 01", entityType: "TV Show" },
+        { displayTitle: "Hunter x Hunter - Staffel 1", entityType: "TV Show" },
+        { displayTitle: "The Loud House Season 1", entityType: "TV Show" },
+        { displayTitle: "V/H/S [dt./OV]", entityType: "Movie", releaseYear: "2012", titleID: "B0X" },
+        { displayTitle: " ", entityType: "Movie" },
+      ]),
+    ).toEqual([
+      { title: "Halo", type: "tv", list: "watchlist" },
+      { title: "REACHER", type: "tv", list: "watchlist" },
+      { title: "Hunter x Hunter", type: "tv", list: "watchlist" },
+      { title: "The Loud House", type: "tv", list: "watchlist" },
+      { title: "V/H/S", year: 2012, type: "movie", list: "watchlist", refs: ["prime:B0X"] },
     ]);
   });
 });

@@ -2,9 +2,17 @@
 // page's watch-history widget, then its paging API with your Prime sign-in) into Lateshow import rows. In the player
 // it marks what you finish (watch.ts), with what prime-main.ts notes from the player's own answers. Read only:
 // Prime's remove action is never called.
-import { primeSince, primeTitle, readPrimeHistory, type ImportRow, type PrimeTitle } from "@/lib/library/importing";
+import {
+  primeSince,
+  primeTitle,
+  readPrimeHistory,
+  readPrimeWatchlist,
+  type ImportRow,
+  type PrimeTitle,
+  type PrimeWatchlistCard,
+} from "@/lib/library/importing";
 import { showCard } from "./card";
-import { getJson, historyPage, pause, reader, type ReadHistory } from "./reader";
+import { getJson, historyPage, pageFetch, pause, reader, type ReadHistory } from "./reader";
 import { watch, type Clock } from "./watch";
 
 type Day = { date?: string; titles?: PrimeTitle[] };
@@ -36,7 +44,7 @@ const newestIn = (days: Day[]) =>
   );
 
 /** `since` (ms): only what came after it ("Read new"), paging stops once a day is older */
-const readHistory: ReadHistory = async (onProgress, since) => {
+const readHistory: ReadHistory = async (onProgress, since, opts) => {
   let widget: Widget | null = null;
   for (const s of document.querySelectorAll('script[type="application/json"], script[type="text/template"]')) {
     try {
@@ -73,13 +81,82 @@ const readHistory: ReadHistory = async (onProgress, since) => {
     report(page + 1);
   }
   const kept = since ? primeSince(days, since) : days;
-  return {
-    ...readPrimeHistory(kept),
-    oldest: kept.at(-1)?.date ?? "",
-    newest: newestIn(days),
-    profile: activeProfile(),
-  };
+  const read = readPrimeHistory(kept);
+  // the watchlist along (a sync with the popup's switch on), best effort
+  if (opts?.watchlist) read.rows.push(...readPrimeWatchlist(await watchlist().catch(() => [])));
+  return { ...read, oldest: kept.at(-1)?.date ?? "", newest: newestIn(days), profile: activeProfile() };
 };
+
+// The watchlist as its page asks for it: the list as data, then /api/paginateCollection with the page container's
+// token for the rest (the fixed fields are the page's own, 2026-11-16)
+const FIXED: [string, string][] = [
+  ["pageType", "home"],
+  ["pageId", "Watchlist"],
+  ["collectionType", "Container"],
+  ["actionScheme", "default"],
+  ["payloadScheme", "default"],
+  ["decorationScheme", "web-decoration-gti-v4"],
+  ["featureScheme", "web-features-v6"],
+  ...[
+    "integration",
+    "CLIENT_DECORATION_ENABLE_DAAPI",
+    "ENABLE_DRAPER_CONTENT",
+    "HorizontalPagination",
+    "CleanSlate",
+    "EpgContainerPagination",
+    "ENABLE_GPCI",
+    "SupportsImageTextLinkTextInStandardHero",
+    "Remaster",
+    "SupportsChannelWidget",
+    "PromotionalBannerSupported",
+    "RemoveFromContinueWatching",
+    "SearchChannelBundles",
+    "LinearStationInAllCarousels",
+    "SupportChannelItemDecoration",
+    "TvodMovieBundles",
+    "LinearFavoritesSupported",
+    "RecordingCardSupported",
+  ].map((f): [string, string] => ["dynamicFeatures", f]),
+  ["widgetScheme", "web-explore-v49"],
+  ["variant", "desktopOSX"],
+  ["myStuffViewType", "watchlist"],
+  ["journeyIngressContext", ""],
+];
+type Container = { paginationServiceToken?: string; paginationTargetId?: string; paginationStartIndex?: number };
+function scan(o: unknown, cards: PrimeWatchlistCard[], containers: Container[], seen = new Set<object>()) {
+  if (!o || typeof o !== "object" || seen.has(o)) return;
+  seen.add(o);
+  if ((o as { widgetType?: string }).widgetType === "TitleCard") cards.push(o as PrimeWatchlistCard);
+  if ((o as Container).paginationServiceToken) containers.push(o as Container);
+  for (const v of Object.values(o)) scan(v, cards, containers, seen);
+}
+async function watchlist(): Promise<PrimeWatchlistCard[]> {
+  const cards: PrimeWatchlistCard[] = [];
+  let containers: Container[] = [];
+  scan(await getJson("/mystuff/watchlist/all/", HEADERS), cards, containers);
+  // ponytail: 50 pages (20 each), past what a watchlist holds
+  for (let page = 0, c = containers[0]; c?.paginationServiceToken && page < 50; page++) {
+    const res = await pageFetch("/api/paginateCollection", {
+      method: "POST",
+      credentials: "include",
+      headers: { ...HEADERS, accept: "application/json", "content-type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams([
+        ...FIXED,
+        ["paginationTargetId", c.paginationTargetId ?? ""],
+        ["serviceToken", c.paginationServiceToken],
+        ["startIndex", String(c.paginationStartIndex ?? cards.length)],
+      ]),
+    });
+    if (!res.ok) break;
+    const more: PrimeWatchlistCard[] = [];
+    containers = [];
+    scan(await res.json(), more, containers);
+    if (!more.length) break;
+    cards.push(...more);
+    c = containers[0];
+  }
+  return cards;
+}
 
 const SOURCE = "Prime Video";
 // the address may carry a language (/-/de/settings/…)
