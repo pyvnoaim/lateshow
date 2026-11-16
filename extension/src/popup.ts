@@ -280,7 +280,11 @@ async function render() {
   if (state && (running || Date.now() - state.at < SHOW_DONE)) app.append(syncCard(state));
   const marks = recentList(recent ?? []);
   if (marks) app.append(marks);
-  app.append(...siteList(settings ?? {}, synced ?? {}, Boolean(job && Date.now() - (job.started ?? 0) < STALE)));
+  // busy while a tab reads or what it read is imported (the tab is gone by then)
+  const busy =
+    Boolean(job && Date.now() - (job.started ?? 0) < STALE) ||
+    Boolean(state?.phase === "importing" && Date.now() - state.at < STALE);
+  app.append(...siteList(settings ?? {}, synced ?? {}, busy));
 }
 
 // the sync, a mark or a switch changes storage: the popup follows, one render after another

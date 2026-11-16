@@ -90,7 +90,10 @@ async function endJob(job: Job | undefined) {
 
 async function startSync(site: string) {
   const running = await local<Job>("job");
-  if (!HISTORY[site] || (running && Date.now() - running.started < STALE)) return;
+  // still reading (the tab), or importing what it read (the tab is gone then, the state says so): one at a time
+  const state = await local<SyncState>("syncState");
+  const importing = state?.phase === "importing" && Date.now() - state.at < STALE;
+  if (!HISTORY[site] || importing || (running && Date.now() - running.started < STALE)) return;
   if (running) await endJob(running);
   const synced = (await local<Record<string, number>>("synced")) ?? {};
   const tab = await chrome.tabs.create({ url: HISTORY[site], active: false });
