@@ -137,6 +137,25 @@ async function importRows(job: Job, rows: unknown[], newest: number) {
   }
 }
 
+// The job's tab finished loading somewhere other than the history page: the site sent it to sign in (Netflix /login,
+// Amazon's or Crunchyroll's sign-in on another address, whose url this can't even see). Says so at once instead of
+// waiting for the timeout.
+chrome.tabs.onUpdated.addListener((tabId, info, tab) => {
+  if (info.status !== "complete") return;
+  void local<Job>("job").then(async (job) => {
+    if (job?.tabId !== tabId) return;
+    const want = new URL(HISTORY[job.site]).hostname;
+    const url = tab.url ? new URL(tab.url) : null;
+    if (url && url.hostname === want && !/login|signin|sign-in/i.test(url.pathname)) return;
+    await endJob(job);
+    await setState({
+      site: job.site,
+      phase: "error",
+      message: `Sign in to ${job.site} in this browser, then sync again.`,
+    });
+  });
+});
+
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   const msg = message as {
     type?: string;

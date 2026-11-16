@@ -20,6 +20,9 @@ declare namespace chrome {
     function sendMessage<T>(tabId: number, message: { type: string }): Promise<T>;
     function create(p: { url: string; active?: boolean }): Promise<Tab>;
     function remove(tabId: number): Promise<void>;
+    const onUpdated: {
+      addListener(fn: (tabId: number, info: { status?: string; url?: string }, tab: Tab) => void): void;
+    };
     function update(tabId: number, p: { url: string }): Promise<Tab>;
   }
   namespace storage {
