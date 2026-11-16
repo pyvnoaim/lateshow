@@ -39,8 +39,9 @@ async function readFiles(list: FileList) {
   return out;
 }
 
-/** What the file says about an unclear title: its episodes, its year, or (Netflix films) when you watched it. */
+/** What the file says about an unclear title: a watchlist row, its episodes, its year, or when you watched it. */
 function fileNote(row: ImportRow) {
+  if (row.list === "watchlist") return row.year ? `On your watchlist there · ${row.year}` : "On your watchlist there";
   if (row.episodes) return `${row.episodes.length} episode${row.episodes.length === 1 ? "" : "s"} in your file`;
   if (row.year) return `${row.year} in your file`;
   if (row.date)
