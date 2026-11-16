@@ -276,7 +276,9 @@ type Provider = {
 };
 
 // TMDB's list mixes in rent/buy stores, free tiers, ad tiers and Amazon add-on channels. Only subscriptions stay.
-const NOT_A_SUBSCRIPTION = /store|channel|free|with ads|^amazon video$|google play|rakuten|videobuster|^youtube$/i;
+// JustWatch TV+ is JustWatch's own free channel
+const NOT_A_SUBSCRIPTION =
+  /store|channel|free|with ads|^amazon video$|google play|rakuten|videobuster|^youtube$|^justwatch/i;
 
 /** Movie and series provider lists as one: subscriptions only, each service once, most important in the country first. Pure. */
 export function mergeProviders(lists: Provider[][], country: string): Service[] {
@@ -300,8 +302,9 @@ export async function getServiceChoices(country: string) {
       tmdb<{ results: Provider[] }>(`/watch/providers/${type}`, { watch_region: country }).then((d) => d.results),
     ),
   );
-  // ponytail: TMDB lists 100+ in big countries, most are niche. The top 24 cover what people actually pay for.
-  return mergeProviders(lists, country).slice(0, 24);
+  // ponytail: TMDB lists 100+ in big countries, most are niche. The top 12 are what people actually pay for
+  // (Germany: Netflix to YouTube Premium, after it Hayu, MUBI and smaller). A country where 12 is too few: raise it
+  return mergeProviders(lists, country).slice(0, 12);
 }
 
 /** Most popular titles on any of these services right now. `all` alternates movie and series. */
