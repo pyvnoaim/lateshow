@@ -1,6 +1,6 @@
 import "server-only";
 import { betterAuth } from "better-auth";
-import { APIError, createAuthMiddleware } from "better-auth/api";
+import { APIError, createAuthMiddleware, getSessionFromCtx } from "better-auth/api";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { nextCookies } from "better-auth/next-js";
 import { passkey } from "@better-auth/passkey";
@@ -12,7 +12,7 @@ import { cache } from "react";
 import * as schema from "@/lib/db/auth-schema";
 import { db } from "@/lib/db/client";
 import { env } from "@/lib/env";
-import { CODE_MINUTES, sendCode } from "@/lib/mail";
+import { CODE_MINUTES, sendCode, sendEmailChanged } from "@/lib/mail";
 import { refundSendSlot, takeSendSlot } from "@/lib/sendLimit";
 
 const { BETTER_AUTH_SECRET, BETTER_AUTH_URL } = env("auth");
@@ -21,6 +21,11 @@ export const LOGIN_CODE_MINUTES = CODE_MINUTES;
 
 const SEND_PATH = "/email-otp/send-verification-otp";
 const CHANGE_PATH = "/email-otp/request-email-change";
+const CHANGED_PATH = "/email-otp/change-email";
+// change-email codes per account too (3 in 10 minutes, like per address), so one account can't spray many addresses
+const accountLog = new Map<string, number[]>();
+// the address before a change, by user id, for the notice to it once the change went through
+const oldEmail = new Map<string, string>();
 const sendLog = new Map<string, number[]>();
 // Better Auth swallows errors from sendVerificationOTP and answers success, so a failed mail is noted here
 // and turned into an error after the route, or the sign-in screen would wait for a mail that never comes.
@@ -59,8 +64,23 @@ export const auth = betterAuth({
         ctx.path === SEND_PATH ? signInEmail(ctx.body) : ctx.path === CHANGE_PATH ? newEmail(ctx.body) : null;
       if (email && !takeSendSlot(sendLog, email, Date.now()))
         throw new APIError("TOO_MANY_REQUESTS", { message: "Too many codes for this address" });
+      if (ctx.path === CHANGE_PATH || ctx.path === CHANGED_PATH) {
+        const user = (await getSessionFromCtx(ctx))?.user;
+        if (!user) return; // the route itself turns it down
+        if (ctx.path === CHANGED_PATH) oldEmail.set(user.id, user.email);
+        else if (!takeSendSlot(accountLog, `user:${user.id}`, Date.now()))
+          throw new APIError("TOO_MANY_REQUESTS", { message: "Too many address changes. Try again in a few minutes." });
+      }
     }),
     after: createAuthMiddleware(async (ctx) => {
+      // the change went through: the old address hears about it (it may not have been you)
+      if (ctx.path === CHANGED_PATH) {
+        const id = ctx.context.session?.user.id ?? ctx.context.newSession?.user.id;
+        const old = id ? oldEmail.get(id) : undefined;
+        if (id) oldEmail.delete(id);
+        const to = newEmail(ctx.body);
+        if (old && to && !(ctx.context.returned instanceof Error)) await sendEmailChanged(old, to).catch(() => {});
+      }
       const email = ctx.path === SEND_PATH ? signInEmail(ctx.body) : null;
       if (email && failedSends.delete(email))
         throw new APIError("BAD_GATEWAY", { message: "The sign-in email didn't go out" });

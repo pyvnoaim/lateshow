@@ -47,3 +47,32 @@ export async function sendCode(to: string, code: string, kind: "sign-in" | "chan
   });
   if (!res.ok) throw new Error(`Resend ${res.status}: the sign-in email didn't go out`);
 }
+
+/** To the address you had: Lateshow's sign-in codes now go to another one. Not you? Reply (the reply-to is a person). */
+export async function sendEmailChanged(to: string, now: string) {
+  const text = `Your Lateshow email changed to ${now}. Sign-in codes go there from now on.\n\nNot you? Reply to this email.`;
+  if (!isProduction) {
+    console.log(`\n  Email changed notice to ${to}: ${text}\n`);
+    return;
+  }
+  const { RESEND_API_KEY, MAIL_FROM, MAIL_REPLY_TO } = env("mail");
+  const res = await fetch("https://api.resend.com/emails", {
+    method: "POST",
+    headers: { authorization: `Bearer ${RESEND_API_KEY}`, "content-type": "application/json" },
+    body: JSON.stringify({
+      from: MAIL_FROM,
+      to: [to],
+      reply_to: MAIL_REPLY_TO,
+      subject: "Your Lateshow email changed",
+      text,
+      html: `<!doctype html><html><body style="margin:0;background:#1c1c1e;padding:32px 16px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,sans-serif">
+<div style="max-width:440px;margin:0 auto;background:#000;color:#f5f5f7;border-radius:28px;padding:44px 36px">
+<div style="font-size:22px;font-weight:700;letter-spacing:-0.035em"><img src="${SITE_URL}/apple-icon.png" width="32" height="32" alt="" style="vertical-align:middle;border-radius:8px;margin-right:10px">Lateshow</div>
+<p style="margin:28px 0 0;font-size:17px;line-height:1.5">Your email changed to <b>${esc(now)}</b>. Sign-in codes go there from now on.</p>
+<p style="margin:16px 0 0;font-size:15px;line-height:1.55;color:#86868b">Not you? Reply to this email.</p>
+</div></body></html>`,
+    }),
+    signal: AbortSignal.timeout(10_000),
+  });
+  if (!res.ok) throw new Error(`Resend ${res.status}: the notice didn't go out`);
+}
