@@ -5,6 +5,7 @@ import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useTransition } from "react";
 import { buttonStyles } from "@/components/ui/button";
+import { ago } from "@/lib/ago";
 import { ListBox } from "./ListBox";
 import { useExtension } from "./useExtension";
 
@@ -21,7 +22,15 @@ export type PastImport = {
 
 // the extension syncs these by itself (Sync), the others come from a file
 const SYNCED = ["Netflix", "Prime Video", "Crunchyroll"];
-type SyncState = { site: string; phase: string; read?: number; done?: number; total?: number; at: number };
+type SyncState = {
+  site: string;
+  phase: string;
+  read?: number;
+  done?: number;
+  total?: number;
+  message?: string;
+  at: number;
+};
 
 const n = (x: number) => x.toLocaleString("en");
 const plural = (x: number, one: string, many = `${one}s`) => `${n(x)} ${x === 1 ? one : many}`;
@@ -44,7 +53,7 @@ export function PastImports({
   imports: PastImport[];
   /** the services' own logos (TMDB's, through next/image), by source name */
   logos: Record<string, string>;
-  /** when each source last came in, a sync that brought nothing new too */
+  /** when each source last came in (ISO), a sync that brought nothing new too */
   last: Record<string, string>;
   remove: (id: string) => Promise<void>;
 }) {
@@ -72,13 +81,19 @@ export function PastImports({
         const site = SYNCED.includes(source);
         const logo = logos[source];
         const running = sync.state?.site === source && ["reading", "importing"].includes(sync.state.phase);
+        // a sync from here that failed says why (signed out on the site, another profile, Lateshow not reached)
+        const failed = sync.state?.site === source && sync.state.phase === "error" ? sync.state.message : null;
         const sub = running
           ? sync.state!.phase === "reading"
             ? `Syncing · read ${plural(sync.state!.read ?? 0, "title")}`
             : `Syncing · matching ${n(sync.state!.done ?? 0)} of ${n(sync.state!.total ?? 0)}`
           : [watches && plural(watches, "watch", "watches"), listed && `${n(listed)} on your watchlist`]
               .filter(Boolean)
-              .concat(`last ${last[source] ?? runs[0].when}`)
+              .concat(
+                last[source]
+                  ? `${site ? "synced" : "imported"} ${ago(new Date(last[source]), new Date())}`
+                  : `last ${runs[0].when}`,
+              )
               .join(" · ");
         const isOpen = open === source;
         return (
@@ -98,7 +113,11 @@ export function PastImports({
               )}
               <span className="flex min-w-0 flex-1 flex-col gap-0.5">
                 <span className="truncate text-label font-medium">{source}</span>
-                <span className="text-caption text-muted nums">{sub}</span>
+                {/* the time is the browser's ("2 hours ago"), a minute apart from the server's render */}
+                <span suppressHydrationWarning className="text-caption text-muted nums">
+                  {sub}
+                </span>
+                {failed && <span className="text-caption text-pretty text-danger">{failed}</span>}
               </span>
               {site && canSync && (
                 <button
@@ -209,6 +228,8 @@ function useSync() {
     const take = (e: MessageEvent) => {
       const d = e.data as { type?: string; state?: SyncState } | null;
       if (e.source !== window || d?.type !== "lateshow:sync-state" || !d.state) return;
+      // an old failure (yesterday's) isn't news on this page
+      if (d.state.phase === "error" && Date.now() - d.state.at > 10 * 60_000) return;
       setState((prev) => {
         // a sync that just ended: show what came in
         if (prev && ["reading", "importing"].includes(prev.phase) && d.state!.phase === "done") router.refresh();

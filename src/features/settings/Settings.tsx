@@ -48,8 +48,6 @@ export async function Settings() {
     latestExtension(),
     getLastImports(session.user.id),
   ]);
-  // ponytail: "today" by the server's day (UTC in Docker), close enough for a "last synced"
-  const dayOrToday = (d: Date) => (d.toDateString() === new Date().toDateString() ? "today" : day(d));
   const day = (d: Date) =>
     d.toLocaleDateString("en", {
       month: "short",
@@ -167,7 +165,7 @@ export async function Settings() {
                       .map((c) => [c.name, img(c.logoPath, "w92")!]),
                   )}
                   last={Object.fromEntries(
-                    [...lastImports].flatMap(([source, at]) => (at ? [[source, dayOrToday(at)]] : [])),
+                    [...lastImports].flatMap(([source, at]) => (at ? [[source, at.toISOString()]] : [])),
                   )}
                   remove={removeImport}
                 />

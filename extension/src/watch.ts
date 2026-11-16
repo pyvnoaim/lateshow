@@ -149,7 +149,8 @@ export function watch(site: Adapter) {
     log("finished, marking");
     const s = (await chrome.storage.local.get("settings")).settings as Settings | undefined;
     const key = (await chrome.storage.local.get("key")).key;
-    if (!key) return log("not connected to Lateshow, nothing marked (popup › Connect)");
+    // said once per episode (the finish only fires once), not silent: you'd think it was marked
+    if (!key) return toast({ title: "Not marked", meta: "Connect Lateshow in the extension's popup" }, 8000);
     if (s?.autoMark?.[site.via] === false) return log(`marking is off for ${site.via} (popup switch)`);
     // your profile: the first one that finishes something here, changeable in the popup
     const profile = site.profile?.() ?? null;
