@@ -185,7 +185,9 @@ lists (/l/<id>, see Todo), update bar after a deploy (`UpdateBar`: build id from
 - [ ] Chrome Web Store (developer fee paid 2026-11-15, non-trader account): list the extension as Unlisted with
       `pnpm ext:chrome` (extension/lateshow-chrome.zip, no Firefox keys). Ready (2026-11-16): text, permission
       justifications and data answers in extension/store/STORE.md, images there, /privacy has the extension section,
-      activeTab dropped (unused). Left: the first upload by hand, then automate uploads in CI (Web Store API, OAuth
+      activeTab dropped (unused). Submitted for review 2026-11-16 as 0.7.2, Unlisted, item id
+      olpjkleefegccejonlngdnnphnapcbfj (chromewebstore.google.com/detail/olpjkleefegccejonlngdnnphnapcbfj once approved).
+      Left: automate uploads in CI (Web Store API, OAuth
       client + refresh token as secrets) like AMO. Then Settings › Extension gets "Add to Chrome".
 - [ ] Later: genre/mood row, imports from TMDB account and Trakt (both have ids).
 - [ ] Watch together = a browser extension (drafts on the canvas, approved 2026-11-11): syncs the streaming site's
