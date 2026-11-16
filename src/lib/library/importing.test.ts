@@ -7,6 +7,7 @@ import {
   primeSince,
   primeTitle,
   readCrunchyrollHistory,
+  readCrunchyrollWatchlist,
   readExport,
   readNetflixHistory,
   readPrimeHistory,
@@ -545,6 +546,31 @@ describe("readNetflixHistory with Netflix's metadata", () => {
           { season: 5, episode: 6, name: "Free Churro", date: "2026-11-12" },
         ],
       },
+    ]);
+  });
+});
+
+describe("readCrunchyrollWatchlist", () => {
+  it("turns the watchlist into one row per series (with its id) and per film", () => {
+    const ep = (id: string, title: string) => ({
+      panel: { type: "episode", title: "Some episode", episode_metadata: { series_id: id, series_title: title } },
+    });
+    expect(
+      readCrunchyrollWatchlist([
+        ep("G6NQ5DWZ6", "My Hero Academia"),
+        ep("G6NQ5DWZ6", "My Hero Academia"), // twice: once
+        {
+          panel: {
+            type: "movie",
+            title: "JUJUTSU KAISEN 0",
+            movie_metadata: { movie_listing_title: "JUJUTSU KAISEN 0" },
+          },
+        },
+        { panel: { type: "episode", episode_metadata: { series_id: "X", series_title: " " } } }, // no name
+      ]),
+    ).toEqual([
+      { title: "My Hero Academia", type: "tv", list: "watchlist", refs: ["crunchyroll:G6NQ5DWZ6"] },
+      { title: "JUJUTSU KAISEN 0", type: "movie", list: "watchlist" },
     ]);
   });
 });

@@ -463,6 +463,38 @@ export function readNetflixHistory(items: NetflixViewed[]): { rows: ImportRow[];
   return { rows: [...shows.values(), ...films.values()], skipped };
 }
 
+/** One entry of Crunchyroll's watchlist (content/v2/discover/<account>/watchlist): the next episode of a series on
+ * it, or a film */
+export type CrunchyrollWatchlistItem = {
+  panel?: {
+    type?: string; // "episode", "movie"
+    title?: string;
+    episode_metadata?: { series_id?: string; series_title?: string };
+    movie_metadata?: { movie_listing_title?: string };
+  };
+};
+
+/**
+ * Crunchyroll's watchlist into watchlist rows: each series once (its id comes along, a confirmed match is remembered),
+ * films by name. What you already watched doesn't land on your watchlist, the import sees to that.
+ */
+export function readCrunchyrollWatchlist(items: CrunchyrollWatchlistItem[]): ImportRow[] {
+  const rows = new Map<string, ImportRow>();
+  for (const { panel } of items) {
+    const m = panel?.episode_metadata;
+    if (panel?.type === "episode" && m?.series_id && m.series_title?.trim())
+      rows.set(`s:${m.series_id}`, {
+        title: m.series_title.trim(),
+        type: "tv",
+        list: "watchlist",
+        refs: [`crunchyroll:${m.series_id}`],
+      });
+    const film = (panel?.movie_metadata?.movie_listing_title ?? panel?.title)?.trim();
+    if (panel?.type === "movie" && film) rows.set(`f:${norm(film)}`, { title: film, type: "movie", list: "watchlist" });
+  }
+  return [...rows.values()];
+}
+
 /** One title in Prime Video's own watch history data (the page's watch-history widget and its paging API). */
 export type PrimeTitle = {
   titleType?: string; // "movie", "season", "episode"

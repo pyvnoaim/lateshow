@@ -6,7 +6,12 @@ import type { ImportRow } from "@/lib/library/importing";
 export type Progress = { pages: number; titles: number; oldest: string; at: number; step?: string };
 /** `profile`: the site's profile this was read for (a sync checks it's yours), null when the site didn't say */
 export type Found = { rows: ImportRow[]; skipped: number; oldest: string; newest: number; profile?: string | null };
-export type ReadHistory = (onProgress: (p: Progress) => void, since: number) => Promise<Found>;
+/** `watchlist`: a sync also brings the site's watchlist (the popup's switch), the card never does */
+export type ReadHistory = (
+  onProgress: (p: Progress) => void,
+  since: number,
+  opts?: { watchlist?: boolean },
+) => Promise<Found>;
 
 /** A site's read for the card: `since` is the last import's newest watch (Read new), 0 for everything */
 export function reader(source: string, readHistory: ReadHistory) {
@@ -45,9 +50,11 @@ export async function getJson(url: string, headers: Record<string, string> = {})
 export const pause = (ms: number) => new Promise((r) => setTimeout(r, ms));
 
 /** Whether this page was opened by a sync from the popup (background.ts knows its tab), and from when to read */
-export async function syncJob(): Promise<{ since: number } | null> {
+export async function syncJob(): Promise<{ since: number; watchlist?: boolean } | null> {
   try {
-    return await chrome.runtime.sendMessage<{ since: number } | null>({ type: "lateshow:sync-job" });
+    return await chrome.runtime.sendMessage<{ since: number; watchlist?: boolean } | null>({
+      type: "lateshow:sync-job",
+    });
   } catch {
     return null;
   }
@@ -57,11 +64,13 @@ export async function syncJob(): Promise<{ since: number } | null> {
  * A sync's read: no card, the rows go to background.ts, which imports them. A page that isn't ready yet (Crunchyroll's
  * app hasn't asked its API, Netflix's profile isn't there) gets two more tries a few seconds apart.
  */
-export async function autoRead(readHistory: ReadHistory, since: number) {
+export async function autoRead(readHistory: ReadHistory, since: number, watchlist = false) {
   const send = (m: { type: string; [key: string]: unknown }) => chrome.runtime.sendMessage(m).catch(() => null);
   for (let attempt = 1; ; attempt++) {
     try {
-      const found = await readHistory((p) => void send({ type: "lateshow:sync-progress", titles: p.titles }), since);
+      const found = await readHistory((p) => void send({ type: "lateshow:sync-progress", titles: p.titles }), since, {
+        watchlist,
+      });
       await send({
         type: "lateshow:sync-rows",
         rows: found.rows,
@@ -79,5 +88,5 @@ export async function autoRead(readHistory: ReadHistory, since: number) {
 
 /** A history page: a sync's read when the popup opened it, else the card */
 export function historyPage(source: string, readHistory: ReadHistory, card: () => void) {
-  void syncJob().then((job) => (job ? autoRead(readHistory, job.since) : card()));
+  void syncJob().then((job) => (job ? autoRead(readHistory, job.since, job.watchlist) : card()));
 }

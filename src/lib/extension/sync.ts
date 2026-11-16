@@ -25,6 +25,7 @@ export async function syncFromExtension(userId: string, raw: unknown) {
     films: r.films,
     series: r.series,
     episodes: r.episodes,
+    watchlist: r.watchlist,
     notFound: r.notFound,
     unsure: r.unsure.length,
   };

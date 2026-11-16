@@ -3,7 +3,13 @@
 // it into Lateshow import rows (readCrunchyrollHistory, tested). On a player page it marks what you finish
 // (watch.ts): the episode from the address, its details from the API, the video's position from the player frame
 // (frame-video.ts). Read only on Crunchyroll's side.
-import { readCrunchyrollHistory, type CrunchyrollEntry, type ImportRow } from "@/lib/library/importing";
+import {
+  readCrunchyrollHistory,
+  readCrunchyrollWatchlist,
+  type CrunchyrollEntry,
+  type CrunchyrollWatchlistItem,
+  type ImportRow,
+} from "@/lib/library/importing";
 import { showCard } from "./card";
 import { getJson, historyPage, pause, reader, type ReadHistory } from "./reader";
 import { watch, type Clock } from "./watch";
@@ -32,7 +38,7 @@ function ask(): Promise<Auth> {
 const shortDay = (iso?: string) =>
   iso ? new Date(iso).toLocaleDateString("en", { month: "long", day: "numeric", year: "numeric" }) : "";
 
-const readHistory: ReadHistory = async (onProgress, since) => {
+const readHistory: ReadHistory = async (onProgress, since, opts) => {
   const asked = await ask();
   const auth = asked.auth;
   let account = asked.account;
@@ -84,12 +90,21 @@ const readHistory: ReadHistory = async (onProgress, since) => {
       profiles?: { profile_name?: string; is_selected?: boolean }[];
     } | null
   )?.profiles?.find((p) => p.is_selected)?.profile_name;
-  return {
-    ...readCrunchyrollHistory(kept),
-    oldest: shortDay(kept.at(-1)?.date_played),
-    newest,
-    profile: selected ?? null,
-  };
+  const read = readCrunchyrollHistory(kept);
+  // the watchlist along (a sync with the popup's switch on): every page of it, best effort
+  if (opts?.watchlist) {
+    const items: CrunchyrollWatchlistItem[] = [];
+    // ponytail: 20 pages of 100, a watchlist that long is past what anyone keeps
+    for (let start = 0; start < 2000; start += 100) {
+      const page = (await api(
+        `/content/v2/discover/${account}/watchlist?order=desc&n=100&start=${start}&locale=en-US`,
+      ).catch(() => null)) as { data?: CrunchyrollWatchlistItem[] } | null;
+      items.push(...(page?.data ?? []));
+      if ((page?.data?.length ?? 0) < 100) break;
+    }
+    read.rows.push(...readCrunchyrollWatchlist(items));
+  }
+  return { ...read, oldest: shortDay(kept.at(-1)?.date_played), newest, profile: selected ?? null };
 };
 
 const SOURCE = "Crunchyroll";

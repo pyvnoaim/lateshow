@@ -23,7 +23,12 @@ const ORIGINS = [
 // a finished sync stays on top this long, then it's history
 const SHOW_DONE = 10 * 60_000;
 
-type Settings = { autoMark?: Partial<Record<string, boolean>>; profiles?: Partial<Record<string, string>> };
+/** `watchlists`: a sync brings the sites' watchlists too (on unless switched off) */
+type Settings = {
+  autoMark?: Partial<Record<string, boolean>>;
+  profiles?: Partial<Record<string, string>>;
+  watchlists?: boolean;
+};
 
 const app = document.getElementById("app")!;
 const who = document.getElementById("who")!;
@@ -167,7 +172,11 @@ function syncCard(s: SyncState) {
   close.addEventListener("click", () => void chrome.storage.local.remove("syncState"));
   head.append(close);
   card.append(head);
-  const counts = [r.episodes && plural(r.episodes, "episode"), r.films && plural(r.films, "film")].filter(Boolean);
+  const counts = [
+    r.episodes && plural(r.episodes, "episode"),
+    r.films && plural(r.films, "film"),
+    r.watchlist && `${r.watchlist.toLocaleString("en")} on your watchlist`,
+  ].filter(Boolean);
   card.append(el("p", "big", counts.length ? `${counts.join(" · ")} new` : "All of it was in Lateshow already"));
   if (r.unsure) {
     const look = el("button", "look");
@@ -253,8 +262,28 @@ function siteList(settings: Settings, synced: Record<string, number>, busy: bool
     line.append(badge(s), text, sync, sw);
     sec.append(line);
   }
+  // one switch for all sites: their watchlists come along with a sync
+  const lists = settings.watchlists !== false;
+  const sw = el("button", `switch ${lists ? "on" : ""}`);
+  sw.setAttribute("role", "switch");
+  sw.setAttribute("aria-checked", String(lists));
+  sw.setAttribute("aria-label", "Bring watchlists along");
+  sw.append(el("span", "knob"));
+  sw.addEventListener("click", async () => {
+    const cur = (await store<Settings>("settings")) ?? {};
+    await chrome.storage.local.set({ settings: { ...cur, watchlists: !lists } });
+  });
+  const listLine = el("div", "site");
+  const listText = el("div", "text");
+  listText.append(
+    el("span", "", "Bring watchlists along"),
+    el("span", "sub", "A sync also adds what's on the site's watchlist"),
+  );
+  listLine.append(listText, sw);
+  const opts = el("section", "sites");
+  opts.append(listLine);
   const foot = el("p", "note center", "Sync reads what's new in the background. Switch: mark what you finish there.");
-  return [sec, foot];
+  return [sec, opts, foot];
 }
 
 let connectedAs: string | null | undefined;

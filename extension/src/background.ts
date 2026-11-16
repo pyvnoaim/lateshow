@@ -65,7 +65,7 @@ export type SyncState = {
   read?: number;
   done?: number;
   total?: number;
-  result?: { episodes: number; films: number; series: number; unsure: number; notFound: number };
+  result?: { episodes: number; films: number; series: number; watchlist?: number; unsure: number; notFound: number };
   message?: string;
   /** the site's profile it synced */
   profile?: string | null;
@@ -130,7 +130,7 @@ async function importRows(job: Job, rows: unknown[], newest: number, profile: st
         settings: { ...settings, profiles: { ...settings.profiles, [job.site]: profile } },
       });
   }
-  const total = { episodes: 0, films: 0, series: 0, unsure: 0, notFound: 0 };
+  const total = { episodes: 0, films: 0, series: 0, watchlist: 0, unsure: 0, notFound: 0 };
   let importId: string | undefined;
   try {
     for (let i = 0; i < rows.length; i += BATCH) {
@@ -213,7 +213,11 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (msg.type?.startsWith("lateshow:sync-")) {
     void local<Job>("job").then(async (job) => {
       const mine = job && sender.tab?.id === job.tabId ? job : undefined;
-      if (msg.type === "lateshow:sync-job") return sendResponse(mine ? { since: mine.since } : null);
+      if (msg.type === "lateshow:sync-job") {
+        // the popup's switch: watchlists come along unless it's off
+        const settings = (await local<{ watchlists?: boolean }>("settings")) ?? {};
+        return sendResponse(mine ? { since: mine.since, watchlist: settings.watchlists !== false } : null);
+      }
       sendResponse(null);
       if (!mine) return;
       if (msg.type === "lateshow:sync-progress")
