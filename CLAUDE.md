@@ -55,12 +55,13 @@ Read `node_modules/next/dist/docs/` before using Next APIs (see AGENTS.md).
   currentTime: their players break ("Video nicht verfügbar"), seek through their UI or API.
   Crunchyroll: content/v2/<account>/watch-history (only fully_watched), bare entries from cms/objects. Marking:
   episode from /watch/<id>, Crunchyroll's own fully_watched via playheads past 90%.
-  Watchlists (2026-11-16, a sync brings them unless the popup's "Bring watchlists along" is off, add only for now):
+  Watchlists (2026-11-16, a sync brings them unless the popup's "Bring watchlists along" is off):
   Crunchyroll content/v2/discover/<account>/watchlist (series ids), Prime GET /mystuff/watchlist/all/ as JSON plus
   POST /api/paginateCollection (form: the page's fixed scheme fields + the container's token/target/startIndex).
   Netflix My List not yet: /browse/my-list is My Netflix with carousels (13 at first, the rest through a persisted
   GraphQL query), ids only in React props (`Video:<id>` two levels above `standard-card`), find a sturdier source.
-  Removals (taking off what left the site's list) not built: needs title_link refs for every watchlist row.
+  Sync only adds to the watchlist, never removes (decided 2026-11-16): Lateshow's list is yours, the sites feed it.
+  Something you removed here comes back while it's still on the site's list (or switch watchlists off).
   Profiles: only yours marks (Netflix userInfo name, Crunchyroll /accounts/v1/me/multiprofile `is_selected`, Prime
   page data `activeProfile.name`), the first that finishes something is yours, the popup changes it.
   Netflix and Prime need Widevine: Zen and Helium have none, so marking those two works only in Chrome.
