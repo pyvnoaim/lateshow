@@ -187,8 +187,10 @@ lists (/l/<id>, see Todo), update bar after a deploy (`UpdateBar`: build id from
       justifications and data answers in extension/store/STORE.md, images there, /privacy has the extension section,
       activeTab dropped (unused). Submitted for review 2026-11-16 as 0.7.2, Unlisted, item id
       olpjkleefegccejonlngdnnphnapcbfj (chromewebstore.google.com/detail/olpjkleefegccejonlngdnnphnapcbfj once approved).
-      Left: automate uploads in CI (Web Store API, OAuth
-      client + refresh token as secrets) like AMO. Then Settings › Extension gets "Add to Chrome".
+      CI job `chrome` (2026-11-16): a new version is uploaded (Chrome Web Store API v2) and sent to review, Google
+      publishes it Unlisted once it passes. Secrets CWS_CLIENT_ID/CWS_CLIENT_SECRET/CWS_REFRESH_TOKEN (Google Cloud
+      project "Chrome Web Store API", OAuth client "lateshow-ci" Desktop app, consent screen In production, made with
+      `pnpm ext:chrome-token`), repo variable CWS_PUBLISHER_ID. Left: Settings › Extension gets "Add to Chrome".
 - [ ] Later: genre/mood row, imports from TMDB account and Trakt (both have ids).
 - [ ] Watch together = a browser extension (drafts on the canvas, approved 2026-11-11): syncs the streaming site's
       player for everyone in a room, on a laptop. Rejected: a manual 3-2-1 countdown flow without the extension.

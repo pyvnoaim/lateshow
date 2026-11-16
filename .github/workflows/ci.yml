@@ -102,3 +102,66 @@ jobs:
             if [ "$attempt" = 3 ]; then exit 1; fi
           done
           if [ -n "$WEBHOOK" ]; then curl -fsS -X POST "$WEBHOOK"; fi
+
+  # Chrome Web Store: a version not yet out (same check as Mozilla's) is uploaded and sent to review, Google
+  # publishes it once it passes (Unlisted, as set in the dashboard). Its own job, so a Chrome hiccup never holds up
+  # Firefox. A version Chrome already has (a re-run after Mozilla failed) is skipped.
+  chrome:
+    needs: check
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    env:
+      CWS_PUBLISHER: ${{ vars.CWS_PUBLISHER_ID }}
+      CWS_ITEM: olpjkleefegccejonlngdnnphnapcbfj
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: pnpm/action-setup@fc06bc1257f339d1d5d8b3a19a8cae5388b55320 # v4.4.0
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 22
+          cache: pnpm
+      - name: Is this version published already?
+        id: version
+        run: |
+          v=$(node -p "require('./extension/manifest.template.json').version")
+          echo "version=$v" >> "$GITHUB_OUTPUT"
+          if grep -q "\"version\": \"$v\"" public/extension/updates.json 2>/dev/null; then
+            echo "new=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "new=true" >> "$GITHUB_OUTPUT"
+          fi
+      - if: steps.version.outputs.new == 'true'
+        run: pnpm install --frozen-lockfile
+      - name: Upload to the Chrome Web Store and submit for review
+        if: steps.version.outputs.new == 'true'
+        env:
+          CWS_CLIENT_ID: ${{ secrets.CWS_CLIENT_ID }}
+          CWS_CLIENT_SECRET: ${{ secrets.CWS_CLIENT_SECRET }}
+          CWS_REFRESH_TOKEN: ${{ secrets.CWS_REFRESH_TOKEN }}
+        run: |
+          if [ -z "$CWS_REFRESH_TOKEN" ] || [ -z "$CWS_PUBLISHER" ]; then echo "::notice::Chrome Web Store not set up, skipping"; exit 0; fi
+          pnpm ext:chrome
+          token=$(curl -fsS https://oauth2.googleapis.com/token -d client_id="$CWS_CLIENT_ID" \
+            -d client_secret="$CWS_CLIENT_SECRET" -d refresh_token="$CWS_REFRESH_TOKEN" -d grant_type=refresh_token \
+            | node -pe 'JSON.parse(require("fs").readFileSync(0)).access_token')
+          echo "::add-mask::$token"
+          api="https://chromewebstore.googleapis.com"
+          item="publishers/$CWS_PUBLISHER/items/$CWS_ITEM"
+          up=$(curl -sS -X POST "$api/upload/v2/$item:upload" -H "Authorization: Bearer $token" \
+            -H "Content-Type: application/zip" --data-binary @extension/lateshow-chrome.zip)
+          echo "upload: $up"
+          state=$(node -pe 'JSON.parse(process.argv[1]).uploadState ?? ""' "$up")
+          # Chrome has this version already (a re-run): nothing to do
+          if echo "$up" | grep -qi "version"; then
+            if [ "$state" != "SUCCEEDED" ] && [ "$state" != "IN_PROGRESS" ]; then echo "::notice::Chrome has this version already"; exit 0; fi
+          fi
+          for i in $(seq 1 20); do
+            [ "$state" = "SUCCEEDED" ] && break
+            [ "$state" = "IN_PROGRESS" ] || { echo "::error::Upload failed: $up"; exit 1; }
+            sleep 15
+            up=$(curl -sS "$api/v2/$item:fetchStatus" -H "Authorization: Bearer $token")
+            state=$(node -pe 'const j = JSON.parse(process.argv[1]); j.lastAsyncUploadState ?? j.uploadState ?? ""' "$up")
+          done
+          [ "$state" = "SUCCEEDED" ] || { echo "::error::Upload still not done: $up"; exit 1; }
+          curl -fsS -X POST "$api/v2/$item:publish" -H "Authorization: Bearer $token"
+          echo
