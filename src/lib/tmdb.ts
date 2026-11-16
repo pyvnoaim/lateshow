@@ -250,14 +250,17 @@ export function titleToCard(t: Title, type: MediaType): Card {
 
 export type Service = { id: number; name: string; logoPath: string };
 
-/** Services in the country that include this title in a subscription (Netflix, Prime Video...), TMDB's order. */
+/** Services in the country that include this title in a subscription (Netflix, Prime Video...), TMDB's order. Amazon
+ * add-on channels stay out (ADN's in Germany is only that), as in the Settings picker. */
 export function subscriptionServices(t: Pick<Title, "watch/providers">, country: string): Service[] {
   return (
-    t["watch/providers"].results[country]?.flatrate?.map((p) => ({
-      id: p.provider_id,
-      name: serviceName(p.provider_name),
-      logoPath: p.logo_path,
-    })) ?? []
+    t["watch/providers"].results[country]?.flatrate
+      ?.filter((p) => !/channel/i.test(p.provider_name))
+      .map((p) => ({
+        id: p.provider_id,
+        name: serviceName(p.provider_name),
+        logoPath: p.logo_path,
+      })) ?? []
   );
 }
 

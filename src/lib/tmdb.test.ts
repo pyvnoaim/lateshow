@@ -6,6 +6,7 @@ import {
   pickLogo,
   pickTrailer,
   serviceName,
+  subscriptionServices,
   toCards,
   type Card,
   type Video,
@@ -140,5 +141,18 @@ describe("alternate", () => {
   it("mixes movie and series, keeps the leftovers of either", () => {
     expect(alternate([movie(1), movie(2)], [tv(3)]).map((c) => c.id)).toEqual([1, 3, 2]);
     expect(alternate([], [tv(3), tv(4)]).map((c) => c.id)).toEqual([3, 4]);
+  });
+});
+
+describe("subscriptionServices", () => {
+  it("leaves out Amazon add-on channels", () => {
+    const flatrate = [
+      { provider_id: 283, provider_name: "Crunchyroll", logo_path: "/c.png" },
+      { provider_id: 2173, provider_name: "Anime Digital Network Amazon Channel", logo_path: "/a.png" },
+    ];
+    const t = { "watch/providers": { results: { DE: { flatrate } } } } as unknown as Parameters<
+      typeof subscriptionServices
+    >[0];
+    expect(subscriptionServices(t, "DE").map((s) => s.name)).toEqual(["Crunchyroll"]);
   });
 });
