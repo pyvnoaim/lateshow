@@ -17,10 +17,7 @@ const links = new Map([["crunchyroll:G1", film]]);
 
 describe("match with remembered links", () => {
   it("a series row ignores a remembered film and matches the series", async () => {
-    const m = await match(
-      { title: "TRINITY SEVEN", type: "tv", list: "watchlist", refs: ["crunchyroll:G1"] },
-      links,
-    );
+    const m = await match({ title: "TRINITY SEVEN", type: "tv", list: "watchlist", refs: ["crunchyroll:G1"] }, links);
     expect(m).toMatchObject({ id: 62_999, type: "tv" });
   });
 
