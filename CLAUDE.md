@@ -17,6 +17,7 @@ Read `node_modules/next/dist/docs/` before using Next APIs (see AGENTS.md).
   `PORTAINER_WEBHOOK`). No GHCR: Packages budget is $0. Build needs no secrets (placeholder auth secret in the Dockerfile).
   URL for now: https://lateshow.pyvno.xyz (Cloudflare wildcard DNS).
 - Sign in = 6 digit email code (Better Auth emailOTP, 10 min, 5 tries, hashed) + passkeys (@better-auth/passkey).
+  Settings › Email changes the address with a code to the new one (emailOTP changeEmail, the current one isn't asked).
   Dev prints the code in the terminal (`Sign in code for <email>: 123456`). Prod sends through Resend
   (`RESEND_API_KEY`, `MAIL_FROM`, `MAIL_REPLY_TO`, see .env.example). Passkey table is hand-written in auth-schema.ts.
 - Gotcha: Turbopack serves stale CSS after editing `@utility`/`@theme`. Stop server, `rm -rf .next`, restart, check served CSS.

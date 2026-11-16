@@ -68,8 +68,12 @@ export const auth = betterAuth({
       allowedAttempts: 5,
       storeOTP: "hashed",
       rateLimit: { window: 60, max: 6 }, // per IP: a few typos must not lock out the right code
-      // only sign-in codes exist here: other types would send a "sign-in" mail that works nowhere
+      // Settings › Email: a code to the new address proves it's yours, then it's the one codes go to.
+      // ponytail: your current address isn't asked (verifyCurrentEmail), a signed-in session is enough here
+      changeEmail: { enabled: true },
+      // sign-in and change-email codes only: other types would send a mail that works nowhere
       sendVerificationOTP: async ({ email, otp, type }, ctx) => {
+        if (type === "change-email") return sendCode(email, otp, "change-email");
         if (type !== "sign-in") return;
         await sendCode(email, otp).catch(async (e: unknown) => {
           // note the failure first, so a failing delete can't turn it into a silent success

@@ -19,6 +19,7 @@ import { getMyPasskeys, getMyServiceIds } from "@/lib/settings/queries";
 import { getServiceChoices, img } from "@/lib/tmdb";
 import { AvatarPicker } from "./components/AvatarPicker";
 import { LanguagePicker } from "./components/LanguagePicker";
+import { ChangeEmail } from "./components/ChangeEmail";
 import { DeleteAccount } from "./components/DeleteAccount";
 import { ImportHistory } from "./components/ImportHistory";
 import { PastImports } from "./components/PastImports";
@@ -97,7 +98,7 @@ export async function Settings() {
         </Group>
         <Group {...GROUPS[2]}>
           <Row title="Email" description="Sign-in codes go here.">
-            <p className="text-body">{session.user.email}</p>
+            <ChangeEmail current={session.user.email} />
           </Row>
           <Row title="Passkeys" description="Sign in with Face ID, Touch ID or your password manager. No codes.">
             <Passkeys

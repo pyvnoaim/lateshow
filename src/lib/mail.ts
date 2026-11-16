@@ -10,16 +10,17 @@ const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&l
 export const spaced = (code: string) => `${code.slice(0, 3)} ${code.slice(3)}`;
 
 /** The sign-in code email, as on the canvas: dark card, the code big. No address footer (transactional mail). */
-export function codeEmail(code: string) {
+export function codeEmail(code: string, kind: "sign-in" | "change-email" = "sign-in") {
   const c = esc(spaced(code));
+  const what = kind === "sign-in" ? "Your sign-in code" : "Your code to make this your Lateshow email";
   return {
     // the code in the subject, so the notification alone is enough
     subject: `${spaced(code)} is your Lateshow code`,
-    text: `Your Lateshow sign-in code: ${spaced(code)}\n\nWorks for ${CODE_MINUTES} minutes, once. Didn't ask? Ignore this.`,
+    text: `${what}: ${spaced(code)}\n\nWorks for ${CODE_MINUTES} minutes, once. Didn't ask? Ignore this.`,
     html: `<!doctype html><html><body style="margin:0;background:#1c1c1e;padding:32px 16px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Inter,sans-serif">
 <div style="max-width:440px;margin:0 auto;background:#000;color:#f5f5f7;border-radius:28px;padding:44px 36px">
 <div style="font-size:22px;font-weight:700;letter-spacing:-0.035em"><img src="${SITE_URL}/apple-icon.png" width="32" height="32" alt="" style="vertical-align:middle;border-radius:8px;margin-right:10px">Lateshow</div>
-<div style="padding-top:28px;font-size:15px;color:#86868b">Your sign-in code</div>
+<div style="padding-top:28px;font-size:15px;color:#86868b">${what}</div>
 <div style="padding-top:8px;font-size:52px;font-weight:700;letter-spacing:0.06em">${c}</div>
 <p style="margin:24px 0 0;font-size:15px;line-height:1.55;color:#86868b">Works for ${CODE_MINUTES} minutes, once.<br>Didn't ask? Ignore this.</p>
 </div></body></html>`,
@@ -31,13 +32,13 @@ export function codeEmail(code: string) {
  * Throws when sending fails. auth.ts turns that into an error for the sign-in screen (Better Auth itself would
  * swallow it).
  */
-export async function sendCode(to: string, code: string) {
+export async function sendCode(to: string, code: string, kind: "sign-in" | "change-email" = "sign-in") {
   if (!isProduction) {
-    console.log(`\n  Sign in code for ${to}: ${code}\n`);
+    console.log(`\n  ${kind === "sign-in" ? "Sign in" : "Change email"} code for ${to}: ${code}\n`);
     return;
   }
   const { RESEND_API_KEY, MAIL_FROM, MAIL_REPLY_TO } = env("mail");
-  const mail = codeEmail(code);
+  const mail = codeEmail(code, kind);
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: { authorization: `Bearer ${RESEND_API_KEY}`, "content-type": "application/json" },
