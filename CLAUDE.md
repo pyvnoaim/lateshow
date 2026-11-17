@@ -196,6 +196,8 @@ lists (/l/<id>, see Todo), update bar after a deploy (`UpdateBar`: build id from
       `pnpm ext:chrome-token`), repo variable CWS_PUBLISHER_ID. Settings › Extension has "Add to Chrome" (2026-11-16), linked from
       `CHROME_STORE_URL` in `src/lib/site.ts` (set 2026-11-17). CI asks the store (fetchStatus
       crxVersion) whether a version is there, not Firefox's updates.json.
+      Listing text isn't uploaded by CI: change STORE.md and paste it in the dashboard (fields lock while a version is
+      in review: ⋮ › Cancel review, edit, Submit). 0.7.4 resubmitted 2026-11-17 with the Plus one text.
 - [ ] Later: genre/mood row, imports from TMDB account and Trakt (both have ids).
 - [ ] Watch together, named "Plus one" (2026-11-17, Watch2Gether is taken). Pill "+2 · In sync", room "Plus one · KQTZ",
       "Bring a plus one". Decided 2026-11-17: "Open on Netflix" links straight to the episode (Netflix id from JustWatch
