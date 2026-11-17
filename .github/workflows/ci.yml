@@ -158,6 +158,12 @@ jobs:
             -H "Content-Type: application/zip" --data-binary @extension/lateshow-chrome.zip)
           echo "upload: $up"
           state=$(node -pe 'JSON.parse(process.argv[1]).uploadState ?? ""' "$up")
+          # an older version is still in review: Chrome takes no upload until that's done. Not a failure, the next
+          # push (or a re-run of this job) uploads this version then
+          if echo "$up" | grep -q "NOT_UPDATEABLE"; then
+            echo "::warning::An older version is still in review at Chrome, this one goes up once it's through (push again or re-run)"
+            exit 0
+          fi
           # Chrome has this version already (a re-run): nothing to do
           if echo "$up" | grep -qi "version"; then
             if [ "$state" != "SUCCEEDED" ] && [ "$state" != "IN_PROGRESS" ]; then echo "::notice::Chrome has this version already"; exit 0; fi
