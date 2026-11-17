@@ -2,7 +2,7 @@ import "server-only";
 import { and, eq, inArray, isNotNull, or } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/lib/db/client";
-import { plays, rewatch, watched, watchlist } from "@/lib/db/schema";
+import { rewatch, watched, watchlist } from "@/lib/db/schema";
 import { placeEpisodes } from "@/lib/library/importing";
 import { isRewatch } from "@/lib/library/rewatch";
 import { linksFor, match, pick, remember, row, type Candidate, type Match } from "@/lib/library/matching";
@@ -67,7 +67,7 @@ export async function markFromExtension(userId: string, raw: unknown): Promise<M
     )
     .onConflictDoNothing()
     .returning({ id: watched.id, season: watched.season, episode: watched.episode });
-  const again = await rewatches(
+  const again = rewatches(
     userId,
     m,
     parts.filter((p) => !created.some((c) => c.season === p.season && c.episode === p.episode)),
@@ -89,43 +89,45 @@ export async function markFromExtension(userId: string, raw: unknown): Promise<M
   };
 }
 
-/** The rewatches among parts already watched: each gets a row unless one of its viewings is within 2 days of `at`. */
-async function rewatches(
-  userId: string,
-  m: Match,
-  parts: { season: number; episode: number }[],
-  at: Date,
-  via: string,
-) {
+/**
+ * The rewatches among parts already watched: each gets a row unless one of its viewings is within 2 days of `at`.
+ * One synchronous transaction, so two marks of one viewing arriving together can't both add it.
+ */
+function rewatches(userId: string, m: Match, parts: { season: number; episode: number }[], at: Date, via: string) {
   if (!parts.length) return [];
-  const seen = await db
-    .select({ id: plays.id, season: plays.season, episode: plays.episode, at: plays.watchedAt })
-    .from(plays)
-    .where(
-      and(
-        eq(plays.userId, userId),
-        eq(plays.mediaType, m.type),
-        eq(plays.tmdbId, m.id),
-        or(...parts.map((p) => and(eq(plays.season, p.season), eq(plays.episode, p.episode)))),
-      ),
-    );
-  const fresh = parts.flatMap((p) => {
-    const views = seen.filter((v) => v.season === p.season && v.episode === p.episode);
-    const first = views.find((v) => v.id > 0);
-    return first &&
-      isRewatch(
-        at,
-        views.map((v) => v.at),
+  return db.transaction((tx) => {
+    const firsts = tx
+      .select({ id: watched.id, at: watched.watchedAt })
+      .from(watched)
+      .where(
+        and(
+          eq(watched.userId, userId),
+          eq(watched.mediaType, m.type),
+          eq(watched.tmdbId, m.id),
+          or(...parts.map((p) => and(eq(watched.season, p.season), eq(watched.episode, p.episode)))),
+        ),
       )
-      ? [first.id]
-      : [];
+      .all();
+    if (!firsts.length) return [];
+    const later = tx
+      .select({ of: rewatch.watchedId, at: rewatch.watchedAt })
+      .from(rewatch)
+      .where(
+        inArray(
+          rewatch.watchedId,
+          firsts.map((f) => f.id),
+        ),
+      )
+      .all();
+    const fresh = firsts.filter((f) => isRewatch(at, [f.at, ...later.filter((l) => l.of === f.id).map((l) => l.at)]));
+    if (!fresh.length) return [];
+    return tx
+      .insert(rewatch)
+      .values(fresh.map((f) => ({ watchedId: f.id, userId, watchedAt: at, via })))
+      .returning({ id: rewatch.id })
+      .all()
+      .map((r) => r.id);
   });
-  if (!fresh.length) return [];
-  const rows = await db
-    .insert(rewatch)
-    .values(fresh.map((watchedId) => ({ watchedId, userId, watchedAt: at, via })))
-    .returning({ id: rewatch.id });
-  return rows.map((r) => r.id);
 }
 
 /** Undo in the extension's toast: removes exactly what that mark created (rows the extension made, by id) */

@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "6a5ad825-2a0c-42c6-9a28-21b3c0466388",
+  "id": "c7164e8f-2748-4fad-bb0d-83fc0ad0be73",
   "prevId": "9ecec6f7-d372-46a9-988a-1d8568fe490b",
   "tables": {
     "account": {
@@ -978,15 +978,6 @@
         }
       },
       "foreignKeys": {
-        "rewatch_watched_id_watched_id_fk": {
-          "name": "rewatch_watched_id_watched_id_fk",
-          "tableFrom": "rewatch",
-          "tableTo": "watched",
-          "columnsFrom": ["watched_id"],
-          "columnsTo": ["id"],
-          "onDelete": "cascade",
-          "onUpdate": "no action"
-        },
         "rewatch_user_id_user_id_fk": {
           "name": "rewatch_user_id_user_id_fk",
           "tableFrom": "rewatch",
@@ -1677,96 +1668,7 @@
       "checkConstraints": {}
     }
   },
-  "views": {
-    "plays": {
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "integer",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": true
-        },
-        "user_id": {
-          "name": "user_id",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "media_type": {
-          "name": "media_type",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "tmdb_id": {
-          "name": "tmdb_id",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "season": {
-          "name": "season",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": 0
-        },
-        "episode": {
-          "name": "episode",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": 0
-        },
-        "title": {
-          "name": "title",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "poster_path": {
-          "name": "poster_path",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "minutes": {
-          "name": "minutes",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": 0
-        },
-        "watched_at": {
-          "name": "watched_at",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false,
-          "default": "(cast(unixepoch('subsecond') * 1000 as integer))"
-        },
-        "via": {
-          "name": "via",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        }
-      },
-      "name": "plays",
-      "isExisting": false,
-      "definition": "select \"id\", \"user_id\", \"media_type\", \"tmdb_id\", \"season\", \"episode\", \"title\", \"poster_path\", \"minutes\", \"watched_at\", \"via\", 0 as \"rewatch\" from \"watched\" union all select -\"rewatch\".\"id\" as \"id\", \"rewatch\".\"user_id\", \"watched\".\"media_type\", \"watched\".\"tmdb_id\", \"watched\".\"season\", \"watched\".\"episode\", \"watched\".\"title\", \"watched\".\"poster_path\", \"watched\".\"minutes\", \"rewatch\".\"watched_at\", \"rewatch\".\"via\", 1 as \"rewatch\" from \"rewatch\" inner join \"watched\" on \"watched\".\"id\" = \"rewatch\".\"watched_id\""
-    }
-  },
+  "views": {},
   "enums": {},
   "_meta": {
     "schemas": {},

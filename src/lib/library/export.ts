@@ -1,7 +1,8 @@
 import "server-only";
 import { desc, eq } from "drizzle-orm";
 import { db } from "@/lib/db/client";
-import { watched, watchlist } from "@/lib/db/schema";
+import { watchlist } from "@/lib/db/schema";
+import { plays } from "@/lib/library/plays";
 
 type Row = {
   list: "history" | "watchlist";
@@ -29,10 +30,10 @@ export function toCsv(rows: Row[]) {
   return [head.join(","), ...lines].join("\n") + "\n";
 }
 
-/** Everything you watched and your watchlist, as one CSV. */
+/** Every viewing (rewatches too) and your watchlist, as one CSV. */
 export async function exportLibrary(userId: string) {
   const [history, listed] = await Promise.all([
-    db.select().from(watched).where(eq(watched.userId, userId)).orderBy(desc(watched.watchedAt)),
+    db.select().from(plays).where(eq(plays.userId, userId)).orderBy(desc(plays.watchedAt)),
     db.select().from(watchlist).where(eq(watchlist.userId, userId)).orderBy(desc(watchlist.addedAt)),
   ]);
   return toCsv([

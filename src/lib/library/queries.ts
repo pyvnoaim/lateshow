@@ -3,7 +3,8 @@ import { cache } from "react";
 import { getSession } from "@/lib/auth";
 import { and, count, desc, eq, gte, isNotNull, isNull, lt, max, or, sql, sum } from "drizzle-orm";
 import { db } from "@/lib/db/client";
-import { importBatch, plays, rating, rewatch, watched, watchlist } from "@/lib/db/schema";
+import { plays } from "@/lib/library/plays";
+import { importBatch, rating, watched, watchlist } from "@/lib/db/schema";
 import type { MediaType } from "@/lib/tmdb";
 import type { Unsure } from "@/lib/library/matching";
 
@@ -47,22 +48,23 @@ export async function getHistory(userId: string, limit = 50) {
 }
 
 export async function getStats(userId: string) {
-  const rows = await db
-    .select({ mediaType: watched.mediaType, items: count(), minutes: sum(watched.minutes) })
-    .from(watched)
-    .where(eq(watched.userId, userId))
-    .groupBy(watched.mediaType);
-  // watch time counts every viewing, the counts each title or episode once
-  const [again] = await db
-    .select({ minutes: sum(watched.minutes) })
-    .from(rewatch)
-    .innerJoin(watched, eq(watched.id, rewatch.watchedId))
-    .where(eq(rewatch.userId, userId));
+  // each title or episode counted once, the watch time from every viewing
+  const [rows, [time]] = await Promise.all([
+    db
+      .select({ mediaType: watched.mediaType, items: count() })
+      .from(watched)
+      .where(eq(watched.userId, userId))
+      .groupBy(watched.mediaType),
+    db
+      .select({ minutes: sum(plays.minutes) })
+      .from(plays)
+      .where(eq(plays.userId, userId)),
+  ]);
   const of = (t: MediaType) => rows.find((r) => r.mediaType === t);
   return {
     movies: of("movie")?.items ?? 0,
     episodes: of("tv")?.items ?? 0,
-    minutes: rows.reduce((total, r) => total + Number(r.minutes ?? 0), Number(again?.minutes ?? 0)),
+    minutes: Number(time?.minutes ?? 0),
   };
 }
 

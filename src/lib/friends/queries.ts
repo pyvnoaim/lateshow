@@ -2,7 +2,8 @@ import "server-only";
 import { and, count, desc, eq, gt, gte, inArray, or } from "drizzle-orm";
 import { user } from "@/lib/db/auth-schema";
 import { db } from "@/lib/db/client";
-import { friendship, invite, plays, watched, watchlist } from "@/lib/db/schema";
+import { plays } from "@/lib/library/plays";
+import { friendship, invite, watched, watchlist } from "@/lib/db/schema";
 import { groupByTitle } from "./activity";
 import { pair } from "./rules";
 
