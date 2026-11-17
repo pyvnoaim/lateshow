@@ -90,11 +90,7 @@ export function PlusOnePanel({
             {ext.version ? "Connect the extension" : "Get the extension"}
           </Link>
         )}
-        {ext?.kind === "firefox" && (
-          <span className="text-small text-muted">
-            Netflix needs Chrome for this, Zen and Firefox can&apos;t play it.
-          </span>
-        )}
+        <span className="text-small text-muted">Works in Chrome</span>
       </div>
       {error && <p className="text-small text-muted">{error}</p>}
       {host && (
