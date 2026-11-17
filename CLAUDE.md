@@ -215,7 +215,11 @@ lists (/l/<id>, see Todo), update bar after a deploy (`UpdateBar`: build id from
       Room UI (2026-11-17): "Bring a plus one" on title pages streaming on Netflix (`createPlusOne`, room game
       "plusone", playing from the start, the title as winner), its room = `Winner` + `PlusOnePanel` (Watch in sync hands
       the code to the extension through lateshow.ts, the maker's Everyone / Only me = `setControl`), also under every
-      game's winner. Not yet: who's on the episode per person, Open on Netflix straight to the episode.
+      game's winner. Not yet: who's on the episode per person.
+      Open on Netflix (2026-11-17): once this browser syncs, "Open S3 E5 on Netflix" (`netflixTarget` in Winner.tsx: the
+      Netflix id from JustWatch's netflix.com/title/<id>, the episode where the room plays, else the maker's next, else
+      the first) goes through lateshow.ts › background (`plusOneOpen`, opens /title/<id>) › netflix.ts, which finds the
+      episode by season/episode seq in Netflix's metadata and opens /watch/<episode id>. Netflix only, like all of Plus one.
       Step 4 drift (2026-11-17, `settle` in playback.ts): a move in the room is followed at once, a drift of your own
       ahead goes back quietly, behind a playing room asks "You're 4 s behind · Catch up / Wait for me" (Wait for me
       only if you may move the room, it moves everyone to you).

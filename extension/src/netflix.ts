@@ -306,6 +306,25 @@ watch({
   profile: () => profile,
 });
 
+// Plus one's "Open S1 E3 on Netflix" (Lateshow's room page, through background.ts): the title opened, find the episode
+// in Netflix's own metadata (TMDB's numbers are Netflix's seq for nearly every show) and play it. A minute at most,
+// once. Not found: the title's own play, Netflix picks.
+async function openFromRoom() {
+  const o = (await chrome.storage.local.get("plusOneOpen")).plusOneOpen as
+    { id: string; season?: number; episode?: number; at: number } | undefined;
+  if (!o || Date.now() - o.at > 60_000) return;
+  await chrome.storage.local.remove("plusOneOpen");
+  let target = o.id;
+  if (o.season != null && o.episode != null) {
+    const meta = (await getJson(`/nq/website/memberapi/release/metadata?movieid=${o.id}`).catch(() => null)) as Meta;
+    const ep = meta?.video?.seasons?.find((s) => s.seq === o.season)?.episodes?.find((e) => e.seq === o.episode);
+    const id = ep?.episodeId ?? ep?.id;
+    if (id) target = String(id);
+  }
+  location.assign(`/watch/${target}`);
+}
+void openFromRoom();
+
 // Plus one: your player follows the room's while the popup has you in one (Netflix moves between pages without a
 // reload, so this always runs, the clock is there only on a player page)
 plusOne({

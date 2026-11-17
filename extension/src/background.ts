@@ -215,6 +215,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     ids?: number[];
     site?: string;
     code?: string;
+    open?: { id: string; season?: number; episode?: number };
     titles?: number;
     rows?: unknown[];
     newest?: number;
@@ -260,6 +261,15 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   }
   if (msg.type === "lateshow:plusone-join" && msg.code) {
     void joinRoom(msg.code).then(sendResponse);
+    return true;
+  }
+  // Plus one's "Open on Netflix": remember the episode, open the title, netflix.ts goes on to the episode
+  if (msg.type === "lateshow:open-netflix" && msg.open && /^\d{1,12}$/.test(msg.open.id)) {
+    const open = msg.open;
+    void chrome.storage.local
+      .set({ plusOneOpen: { ...open, at: Date.now() } })
+      .then(() => chrome.tabs.create({ url: `https://www.netflix.com/title/${open.id}` }))
+      .then(() => sendResponse({ ok: true }));
     return true;
   }
   if (msg.type === "lateshow:plusone-leave") {

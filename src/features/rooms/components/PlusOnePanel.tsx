@@ -7,6 +7,7 @@ import { SegmentedTabs } from "@/components/ui/SegmentedTabs";
 import { useExtension } from "@/components/useExtension";
 
 type Control = "everyone" | "host";
+type Netflix = { id: string; season?: number; episode?: number } | null;
 
 /**
  * Plus one in a room: "Watch in sync" hands the room's code to this browser's extension (lateshow.ts), which then
@@ -17,11 +18,14 @@ export function PlusOnePanel({
   host,
   control,
   setControl,
+  netflix,
 }: {
   code: string;
   host: boolean;
   control: Control;
   setControl: (code: string, control: Control) => Promise<void>;
+  /** the title on Netflix and the episode to open, null when it isn't on Netflix here */
+  netflix: Netflix;
 }) {
   const ext = useExtension();
   const [inRoom, setInRoom] = useState<string | null>(null);
@@ -56,6 +60,15 @@ export function PlusOnePanel({
         </p>
       </div>
       <div className="flex flex-wrap items-center gap-4">
+        {synced && netflix && (
+          <button
+            type="button"
+            className={buttonStyles("primary", "md")}
+            onClick={() => window.postMessage({ type: "lateshow:plusone-open", ...netflix }, location.origin)}
+          >
+            Open {netflix.season != null ? `S${netflix.season} E${netflix.episode} ` : ""}on Netflix
+          </button>
+        )}
         {!ext ? null : synced ? (
           <button
             type="button"

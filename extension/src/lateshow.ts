@@ -102,6 +102,15 @@ window.addEventListener("message", (e) => {
       .then((r) => window.postMessage({ type: "lateshow:plusone-joined", ...r }, location.origin));
   if (d?.type === "lateshow:plusone-leave") void chrome.runtime.sendMessage({ type: "lateshow:plusone-leave" });
   if (d?.type === "lateshow:plusone-ask") void tellRoom();
+  // "Open S1 E3 on Netflix": only numbers pass, Netflix finds the episode itself (netflix.ts)
+  const o = e.data as { type?: string; id?: unknown; season?: unknown; episode?: unknown } | null;
+  if (o?.type === "lateshow:plusone-open" && typeof o.id === "string" && /^\d{1,12}$/.test(o.id)) {
+    const n = (v: unknown) => (typeof v === "number" && Number.isInteger(v) && v >= 0 ? v : undefined);
+    void chrome.runtime.sendMessage({
+      type: "lateshow:open-netflix",
+      open: { id: o.id, season: n(o.season), episode: n(o.episode) },
+    });
+  }
 });
 const tellRoom = async () =>
   window.postMessage(

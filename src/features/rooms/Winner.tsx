@@ -7,7 +7,10 @@ import { getWatchLinks } from "@/lib/justwatch";
 import { getLanguage } from "@/lib/region";
 import { playAgain, setControl } from "@/lib/rooms/actions";
 import type { getRoom } from "@/lib/rooms/queries";
-import { getEnglishName, getTitle, img } from "@/lib/tmdb";
+import { getSeasonInfo } from "@/lib/library/inProgress";
+import { nextEpisode, parseEpisodeKeys } from "@/lib/library/progress";
+import { getTitleLibrary } from "@/lib/library/queries";
+import { getEnglishName, getTitle, img, type Title } from "@/lib/tmdb";
 import { PlusOnePanel } from "./components/PlusOnePanel";
 import { PlayAgain } from "./components/RoomButtons";
 
@@ -26,11 +29,13 @@ export async function Winner({
   /** Two lines, the second muted. Gets the title's name. */
   headline: (name: string) => [ReactNode, ReactNode];
 }) {
-  const t = await getTitle(r.kind, String(r.winner), await getLanguage());
+  const lang = await getLanguage();
+  const t = await getTitle(r.kind, String(r.winner), lang);
   const english = await getEnglishName(r.kind, t.id).catch(() => t.title ?? t.name ?? "");
   const links = await getWatchLinks(r.kind, t.id, english, r.country ?? "DE");
   const link = links.find((l) => l.included) ?? links[0];
   const name = t.title ?? t.name ?? "";
+  const netflix = await netflixTarget(r, t, link, lang);
   // the line with the title's name arrives letter by letter, the rest is there at once
   const reveal = (line: ReactNode) =>
     typeof line === "string" && name && line.includes(name) ? <Scramble text={line} /> : line;
@@ -58,8 +63,26 @@ export async function Winner({
           )}
           {host && r.game !== "plusone" && <PlayAgain code={r.code} again={playAgain} />}
         </div>
-        <PlusOnePanel code={r.code} host={host} control={r.control} setControl={setControl} />
+        <PlusOnePanel code={r.code} host={host} control={r.control} setControl={setControl} netflix={netflix} />
       </div>
     </div>
   );
+}
+
+/**
+ * Plus one's "Open on Netflix": the title's Netflix id (JustWatch links to netflix.com/title/<id>) and, for a show,
+ * the episode: where the room plays, else the room maker's next one, else the first. The extension finds it there.
+ */
+async function netflixTarget(r: Room, t: Title, link: { service: string; url: string } | undefined, lang: string) {
+  const id =
+    link?.service === "Netflix" ? /netflix\.com\/(?:[a-z-]+\/)?(?:title|watch)\/(\d+)/.exec(link.url)?.[1] : null;
+  if (!id) return null;
+  if (r.kind === "movie") return { id };
+  if (r.playback?.season != null && r.playback.episode != null)
+    return { id, season: r.playback.season, episode: r.playback.episode };
+  const seasons = await getSeasonInfo(t, lang);
+  const { watched } = await getTitleLibrary(r.hostId, "tv", t.id);
+  const next = watched.length ? nextEpisode(seasons, parseEpisodeKeys(watched)) : null;
+  const first = seasons[0] ? { season: seasons[0].number, episode: seasons[0].episodes[0] } : null;
+  return { id, ...(next ?? first) };
 }
