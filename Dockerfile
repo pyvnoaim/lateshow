@@ -16,7 +16,8 @@ RUN BETTER_AUTH_SECRET=build-placeholder-never-used-at-runtime-000000 pnpm build
 
 FROM node:22-bookworm-slim
 WORKDIR /app
-ENV NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 PORT=3000 HOSTNAME=0.0.0.0 DATABASE_PATH=/data/lateshow.db
+# a watch day is Germany's (watchDay): the heatmap, its day card and History count days here
+ENV TZ=Europe/Berlin NODE_ENV=production NEXT_TELEMETRY_DISABLED=1 PORT=3000 HOSTNAME=0.0.0.0 DATABASE_PATH=/data/lateshow.db
 COPY --from=build --chown=node:node /app/.next/standalone ./
 COPY --from=build --chown=node:node /app/.next/static ./.next/static
 COPY --from=build --chown=node:node /app/public ./public

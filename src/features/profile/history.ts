@@ -1,3 +1,5 @@
+import { watchDay } from "@/lib/library/importing";
+
 type HistoryRow = {
   id: number;
   mediaType: "movie" | "tv";
@@ -22,7 +24,7 @@ export function historyEntries<T extends HistoryRow>(rows: T[], label: (d: Date 
     const run = r.mediaType === "tv" && prev?.mediaType === "tv" && prev.tmdbId === r.tmdbId;
     // same calendar day too: under a month heading, a show watched weekly stays one line per episode
     // (two undated rows count as the same day: a show marked "A while ago" is one line)
-    if (run && prev.watchedAt?.toDateString() === r.watchedAt?.toDateString()) last!.episodes.push(r);
+    if (run && watchDay(prev.watchedAt?.getTime()) === watchDay(r.watchedAt?.getTime())) last!.episodes.push(r);
     else group[1].push({ row: r, episodes: [r] });
   }
   return groups;

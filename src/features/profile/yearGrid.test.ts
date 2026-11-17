@@ -47,4 +47,9 @@ describe("yearGrid", () => {
     );
     expect(days.filter((d) => d.level > 0)).toEqual([{ date: "2025-03-01", minutes: 30, level: 1 }]);
   });
+
+  it("counts a watch until 5 in the morning (Berlin) for the evening before", () => {
+    const days = yearGrid([{ at: new Date("2026-11-03T00:30:00Z"), minutes: 52 }], today, 2026);
+    expect(days.find((d) => d.minutes > 0)?.date).toBe("2026-11-02");
+  });
 });

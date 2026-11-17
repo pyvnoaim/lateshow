@@ -8,5 +8,6 @@ export default defineConfig({
       "server-only": fileURLToPath(new URL("./src/test/server-only-stub.ts", import.meta.url)),
     },
   },
-  test: { include: ["src/**/*.test.ts"] },
+  // the server runs in Europe/Berlin (Dockerfile), days are counted there
+  test: { include: ["src/**/*.test.ts"], env: { TZ: "Europe/Berlin" } },
 });

@@ -33,6 +33,7 @@ import { TmdbImage } from "@/components/TmdbImage";
 import { SignOutButton } from "./components/SignOutButton";
 import { YearHeatmap } from "./components/YearHeatmap";
 import { NewListForm } from "./components/NewListForm";
+import { watchDay } from "@/lib/library/importing";
 import { yearGrid } from "./yearGrid";
 import { dayTitles, episodesLabel, historyEntries } from "./history";
 import type { PeekTitle } from "./components/DayPeek";
@@ -64,20 +65,22 @@ const fullCards = (rows: Row[], lang: string) =>
     ),
   );
 const plural = (n: number, word: string) => `${n} ${word}${n === 1 ? "" : "s"}`;
-const shortDate = (d: Date) => d.toLocaleDateString("en", { month: "short", day: "numeric" });
+const shortDate = (d: Date) => d.toLocaleDateString("en", { month: "short", day: "numeric", timeZone: "UTC" });
 const dayLabel = (d: Date | null, now: Date) => {
   if (!d) return "Earlier"; // marked "A while ago", no date: History lists these last (SQLite sorts null last when descending)
-  const days = Math.round((startOfDay(now) - startOfDay(d)) / 86_400_000);
+  // watch days (until 5 in the morning it's the evening before), the label reads the day itself
+  const day = new Date(`${watchDay(d.getTime())}T12:00:00Z`);
+  const days = Math.round((Date.parse(`${watchDay(now.getTime())}T12:00:00Z`) - day.getTime()) / 86_400_000);
   if (days === 0) return "Today";
   if (days === 1) return "Yesterday";
-  if (days < 7) return shortDate(d);
+  if (days < 7) return shortDate(day);
   // older ones by month, so a show watched one episode a week isn't a heading per row
-  return d.toLocaleDateString("en", {
+  return day.toLocaleDateString("en", {
     month: "long",
-    year: d.getFullYear() === now.getFullYear() ? undefined : "numeric",
+    year: day.getUTCFullYear() === now.getFullYear() ? undefined : "numeric",
+    timeZone: "UTC",
   });
 };
-const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
 
 /**
  * A profile: yours (at /u/me, or /u/yourname once you have a username) or a friend's (`owner` given, their username
@@ -125,7 +128,7 @@ export async function Profile({
   const uid = owner.id;
   const now = new Date();
   // the heatmap shows one calendar year, ?year= an older one, this year by default
-  const thisYear = now.getUTCFullYear();
+  const thisYear = Number(watchDay(now.getTime())!.slice(0, 4));
   const y = Number(rawYear);
   const year = tab === "overview" && Number.isInteger(y) && y >= 1900 && y <= thisYear ? y : thisYear;
   const name = owner.username || shownName(session.user);
@@ -137,7 +140,7 @@ export async function Profile({
     hidden ? { movies: 0, episodes: 0, minutes: 0 } : getStats(uid),
     hidden || tab !== "history" ? none : getHistory(uid, pages * HISTORY_PAGE + 1),
     hidden ? none : getWatchlist(uid),
-    hidden ? none : getWatchTimes(uid, new Date(Date.UTC(year, 0, 1)), new Date(Date.UTC(year + 1, 0, 1))),
+    hidden ? none : getWatchTimes(uid, new Date(year, 0, 1, 5), new Date(year + 1, 0, 1, 5)),
     hidden || tab !== "overview" ? [] : getWatchYears(uid),
     self ? getFriendCount(uid) : 0,
     self && tab === "friends"
@@ -174,14 +177,16 @@ export async function Profile({
   const friendName = self ? null : owner.username;
   async function peekDay(date: string): Promise<PeekTitle[]> {
     "use server";
-    const start = /^\d{4}-\d{2}-\d{2}$/.test(date) ? Date.parse(`${date}T00:00Z`) : NaN;
+    // the watch day: 5 in the morning to 5 the next morning
+    const [y, m, d] = /^\d{4}-\d{2}-\d{2}$/.test(date) ? date.split("-").map(Number) : [NaN, NaN, NaN];
+    const start = new Date(y, m - 1, d, 5);
     const me = await getSession();
-    if (!me || Number.isNaN(start)) return [];
+    if (!me || Number.isNaN(start.getTime())) return [];
     if (uid !== me.user.id) {
       const them = friendName ? await getUserByUsername(friendName) : null;
       if (!them || them.id !== uid || !them.shareActivity || !(await areFriends(me.user.id, uid))) return [];
     }
-    const rows = await getWatchedBetween(uid, new Date(start), new Date(start + 86_400_000));
+    const rows = await getWatchedBetween(uid, start, new Date(y, m - 1, d + 1, 5));
     return dayTitles(rows).map(({ row: r, episodes }) => ({
       key: `${r.mediaType}-${r.tmdbId}`,
       title: r.title,
