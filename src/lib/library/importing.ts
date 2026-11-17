@@ -85,6 +85,15 @@ function records(text: string): Record<string, string>[] {
 }
 
 const day = (s: string | undefined) => (s && /^\d{4}-\d{2}-\d{2}/.test(s) ? s.slice(0, 10) : undefined);
+/**
+ * The day a watch counts for, in your own time zone (the extension reads in your browser): until 5 in the morning it's
+ * still the evening before, so an episode that ran past midnight lands on the night you watched.
+ */
+export function watchDay(ms: number | undefined): string | undefined {
+  if (!ms || Number.isNaN(ms)) return undefined;
+  const d = new Date(ms - 5 * 3_600_000);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
 const year = (s: string | undefined) => (s && /^\d{4}$/.test(s) ? Number(s) : undefined);
 
 // IMDb's "Title Type": films become movies, series become series, single episodes can't be placed.
@@ -363,7 +372,7 @@ export function readCrunchyrollHistory(entries: CrunchyrollEntry[]): { rows: Imp
   let skipped = 0;
   // oldest first: the first time you watched each one wins
   for (const e of done.toSorted((a, b) => (a.date_played ?? "").localeCompare(b.date_played ?? ""))) {
-    const date = day(e.date_played);
+    const date = watchDay(e.date_played ? Date.parse(e.date_played) : undefined);
     if (e.panel?.type === "movie") {
       const title = e.panel.movie_metadata?.movie_listing_title ?? e.panel.title;
       if (title && !films.has(norm(title))) films.set(norm(title), { title, type: "movie", list: "watched", date });
@@ -420,19 +429,14 @@ export type NetflixViewed = {
 /**
  * Netflix's viewing activity as the extension reads it (newest first) into rows: a show with the episodes you
  * watched (by name per season, Netflix gives no episode numbers), each the first time you saw it, a film once.
- * The day is your own (local), Netflix's ids come along as refs so a confirmed match is remembered.
+ * The day is your own (`watchDay`), Netflix's ids come along as refs so a confirmed match is remembered.
  */
 export function readNetflixHistory(items: NetflixViewed[]): { rows: ImportRow[]; skipped: number } {
-  const local = (ms?: number) => {
-    if (!ms) return undefined;
-    const d = new Date(ms);
-    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-  };
   const shows = new Map<number, ImportRow>();
   const films = new Map<number, ImportRow>();
   let skipped = 0;
   for (const v of items.toReversed()) {
-    const date = local(v.date);
+    const date = watchDay(v.date);
     // Netflix sometimes sends a name of only spaces: such an entry can't be matched, it's counted as skipped
     const seriesTitle = v.seriesTitle?.trim();
     const title = v.title?.trim();
@@ -602,7 +606,7 @@ export function primeSince<D extends { titles?: PrimeTitle[] }>(days: D[], since
 }
 
 export function readPrimeHistory(days: { titles?: PrimeTitle[] }[]): { rows: ImportRow[]; skipped: number } {
-  const at = (ms?: number) => (ms ? new Date(ms).toISOString() : "");
+  const at = (ms?: number) => watchDay(ms) ?? "";
   const recs = days.flatMap((d) =>
     (d.titles ?? []).flatMap((t) =>
       t.children?.length

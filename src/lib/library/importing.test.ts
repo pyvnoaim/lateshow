@@ -13,6 +13,7 @@ import {
   readNetflixWatchlist,
   readPrimeHistory,
   readPrimeWatchlist,
+  watchDay,
   watchMonths,
 } from "./importing";
 
@@ -632,5 +633,14 @@ describe("readPrimeWatchlist", () => {
       { title: "The Loud House", type: "tv", list: "watchlist" },
       { title: "V/H/S", year: 2012, type: "movie", list: "watchlist", refs: ["prime:B0X"] },
     ]);
+  });
+});
+
+describe("watchDay", () => {
+  it("counts a watch until 5 in the morning for the evening before, in your own time zone", () => {
+    expect(watchDay(new Date(2026, 10, 16, 23, 50).getTime())).toBe("2026-11-16");
+    expect(watchDay(new Date(2026, 10, 17, 1, 30).getTime())).toBe("2026-11-16");
+    expect(watchDay(new Date(2026, 10, 17, 5, 0).getTime())).toBe("2026-11-17");
+    expect(watchDay(undefined)).toBeUndefined();
   });
 });
