@@ -93,6 +93,12 @@ export default function PrivacyPage() {
                 progress, pauses or what you started but didn&apos;t finish stay in your browser.
               </li>
               <li>
+                Only while you watch in sync in a Plus one room (Watch in sync, until you stop or the room closes): when
+                you play, pause or skip on Netflix, it sends whether it plays, where in the episode and which episode.
+                Only the people in that room see it, with your username. It&apos;s kept with the room and deleted a day
+                after the room closes.
+              </li>
+              <li>
                 When you press Sync (or Import on a history page), it sends that site&apos;s watch history since the
                 last sync (titles, seasons, episodes, days) and, unless you switch it off, the titles on its watchlist.
               </li>

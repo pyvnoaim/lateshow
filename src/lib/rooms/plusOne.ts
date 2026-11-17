@@ -25,13 +25,19 @@ async function roomFor(code: string, userId: string) {
   return r ?? null;
 }
 
+/** only what the extension needs, picked by name (an allowlist: a field added to Playback later stays on the server) */
+function shared(p: Playback, userId: string) {
+  const { playing, position, at, name, season, episode } = p;
+  return { playing, position, at, name, season, episode, mine: p.by === userId };
+}
+
 export type PlusOneState = {
   now: number; // the server's clock, so the extension can tell how far off its own is
-  you: string; // your member id, so your own pause isn't told back to you
   control: "everyone" | "host";
   canControl: boolean;
   title: { kind: "movie" | "tv"; tmdbId: number } | null;
-  playback: Playback | null;
+  /** the room's player without who moved it (no one's account id leaves the server), `mine`: you did */
+  playback: (Omit<Playback, "by"> & { mine: boolean }) | null;
 };
 
 /** The room's player as you see it, null when the room is gone or you're not in it */
@@ -40,11 +46,10 @@ export async function getPlusOne(code: string, userId: string): Promise<PlusOneS
   if (!r) return null;
   return {
     now: Date.now(),
-    you: userId,
     control: r.control,
     canControl: canControl(r, userId),
     title: r.tmdbId ? { kind: r.kind, tmdbId: r.tmdbId } : null,
-    playback: r.playback,
+    playback: r.playback && shared(r.playback, userId),
   };
 }
 
@@ -57,5 +62,5 @@ export async function movePlusOne(code: string, userId: string, body: unknown) {
   const playback = applyUpdate(u, { id: userId, name: r.name }, Date.now());
   // ponytail: last write wins. Two people pressing pause in the same second both pause, which is what they meant
   await db.update(room).set({ playback }).where(eq(room.code, code));
-  return { playback };
+  return { ok: true };
 }

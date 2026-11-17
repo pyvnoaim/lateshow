@@ -27,8 +27,11 @@ export const playbackUpdate = z.object({
 });
 export type PlaybackUpdate = z.infer<typeof playbackUpdate>;
 
+/** The part of the player that says where it is */
+type Clocked = Pick<Playback, "playing" | "position" | "at">;
+
 /** Where the shared player is at `now` (server ms) */
-export function positionAt(p: Playback, now: number) {
+export function positionAt(p: Clocked, now: number) {
   return p.playing ? p.position + Math.max(0, now - p.at) / 1000 : p.position;
 }
 
@@ -49,7 +52,7 @@ export type Local = { at: number; paused: boolean; t: number };
  * What your player must do to match the room: play or pause, and a seek when it's more than `drift` seconds off.
  * Null when it already matches. `serverNow`: the server's clock now (yours plus the offset the stream told).
  */
-export function follow(local: Local, p: Playback, serverNow: number, drift = 2) {
+export function follow(local: Local, p: Clocked, serverNow: number, drift = 2) {
   const out: { play?: boolean; seek?: number } = {};
   if (local.paused === p.playing) out.play = p.playing;
   const target = positionAt(p, serverNow);

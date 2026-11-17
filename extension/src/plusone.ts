@@ -1,7 +1,7 @@
 // Plus one on a player page: while the popup has you in a room, your player follows the room's (play, pause, where)
 // and what you do yourself goes to the room. The room's stream runs in background.ts (only it may call Lateshow),
 // this page talks to it over a port, which also keeps the background awake. Each site hands in its player.
-import { follow, moved, type Local, type Playback } from "@/lib/rooms/playback";
+import { follow, moved, type Local } from "@/lib/rooms/playback";
 import type { PlusOneState } from "@/lib/rooms/plusOne";
 import { toast } from "./toast";
 
@@ -17,7 +17,8 @@ export type Player = {
 const mmss = (s: number) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, "0")}`;
 
 /** What happened, for the toast: "Mara paused", "Mara jumped to 21:40" */
-function told(before: Playback | null, now: Playback) {
+type Shared = NonNullable<PlusOneState["playback"]>;
+function told(before: Shared | null, now: Shared) {
   if (!before || before.playing !== now.playing) return `${now.name} ${now.playing ? "played" : "paused"}`;
   return `${now.name} jumped to ${mmss(now.position)}`;
 }
@@ -43,8 +44,7 @@ export function plusOne(player: Player) {
       if (!m.state) return;
       const before = state?.playback ?? null;
       const now = m.state.playback;
-      if (now && now.by !== m.state.you && now.at !== before?.at)
-        toast({ title: told(before, now), meta: "Plus one" }, 4000);
+      if (now && !now.mine && now.at !== before?.at) toast({ title: told(before, now), meta: "Plus one" }, 4000);
       state = m.state;
     });
     port.onDisconnect.addListener(() => {
@@ -64,7 +64,7 @@ export function plusOne(player: Player) {
     const move = { playing: !local.paused, position: local.at, ...player.episode() };
     port.postMessage({ move });
     // as if the room said so already, so the next look doesn't pull you back before its answer
-    state = { ...state, playback: { ...move, at: Date.now() + offset, by: state.you, name: "" } };
+    state = { ...state, playback: { ...move, at: Date.now() + offset, name: "", mine: true } };
   }
 
   window.setInterval(() => {

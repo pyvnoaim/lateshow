@@ -99,12 +99,29 @@ export async function RoomLobby({ code: raw }: { code: string }) {
           </div>
         </div>
         {r.game === "plusone" ? (
-          <Winner
-            r={r}
-            host={host}
-            detail={`Plus one · Room ${code} · hosted by ${r.host}`}
-            headline={(name) => [name, "together."]}
-          />
+          <>
+            <Winner
+              r={r}
+              host={host}
+              detail={`Plus one · Room ${code} · hosted by ${r.host}`}
+              headline={(name) => [name, "together."]}
+            />
+            {/* everyone who can see and move this player: someone you don't know here, close the room */}
+            <section className="flex flex-col gap-5">
+              <h2 className="text-section leading-none font-bold">In the room</h2>
+              <ul className="flex flex-wrap gap-6">
+                {r.members
+                  .filter((m) => m.joined)
+                  .map((m) => (
+                    <li key={m.memberId} className="flex w-22 pop flex-col items-center gap-2.5 text-center">
+                      <Avatar name={m.name} image={m.image} size="lg" />
+                      <span className="w-full truncate text-small">{m.name}</span>
+                      <span className="text-caption text-muted">{m.memberId === r.hostId ? "Host" : "Here"}</span>
+                    </li>
+                  ))}
+              </ul>
+            </section>
+          </>
         ) : r.game === "swipe" ? (
           <SwipeGame r={r} meId={me!.id} />
         ) : r.game === "bracket" ? (

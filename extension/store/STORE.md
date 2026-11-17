@@ -24,9 +24,11 @@ the real time you watched it. A small notice says so, with Undo.
 • Sync brings your watch history from those sites into Lateshow, only what's new since the last sync.
 • Your watchlists come along too (one switch to turn that off).
 • Only your profile counts on shared accounts.
+• Plus one: watch Netflix in sync with friends in a Lateshow room. Play, pause and skip for everyone.
 
 It reads only those sites' own data while you are signed in there, never other sites, your browsing history or
-passwords. Only finished titles leave your browser, never your progress. No ads, no tracking, nothing sold.
+passwords. Only finished titles leave your browser, never your progress, except your play, pause and position
+while you watch in sync in a Plus one room, and then only to the people in it. No ads, no tracking, nothing sold.
 
 Free, non-commercial, made by one person. Needs a Lateshow account.
 
@@ -35,8 +37,9 @@ Free, non-commercial, made by one person. Needs a Lateshow account.
 ## Privacy practices
 
 **Single purpose:**
-Track what you watch on streaming sites in your Lateshow account: mark finished episodes and films, and import your
-watch history and watchlists from Netflix, Prime Video and Crunchyroll.
+Track and watch together what you watch on streaming sites with your Lateshow account: mark finished episodes and
+films, import your watch history and watchlists from Netflix, Prime Video and Crunchyroll, and keep Netflix in sync
+with friends in a Lateshow room.
 
 **Permission justifications:**
 
@@ -55,7 +58,8 @@ watch history and watchlists from Netflix, Prime Video and Crunchyroll.
 - Personally identifiable information: no
 - Authentication information: **yes** (the Lateshow key it keeps, sent only to Lateshow)
 - Web history: **yes** (your watch history on those three sites, when you sync)
-- User activity: **yes** (that you finished an episode or film there)
+- User activity: **yes** (that you finished an episode or film there, and play, pause and position while you watch in
+  sync in a Plus one room)
 - Website content: **yes** (titles, seasons, episodes and watchlist entries from those sites)
 - Everything else: no
 
