@@ -37,7 +37,7 @@ Read `node_modules/next/dist/docs/` before using Next APIs (see AGENTS.md).
   forwards Sync from Settings and its progress back), `popup.ts` (not connected / sync running or done / marked this
   week / one line per site with Sync and its switch).
   Key: Settings › Extension connects a browser (`ls_<id>_<secret>`, hashed, Bearer only, no cookie), it can only use
-  /api/extension/mark (POST, DELETE = Undo), /me and /import. Browser names from the User-Agent (`browser`).
+  /api/extension/mark (POST, DELETE = Undo), /me, /import and /rooms/<code> (Plus one, below). Browser names from the User-Agent (`browser`).
   Sync (2026-11-15): the popup or Settings asks background.ts, which opens the site's history in a background tab,
   the reader reads what's new since `synced[site]` without the card and hands the rows back, the tab closes, rows go
   to /api/extension/import in batches of 40 (`lib/extension/sync.ts` → `lib/library/importRun.ts`, the same import as
@@ -203,6 +203,9 @@ lists (/l/<id>, see Todo), update bar after a deploy (`UpdateBar`: build id from
       and skip (Everyone / Only me) · the next episode plays for everyone ("Playing in 5 · Stop") · started after a room
       pick and from the title page · Netflix/Prime need Chrome (say so in Zen) · late joiners jump to the others ·
       positions from the server's clock · /privacy: your position goes to the room. Not in v1: chat, phones, mixed services.
+      Step 1 done (2026-11-17): `room.control` + `room.playback` (playing, position, at = server clock, by, name, season,
+      episode, `lib/rooms/playback.ts` + `plusOne.ts`), /api/extension/rooms/<code>: GET = an event stream of the player
+      (fetch with the key, twice a second, server clock in each), POST = play/pause/skip. Joined members only.
       Earlier plan: a browser extension (drafts on the canvas, approved 2026-11-11): syncs the streaming site's
       player for everyone in a room, on a laptop. Rejected: a manual 3-2-1 countdown flow without the extension.
       Plan, v1 = Netflix + Chrome (MV3): 1 room gets a playback state (playing/paused, position, at) on the existing

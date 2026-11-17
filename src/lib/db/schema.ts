@@ -1,6 +1,7 @@
 import { sql } from "drizzle-orm";
 import { index, integer, primaryKey, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 import { user } from "./auth-schema";
+import type { Playback } from "@/lib/rooms/playback";
 
 const now = sql`(cast(unixepoch('subsecond') * 1000 as integer))`;
 
@@ -177,6 +178,11 @@ export const room = sqliteTable("room", {
   mood: text("mood"),
   // swipe or bracket over a list's titles instead of discover (no FK: a deleted list just deals an empty deck)
   listId: text("list_id"),
+  // Plus one (watching together): who may pause and skip, and the shared player (see lib/rooms/playback.ts)
+  control: text("control", { enum: ["everyone", "host"] })
+    .notNull()
+    .default("everyone"),
+  playback: text("playback", { mode: "json" }).$type<Playback>(),
   createdAt: integer("created_at", { mode: "timestamp_ms" }).default(now).notNull(),
   expiresAt: integer("expires_at", { mode: "timestamp_ms" }).notNull(),
 });
