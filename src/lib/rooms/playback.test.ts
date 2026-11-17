@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applyUpdate, canControl, follow, moved, playbackUpdate, positionAt } from "./playback";
+import { applyUpdate, canControl, follow, moved, playbackUpdate, positionAt, settle } from "./playback";
 
 describe("playback", () => {
   const p = applyUpdate({ playing: true, position: 600 }, { id: "u1", name: "Mara" }, 1_000_000);
@@ -37,5 +37,14 @@ describe("playback", () => {
     expect(moved(prev, { at: 101, paused: true, t: 1000 })).toBe(true);
     expect(moved(prev, { at: 160, paused: false, t: 1000 })).toBe(true);
     expect(moved({ ...prev, paused: true }, { at: 100, paused: true, t: 5000 })).toBe(false);
+  });
+
+  it("asks when you fell behind on your own, follows a move in the room at once", () => {
+    const at = (s: number) => ({ at: s, paused: false, t: 0 });
+    expect(settle(at(590), p, 1_004_500, false)).toEqual({ behind: 14.5 });
+    expect(settle(at(590), p, 1_004_500, true)).toEqual({ seek: 604.5 });
+    expect(settle(at(620), p, 1_004_500, false)).toEqual({ seek: 604.5 }); // ahead: back quietly
+    expect(settle(at(590), { ...p, playing: false }, 1_004_500, false)).toEqual({ play: false, seek: 600 });
+    expect(settle(at(604), p, 1_004_500, false)).toBeNull();
   });
 });

@@ -216,6 +216,9 @@ lists (/l/<id>, see Todo), update bar after a deploy (`UpdateBar`: build id from
       "plusone", playing from the start, the title as winner), its room = `Winner` + `PlusOnePanel` (Watch in sync hands
       the code to the extension through lateshow.ts, the maker's Everyone / Only me = `setControl`), also under every
       game's winner. Not yet: who's on the episode per person, Open on Netflix straight to the episode.
+      Step 4 drift (2026-11-17, `settle` in playback.ts): a move in the room is followed at once, a drift of your own
+      ahead goes back quietly, behind a playing room asks "You're 4 s behind · Catch up / Wait for me" (Wait for me
+      only if you may move the room, it moves everyone to you).
       Earlier plan: a browser extension (drafts on the canvas, approved 2026-11-11): syncs the streaming site's
       player for everyone in a room, on a laptop. Rejected: a manual 3-2-1 countdown flow without the extension.
       Plan, v1 = Netflix + Chrome (MV3): 1 room gets a playback state (playing/paused, position, at) on the existing

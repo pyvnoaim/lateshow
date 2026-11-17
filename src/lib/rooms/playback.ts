@@ -66,3 +66,21 @@ export function moved(prev: Local, now: Local, jump = 3) {
   const expected = prev.at + (prev.paused ? 0 : (now.t - prev.t) / 1000);
   return Math.abs(now.at - expected) > jump;
 }
+
+/**
+ * `follow`, minus the jumps you didn't ask for. After a move in the room (`fresh`: a pause, a skip, you just joined)
+ * your player follows it all. Otherwise a drift of your own (buffering, a slow laptop): ahead goes back quietly,
+ * behind a playing room becomes `behind` (seconds), so you choose Catch up or Wait for me.
+ */
+export function settle(
+  local: Local,
+  p: Clocked,
+  serverNow: number,
+  fresh: boolean,
+  drift = 2,
+): { play?: boolean; seek?: number; behind?: number } | null {
+  const f = follow(local, p, serverNow, drift);
+  if (!f || fresh || !p.playing || f.seek === undefined || f.seek < local.at) return f;
+  const { seek, ...rest } = f;
+  return { ...rest, behind: seek - local.at };
+}
