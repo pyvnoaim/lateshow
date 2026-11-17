@@ -41,3 +41,25 @@ export function canControl(room: { control: "everyone" | "host"; hostId: string 
 export function applyUpdate(u: PlaybackUpdate, who: { id: string; name: string }, now: number): Playback {
   return { ...u, at: now, by: who.id, name: who.name };
 }
+
+/** Where your own player is: seconds in, paused or not, and when you looked (your clock, ms) */
+export type Local = { at: number; paused: boolean; t: number };
+
+/**
+ * What your player must do to match the room: play or pause, and a seek when it's more than `drift` seconds off.
+ * Null when it already matches. `serverNow`: the server's clock now (yours plus the offset the stream told).
+ */
+export function follow(local: Local, p: Playback, serverNow: number, drift = 2) {
+  const out: { play?: boolean; seek?: number } = {};
+  if (local.paused === p.playing) out.play = p.playing;
+  const target = positionAt(p, serverNow);
+  if (Math.abs(local.at - target) > drift) out.seek = target;
+  return out.play === undefined && out.seek === undefined ? null : out;
+}
+
+/** You moved your player yourself between two looks: paused, played, or jumped more than `jump` seconds */
+export function moved(prev: Local, now: Local, jump = 3) {
+  if (prev.paused !== now.paused) return true;
+  const expected = prev.at + (prev.paused ? 0 : (now.t - prev.t) / 1000);
+  return Math.abs(now.at - expected) > jump;
+}

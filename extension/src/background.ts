@@ -2,6 +2,7 @@
 // can't go out yet waits in a queue in storage with its real time, and goes out on the next mark or every 5 minutes.
 // Lateshow ignores doubles, so retrying is safe.
 import type { MarkResult } from "@/lib/extension/mark";
+import type { PlusOneState } from "@/lib/rooms/plusOne";
 
 type Mark = { id: string; body: unknown; tries: number };
 type Answer = MarkResult | { status: "queued" } | { status: "error"; message: string };
@@ -213,6 +214,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     body?: unknown;
     ids?: number[];
     site?: string;
+    code?: string;
     titles?: number;
     rows?: unknown[];
     newest?: number;
@@ -256,6 +258,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     });
     return true;
   }
+  if (msg.type === "lateshow:plusone-join" && msg.code) {
+    void joinRoom(msg.code).then(sendResponse);
+    return true;
+  }
+  if (msg.type === "lateshow:plusone-leave") {
+    void chrome.storage.local.remove("plusOne").then(() => sendResponse({ ok: true }));
+    return true;
+  }
   if (msg.type === "lateshow:undo") {
     call("DELETE", { ids: msg.ids })
       .then((res) => sendResponse({ ok: res.ok }))
@@ -263,6 +273,105 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     return true;
   }
 });
+
+// --- Plus one: a player page connects a port (plusone.ts) while the popup has you in a room. This reads the room's
+// stream for it (fetch with the key, a stream EventSource can't send it with) and sends its moves. For the popup it
+// keeps what happened last in `plusOneStatus`.
+
+export type PlusOneStatus = { code: string; name?: string; playing?: boolean; at: number; error?: string };
+
+const room = (code: string) => `${API}/rooms/${encodeURIComponent(code)}`;
+
+async function leave(code: string, error?: string) {
+  if ((await local<string>("plusOne")) !== code) return;
+  await chrome.storage.local.remove("plusOne");
+  await chrome.storage.local.set({ plusOneStatus: { code, at: Date.now(), error } satisfies PlusOneStatus });
+}
+
+async function followRoom(port: chrome.runtime.Port, signal: AbortSignal) {
+  while (!signal.aborted) {
+    const code = await local<string>("plusOne");
+    const k = await key();
+    if (!code || !k) return port.disconnect();
+    try {
+      const res = await fetch(room(code), { headers: { authorization: `Bearer ${k}` }, signal });
+      if (res.status === 401 || res.status === 404) {
+        port.postMessage({ gone: true });
+        await leave(code, res.status === 404 ? "That room is gone." : "Connect the extension again.");
+        return port.disconnect();
+      }
+      const reader = res.body?.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      for (;;) {
+        const chunk = await reader?.read();
+        if (!chunk || chunk.done) break;
+        buffer += decoder.decode(chunk.value, { stream: true });
+        const events = buffer.split("\n\n");
+        buffer = events.pop() ?? "";
+        for (const ev of events) {
+          if (ev.startsWith("event: gone")) {
+            port.postMessage({ gone: true });
+            await leave(code, "The room is over.");
+            return port.disconnect();
+          }
+          if (ev.startsWith(": ")) port.postMessage({ offset: Number(ev.slice(2)) - Date.now() });
+          if (!ev.startsWith("data: ")) continue;
+          const state = JSON.parse(ev.slice(6)) as PlusOneState;
+          port.postMessage({ state, offset: state.now - Date.now() });
+          const p = state.playback;
+          await chrome.storage.local.set({
+            plusOneStatus: { code, name: p?.name, playing: p?.playing, at: Date.now() } satisfies PlusOneStatus,
+          });
+        }
+      }
+    } catch {
+      if (signal.aborted) return;
+    }
+    await new Promise((r) => setTimeout(r, 2000)); // the stream ended (it does every 15 minutes): again
+  }
+}
+
+chrome.runtime.onConnect.addListener((port) => {
+  if (port.name !== "plusone") return;
+  const ctl = new AbortController();
+  port.onDisconnect.addListener(() => ctl.abort());
+  port.onMessage.addListener((raw) => {
+    const move = (raw as { move?: unknown }).move;
+    if (!move) return;
+    void Promise.all([local<string>("plusOne"), key()]).then(([code, k]) => {
+      if (!code || !k) return;
+      return fetch(room(code), {
+        method: "POST",
+        headers: { authorization: `Bearer ${k}`, "content-type": "application/json" },
+        body: JSON.stringify(move),
+      }).catch(() => {}); // ponytail: a lost move isn't retried, the room's next state pulls everyone together
+    });
+  });
+  void followRoom(port, ctl.signal);
+});
+
+/** The popup's Join: is it a room you're in? Reads the stream's first state and stops. */
+async function joinRoom(code: string): Promise<{ ok: true } | { ok: false; message: string }> {
+  const k = await key();
+  if (!k) return { ok: false, message: "Connect the extension first." };
+  const ctl = new AbortController();
+  try {
+    const res = await fetch(room(code), { headers: { authorization: `Bearer ${k}` }, signal: ctl.signal });
+    if (res.status === 404)
+      return { ok: false, message: "No room with that code that you're in. Join it on Lateshow first." };
+    if (!res.ok) return { ok: false, message: "Lateshow didn't answer. Try again." };
+    await chrome.storage.local.set({
+      plusOne: code,
+      plusOneStatus: { code, at: Date.now() } satisfies PlusOneStatus,
+    });
+    return { ok: true };
+  } catch {
+    return { ok: false, message: "Lateshow didn't answer. Try again." };
+  } finally {
+    ctl.abort();
+  }
+}
 
 chrome.alarms.create("flush", { periodInMinutes: 5 });
 chrome.alarms.onAlarm.addListener(() => void flush());

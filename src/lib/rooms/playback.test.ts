@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { applyUpdate, canControl, playbackUpdate, positionAt } from "./playback";
+import { applyUpdate, canControl, follow, moved, playbackUpdate, positionAt } from "./playback";
 
 describe("playback", () => {
   const p = applyUpdate({ playing: true, position: 600 }, { id: "u1", name: "Mara" }, 1_000_000);
@@ -20,5 +20,22 @@ describe("playback", () => {
     expect(playbackUpdate.safeParse({ playing: true, position: 12.5, season: 1, episode: 3 }).success).toBe(true);
     expect(playbackUpdate.safeParse({ playing: true, position: -1 }).success).toBe(false);
     expect(playbackUpdate.safeParse({ playing: "yes", position: 1 }).success).toBe(false);
+  });
+
+  it("tells your player what to do to match the room", () => {
+    const at = (s: number, paused = false) => ({ at: s, paused, t: 0 });
+    expect(follow(at(604), p, 1_004_500)).toBeNull(); // half a second off is fine
+    expect(follow(at(604, true), p, 1_004_500)).toEqual({ play: true });
+    expect(follow(at(590), p, 1_004_500)).toEqual({ seek: 604.5 });
+    expect(follow(at(600, true), { ...p, playing: false }, 1_004_500)).toBeNull();
+    expect(follow(at(600), { ...p, playing: false }, 1_004_500)).toEqual({ play: false });
+  });
+
+  it("notices when you pause or skip yourself, not when it just plays on", () => {
+    const prev = { at: 100, paused: false, t: 0 };
+    expect(moved(prev, { at: 101, paused: false, t: 1000 })).toBe(false);
+    expect(moved(prev, { at: 101, paused: true, t: 1000 })).toBe(true);
+    expect(moved(prev, { at: 160, paused: false, t: 1000 })).toBe(true);
+    expect(moved({ ...prev, paused: true }, { at: 100, paused: true, t: 5000 })).toBe(false);
   });
 });

@@ -40,6 +40,15 @@ declare namespace chrome {
     const onAlarm: { addListener(fn: (alarm: { name: string }) => void): void };
   }
   namespace runtime {
+    type Port = {
+      name: string;
+      postMessage(message: unknown): void;
+      disconnect(): void;
+      onMessage: { addListener(fn: (message: unknown) => void): void };
+      onDisconnect: { addListener(fn: () => void): void };
+    };
+    function connect(info: { name: string }): Port;
+    const onConnect: { addListener(fn: (port: Port) => void): void };
     function sendMessage<T>(message: { type: string; [key: string]: unknown }): Promise<T>;
     function getManifest(): { version: string };
   }

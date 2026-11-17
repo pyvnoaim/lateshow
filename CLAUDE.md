@@ -206,6 +206,10 @@ lists (/l/<id>, see Todo), update bar after a deploy (`UpdateBar`: build id from
       Step 1 done (2026-11-17): `room.control` + `room.playback` (playing, position, at = server clock, by, name, season,
       episode, `lib/rooms/playback.ts` + `plusOne.ts`), /api/extension/rooms/<code>: GET = an event stream of the player
       (fetch with the key, twice a second, server clock in each), POST = play/pause/skip. Joined members only.
+      Steps 2+3 built (2026-11-17), untested on Netflix: popup "Plus one" (room code, Join checks you're in it, Leave,
+      `plusOne`/`plusOneStatus` in storage), `plusone.ts` on the player (port "plusone" to background.ts, which reads the
+      stream and posts moves, pings keep it awake; `follow`/`moved` in playback.ts: 2 s drift seeks, a 3 s jump or
+      a pause is yours), Netflix through `lateshow:nf-control` in netflix-main.ts (player API play/pause/seek).
       Earlier plan: a browser extension (drafts on the canvas, approved 2026-11-11): syncs the streaming site's
       player for everyone in a room, on a laptop. Rejected: a manual 3-2-1 countdown flow without the extension.
       Plan, v1 = Netflix + Chrome (MV3): 1 room gets a playback state (playing/paused, position, at) on the existing

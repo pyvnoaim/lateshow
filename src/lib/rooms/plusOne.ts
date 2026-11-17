@@ -27,6 +27,7 @@ async function roomFor(code: string, userId: string) {
 
 export type PlusOneState = {
   now: number; // the server's clock, so the extension can tell how far off its own is
+  you: string; // your member id, so your own pause isn't told back to you
   control: "everyone" | "host";
   canControl: boolean;
   title: { kind: "movie" | "tv"; tmdbId: number } | null;
@@ -39,6 +40,7 @@ export async function getPlusOne(code: string, userId: string): Promise<PlusOneS
   if (!r) return null;
   return {
     now: Date.now(),
+    you: userId,
     control: r.control,
     canControl: canControl(r, userId),
     title: r.tmdbId ? { kind: r.kind, tmdbId: r.tmdbId } : null,

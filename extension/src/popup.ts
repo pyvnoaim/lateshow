@@ -1,7 +1,7 @@
 // The popup (drafts: the popup canvas). Not connected: what it does, Connect, and the sites' history pages for a first
 // import by hand. Connected: a sync that runs or just ran, what was marked lately (Undo), then one line per site with
 // when it last synced, Sync (background.ts reads and imports, see there) and the switch that marks what you finish.
-import type { Recent, SyncState } from "./background";
+import type { PlusOneStatus, Recent, SyncState } from "./background";
 
 // as background.ts: a sync job older than this is over (types only from there, its code must not run here)
 const STALE = 5 * 60_000;
@@ -219,6 +219,52 @@ function recentList(recent: Recent[]) {
   return sec;
 }
 
+/** Plus one: join a room by its code, then what the room did last and Leave */
+function plusOneCard(code: string | undefined, status: PlusOneStatus | undefined) {
+  const sec = el("section", "recent");
+  const head = el("div", "recent-head");
+  head.append(el("p", "label", code ? `Plus one · ${code}` : "Plus one"));
+  sec.append(head);
+  if (code) {
+    const line = el("div", "mark");
+    const text = el("div", "text");
+    const last = status?.code === code && status.name ? `${status.name} ${status.playing ? "played" : "paused"}` : "";
+    text.append(
+      el("span", "", last || "In the room"),
+      el("span", "sub", "Open the episode on Netflix, your player follows the room"),
+    );
+    const leave = el("button", "link", "Leave");
+    leave.addEventListener("click", () => void chrome.runtime.sendMessage({ type: "lateshow:plusone-leave" }));
+    line.append(text, leave);
+    sec.append(line);
+    return sec;
+  }
+  const form = el("form", "code");
+  const input = Object.assign(el("input", ""), {
+    placeholder: "Room code",
+    maxLength: 4,
+    autocomplete: "off",
+    spellcheck: false,
+  });
+  input.setAttribute("aria-label", "Room code");
+  const join = el("button", "pill", "Join");
+  join.type = "submit";
+  const note = el("p", "note", status?.error ?? "Watch in sync with friends. Join the room on Lateshow, then here.");
+  form.append(input, join);
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    join.disabled = true;
+    const res = await chrome.runtime.sendMessage<{ ok: boolean; message?: string }>({
+      type: "lateshow:plusone-join",
+      code: input.value.trim().toUpperCase(),
+    });
+    join.disabled = false;
+    if (!res?.ok) note.textContent = res?.message ?? "That didn't work. Try again.";
+  });
+  sec.append(form, note);
+  return sec;
+}
+
 /** C: one line per site, when it last synced, Sync, and the switch that marks what you finish there */
 function siteList(settings: Settings, synced: Record<string, number>, busy: string | null, queued: string[]) {
   const sameDay = (a: number) => new Date(a).toDateString() === new Date().toDateString();
@@ -328,6 +374,7 @@ async function render() {
   const out: Node[] = [];
   const running = state && (state.phase === "reading" || state.phase === "importing");
   if (state && (running || Date.now() - state.at < SHOW_DONE)) out.push(syncCard(state));
+  out.push(plusOneCard(await store<string>("plusOne"), await store<PlusOneStatus>("plusOneStatus")));
   const marks = recentList(recent ?? []);
   if (marks) out.push(marks);
   // busy while a tab reads or what it read is imported (the tab is gone by then)

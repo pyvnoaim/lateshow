@@ -11,6 +11,7 @@ import {
 } from "@/lib/library/importing";
 import { showCard } from "./card";
 import { getJson, historyPage, pageFetch, pause, reader, type ReadHistory } from "./reader";
+import { plusOne } from "./plusone";
 import { watch, type Clock } from "./watch";
 
 type Ids = { guid: string | null; build: string | null; name?: string | null };
@@ -303,4 +304,15 @@ watch({
     return Boolean(at !== undefined && current?.end && at >= current.end);
   },
   profile: () => profile,
+});
+
+// Plus one: your player follows the room's while the popup has you in one (Netflix moves between pages without a
+// reload, so this always runs, the clock is there only on a player page)
+plusOne({
+  clock: () => (clock && Date.now() - clock.at < 3000 ? { ...clock.clock, t: clock.at } : null),
+  control: (c) => window.postMessage({ type: "lateshow:nf-control", ...c }, location.origin),
+  episode: () => {
+    const e = current?.row.episodes?.[0];
+    return e ? { season: e.season, episode: e.episode } : null;
+  },
 });
