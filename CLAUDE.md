@@ -146,7 +146,7 @@ pure logic extracted with a `*.test.ts` beside it, no barrel files, move code to
 - Every page: press feel, shaped skeletons (no spinners for loading; rooms' small braille Spinner means waiting on people, not loading), reserved image space + blur-up, optimistic toggles, tabular nums,
   visible focus ring, empty states with one action, Esc closes overlays, `/` opens search.
 - Screenshot desktop and phone after every UI change before calling it done.
-- Drafts canvases: Watch together (2026-11-17, https://claude.ai/artifact/1dLKm6tLEqBfMa92VTQ4Un): room, popup, player pill, pill states. The extension install, popup and Settings drafts (2026-11-15) are built and their canvases deleted.
+- Drafts canvases: Plus one (2026-11-17, https://claude.ai/artifact/1dLKm6tLEqBfMa92VTQ4Un): room, popup, player pill, pill states. The extension install, popup and Settings drafts (2026-11-15) are built and their canvases deleted.
 
 ## Built
 
@@ -197,7 +197,13 @@ lists (/l/<id>, see Todo), update bar after a deploy (`UpdateBar`: build id from
       `CHROME_STORE_URL` in `src/lib/site.ts` (set 2026-11-17). CI asks the store (fetchStatus
       crxVersion) whether a version is there, not Firefox's updates.json.
 - [ ] Later: genre/mood row, imports from TMDB account and Trakt (both have ids).
-- [ ] Watch together = a browser extension (drafts on the canvas, approved 2026-11-11): syncs the streaming site's
+- [ ] Watch together, named "Plus one" (2026-11-17, Watch2Gether is taken). Pill "+2 · In sync", room "Plus one · KQTZ",
+      "Bring a plus one". Decided 2026-11-17: "Open on Netflix" links straight to the episode (Netflix id from JustWatch
+      or remembered matches, else the show and the extension names the episode) · the room maker picks who can pause
+      and skip (Everyone / Only me) · the next episode plays for everyone ("Playing in 5 · Stop") · started after a room
+      pick and from the title page · Netflix/Prime need Chrome (say so in Zen) · late joiners jump to the others ·
+      positions from the server's clock · /privacy: your position goes to the room. Not in v1: chat, phones, mixed services.
+      Earlier plan: a browser extension (drafts on the canvas, approved 2026-11-11): syncs the streaming site's
       player for everyone in a room, on a laptop. Rejected: a manual 3-2-1 countdown flow without the extension.
       Plan, v1 = Netflix + Chrome (MV3): 1 room gets a playback state (playing/paused, position, at) on the existing
       live updates · 2 extension popup (room, who's watching, in sync) using the Lateshow sign-in of that browser ·
