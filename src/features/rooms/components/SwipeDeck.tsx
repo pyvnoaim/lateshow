@@ -52,7 +52,8 @@ export function SwipeDeck({
       const el = card.current;
       if (!top || !el || leaving) return;
       setLeaving(true);
-      place(like ? window.innerWidth : -window.innerWidth, "transform 280ms cubic-bezier(.4,0,1,1)");
+      // leaves fast from the first frame (an ease-in sat still for ~100 ms and read as lag), slows once off screen
+      place(like ? window.innerWidth : -window.innerWidth, "transform 220ms cubic-bezier(.2,.7,.4,1)");
       el.addEventListener(
         "transitionend",
         () => {
@@ -80,6 +81,7 @@ export function SwipeDeck({
 
   if (!top) return null;
   const next = left[1];
+  const after = left[2];
 
   return (
     <div className="flex swipe-card flex-col gap-5">
@@ -91,6 +93,8 @@ export function SwipeDeck({
             <Image src={next.poster} alt="" fill sizes="384px" className="object-cover" />
           </div>
         )}
+        {/* the card after next loads now, so it isn't blank when it surfaces */}
+        {after && <Image src={after.poster} alt="" fill sizes="384px" loading="eager" className="invisible" />}
         <div
           key={top.id}
           ref={card}
