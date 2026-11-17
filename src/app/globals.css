@@ -119,6 +119,13 @@
 
 /* Element defaults. In the base layer so any utility class can override them. */
 @layer base {
+  /* Firefox (and Zen): a blur over moving content redraws the whole page every frame (bugzilla 1732817), so while a
+     swipe card flies off (SwipeDeck sets data-moving) the glass drops its blur. Chrome and Safari keep it. */
+  @supports (-moz-appearance: none) {
+    :root[data-moving] * {
+      backdrop-filter: none !important;
+    }
+  }
   /* collapsible sections draw their own arrow */
   summary::-webkit-details-marker {
     display: none;

@@ -52,11 +52,13 @@ export function SwipeDeck({
       const el = card.current;
       if (!top || !el || leaving) return;
       setLeaving(true);
+      document.documentElement.dataset.moving = ""; // Firefox drops glass blur meanwhile (globals.css)
       // leaves fast from the first frame (an ease-in sat still for ~100 ms and read as lag), slows once off screen
       place(like ? window.innerWidth : -window.innerWidth, "transform 220ms cubic-bezier(.2,.7,.4,1)");
       el.addEventListener(
         "transitionend",
         () => {
+          delete document.documentElement.dataset.moving;
           setGone((g) => [...g, top.id]);
           setLeaving(false);
           startTransition(() => swipe(code, { tmdbId: top.id, like }));
@@ -69,6 +71,8 @@ export function SwipeDeck({
 
   // a new top card starts centred, without animating back from where the last one flew
   useEffect(() => place(0), [top?.id]);
+  // the room can end mid-flight (a match): don't leave the blur off
+  useEffect(() => () => void delete document.documentElement.dataset.moving, []);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
