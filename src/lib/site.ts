@@ -4,9 +4,6 @@
  */
 export const SITE_URL = "https://lateshow.pyvno.xyz";
 
-/**
- * The extension's Chrome Web Store page (Unlisted, item olpjkleefegccejonlngdnnphnapcbfj). null until Google approves
- * the first version (submitted 2026-11-16), then Settings › Extension offers "Add to Chrome": set it to
- * "https://chromewebstore.google.com/detail/olpjkleefegccejonlngdnnphnapcbfj".
- */
-export const CHROME_STORE_URL: string | null = null;
+/** The extension's Chrome Web Store page (Unlisted, approved 2026-11-17). Settings › Extension offers "Add to Chrome". */
+export const CHROME_STORE_URL: string | null =
+  "https://chromewebstore.google.com/detail/olpjkleefegccejonlngdnnphnapcbfj";

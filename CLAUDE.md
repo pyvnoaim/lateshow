@@ -185,16 +185,16 @@ lists (/l/<id>, see Todo), update bar after a deploy (`UpdateBar`: build id from
       with the link (signed out too), access in `canSeeList`. Add from the list icon on the title page and in every poster caption (once you have a list), Lists tab on
       profiles, /l/<id> (rename, copy link, delete, Remove under posters), "Pick one together" = a swipe room over the
       list (`room.list_id`, the kind most titles are). Link preview (OG) only for "Anyone with the link" lists, the rest get a plain card.
-- [ ] Chrome Web Store (developer fee paid 2026-11-15, non-trader account): list the extension as Unlisted with
+- [x] Chrome Web Store (published Unlisted 2026-11-17 as 0.7.2, developer fee paid 2026-11-15, non-trader account): list the extension as Unlisted with
       `pnpm ext:chrome` (extension/lateshow-chrome.zip, no Firefox keys). Ready (2026-11-16): text, permission
       justifications and data answers in extension/store/STORE.md, images there, /privacy has the extension section,
       activeTab dropped (unused). Submitted for review 2026-11-16 as 0.7.2, Unlisted, item id
-      olpjkleefegccejonlngdnnphnapcbfj (chromewebstore.google.com/detail/olpjkleefegccejonlngdnnphnapcbfj once approved).
+      olpjkleefegccejonlngdnnphnapcbfj.
       CI job `chrome` (2026-11-16): a new version is uploaded (Chrome Web Store API v2) and sent to review, Google
       publishes it Unlisted once it passes. Secrets CWS_CLIENT_ID/CWS_CLIENT_SECRET/CWS_REFRESH_TOKEN (Google Cloud
       project "Chrome Web Store API", OAuth client "lateshow-ci" Desktop app, consent screen In production, made with
-      `pnpm ext:chrome-token`), repo variable CWS_PUBLISHER_ID. Settings › Extension has "Add to Chrome" (2026-11-16), hidden until
-      `CHROME_STORE_URL` in `src/lib/site.ts` is set: set it once Google approves. CI asks the store (fetchStatus
+      `pnpm ext:chrome-token`), repo variable CWS_PUBLISHER_ID. Settings › Extension has "Add to Chrome" (2026-11-16), linked from
+      `CHROME_STORE_URL` in `src/lib/site.ts` (set 2026-11-17). CI asks the store (fetchStatus
       crxVersion) whether a version is there, not Firefox's updates.json.
 - [ ] Later: genre/mood row, imports from TMDB account and Trakt (both have ids).
 - [ ] Watch together = a browser extension (drafts on the canvas, approved 2026-11-11): syncs the streaming site's
