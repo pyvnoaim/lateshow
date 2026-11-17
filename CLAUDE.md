@@ -210,6 +210,10 @@ lists (/l/<id>, see Todo), update bar after a deploy (`UpdateBar`: build id from
       `plusOne`/`plusOneStatus` in storage), `plusone.ts` on the player (port "plusone" to background.ts, which reads the
       stream and posts moves, pings keep it awake; `follow`/`moved` in playback.ts: 2 s drift seeks, a 3 s jump or
       a pause is yours), Netflix through `lateshow:nf-control` in netflix-main.ts (player API play/pause/seek).
+      Room UI (2026-11-17): "Bring a plus one" on title pages streaming on Netflix (`createPlusOne`, room game
+      "plusone", playing from the start, the title as winner), its room = `Winner` + `PlusOnePanel` (Watch in sync hands
+      the code to the extension through lateshow.ts, the maker's Everyone / Only me = `setControl`), also under every
+      game's winner. Not yet: who's on the episode per person, Open on Netflix straight to the episode.
       Earlier plan: a browser extension (drafts on the canvas, approved 2026-11-11): syncs the streaming site's
       player for everyone in a room, on a laptop. Rejected: a manual 3-2-1 countdown flow without the extension.
       Plan, v1 = Netflix + Chrome (MV3): 1 room gets a playback state (playing/paused, position, at) on the existing

@@ -161,7 +161,8 @@ export const room = sqliteTable("room", {
     .notNull()
     .references(() => user.id, { onDelete: "cascade" }),
   kind: text("kind", { enum: ["movie", "tv"] }).notNull(),
-  game: text("game", { enum: ["swipe", "bracket", "reel"] }).notNull(),
+  // "plusone": opened from a title page to watch it together, no game (it starts as playing, the title as winner)
+  game: text("game", { enum: ["swipe", "bracket", "reel", "plusone"] }).notNull(),
   status: text("status", { enum: ["lobby", "playing", "done"] })
     .notNull()
     .default("lobby"),

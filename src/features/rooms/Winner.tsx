@@ -5,14 +5,15 @@ import { Scramble } from "@/features/rooms/components/Scramble";
 import { buttonStyles } from "@/components/ui/button";
 import { getWatchLinks } from "@/lib/justwatch";
 import { getLanguage } from "@/lib/region";
-import { playAgain } from "@/lib/rooms/actions";
+import { playAgain, setControl } from "@/lib/rooms/actions";
 import type { getRoom } from "@/lib/rooms/queries";
 import { getEnglishName, getTitle, img } from "@/lib/tmdb";
+import { PlusOnePanel } from "./components/PlusOnePanel";
 import { PlayAgain } from "./components/RoomButtons";
 
 export type Room = NonNullable<Awaited<ReturnType<typeof getRoom>>>;
 
-/** The end of any game: the poster, a headline, Watch on, and Play again for the host. */
+/** The end of any game: the poster, a headline, Watch on, Play again for the host, then watching it in sync. */
 export async function Winner({
   r,
   host,
@@ -55,8 +56,9 @@ export async function Winner({
               <ArrowUpRight size={18} strokeWidth={2} aria-hidden />
             </a>
           )}
-          {host && <PlayAgain code={r.code} again={playAgain} />}
+          {host && r.game !== "plusone" && <PlayAgain code={r.code} again={playAgain} />}
         </div>
+        <PlusOnePanel code={r.code} host={host} control={r.control} setControl={setControl} />
       </div>
     </div>
   );

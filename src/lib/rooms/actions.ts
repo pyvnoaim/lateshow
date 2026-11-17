@@ -129,6 +129,52 @@ export async function createRoom(input: z.input<typeof startInput>): Promise<{ c
   return { error: "Couldn't open a room right now. Try again." };
 }
 
+const plusOneInput = z.object({ kind: z.enum(["movie", "tv"]), tmdbId: z.number().int().positive() });
+
+/** "Bring a plus one" on a title page: a room for watching this title together, no game first. Opens it. */
+export async function createPlusOne(input: z.input<typeof plusOneInput>) {
+  const session = await getSession();
+  if (!session) redirect("/login");
+  if (!session.user.username) redirect("/settings");
+  const { kind, tmdbId } = plusOneInput.parse(input);
+  await sweepRooms();
+  const country = (await getRegion()).code;
+  for (let attempt = 0; attempt < 5; attempt++) {
+    const code = newRoomCode();
+    try {
+      db.transaction((tx) => {
+        tx.insert(room)
+          .values({
+            code,
+            hostId: session.user.id,
+            kind,
+            game: "plusone",
+            status: "playing",
+            winner: tmdbId,
+            country,
+            expiresAt: new Date(Date.now() + ROOM_HOURS * 3600_000),
+          })
+          .run();
+        tx.insert(roomMember).values({ roomCode: code, memberId: session.user.id, name: session.user.username! }).run();
+      });
+    } catch {
+      continue; // the code was taken by an open room, try another
+    }
+    redirect(`/rooms/${code}`);
+  }
+}
+
+/** The room's maker: may everyone pause and skip, or only they */
+export async function setControl(raw: string, control: "everyone" | "host") {
+  const r = await hostedRoom(raw);
+  if (!r || !["everyone", "host"].includes(control)) return;
+  await db
+    .update(room)
+    .set({ control, version: sql`${room.version} + 1` })
+    .where(eq(room.code, r.code));
+  refresh();
+}
+
 /**
  * Joins a room with your account (also accepts an invite). Needs a username: everyone in the room, guests too,
  * sees your name, never your email.

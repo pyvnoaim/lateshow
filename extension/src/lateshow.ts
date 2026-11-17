@@ -91,6 +91,27 @@ chrome.storage.onChanged.addListener((changes, area) => {
   if (area === "local" && changes.syncState) tell(changes.syncState.newValue);
 });
 
+// Plus one from a room page: "Watch in sync" joins this browser to the room (background.ts checks you're in it),
+// and the page always knows which room this browser follows
+window.addEventListener("message", (e) => {
+  const d = e.data as { type?: string; code?: unknown } | null;
+  if (e.source !== window) return;
+  if (d?.type === "lateshow:plusone-join" && typeof d.code === "string")
+    void chrome.runtime
+      .sendMessage<{ ok: boolean; message?: string }>({ type: "lateshow:plusone-join", code: d.code })
+      .then((r) => window.postMessage({ type: "lateshow:plusone-joined", ...r }, location.origin));
+  if (d?.type === "lateshow:plusone-leave") void chrome.runtime.sendMessage({ type: "lateshow:plusone-leave" });
+  if (d?.type === "lateshow:plusone-ask") void tellRoom();
+});
+const tellRoom = async () =>
+  window.postMessage(
+    { type: "lateshow:plusone-state", code: (await chrome.storage.local.get("plusOne")).plusOne ?? null },
+    location.origin,
+  );
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area === "local" && "plusOne" in changes) void tellRoom();
+});
+
 // ponytail: a cheap address check twice a second, a content script can't see the app's own navigation
 const check = () => !started && wanted() && void handOver();
 check();

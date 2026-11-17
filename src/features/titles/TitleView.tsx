@@ -1,4 +1,4 @@
-import { ArrowUpRight, Play, Star, Ticket } from "lucide-react";
+import { ArrowUpRight, Play, Star, Ticket, UserPlus } from "lucide-react";
 import Image from "next/image";
 import { notFound } from "next/navigation";
 import { LibraryToggle } from "@/components/library/LibraryToggle";
@@ -34,6 +34,7 @@ import {
 import { Episodes, type SeasonData } from "./components/Episodes";
 import { RatingsGrid } from "./components/RatingsGrid";
 import { createList, setInList } from "@/lib/lists/actions";
+import { createPlusOne } from "@/lib/rooms/actions";
 import { getMyListsFor } from "@/lib/lists/queries";
 import { Trailer } from "@/components/Trailer";
 import { getLanguage, getRegion } from "@/lib/region";
@@ -186,6 +187,14 @@ function Hero({
           </a>
         )}
         {trailerKey && <Trailer youtubeKey={trailerKey} title={name} />}
+        {library.signedIn && links.some((l) => l.service === "Netflix" && l.included) && (
+          <form action={createPlusOne.bind(null, { kind: type, tmdbId: t.id })}>
+            <button type="submit" className={buttonStyles("glass")} data-tip="Watch it in sync with friends">
+              <UserPlus size={16} strokeWidth={2} aria-hidden />
+              Bring a plus one
+            </button>
+          </form>
+        )}
         <LibraryToggle
           kind="watchlist"
           signedIn={library.signedIn}

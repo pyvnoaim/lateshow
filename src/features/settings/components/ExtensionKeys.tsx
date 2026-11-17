@@ -6,7 +6,7 @@ import { useEffect, useState, useTransition } from "react";
 import { buttonStyles } from "@/components/ui/button";
 import { CHROME_STORE_URL } from "@/lib/site";
 import { Invite, ListBox, ListRow } from "./ListBox";
-import { useExtension } from "./useExtension";
+import { useExtension } from "@/components/useExtension";
 
 /** `browser`: "Chrome on macOS", null until a key connected or used since 2026-11-15 says */
 export type Connected = { id: string; created: string; used: string | null; browser: string | null };

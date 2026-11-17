@@ -16,6 +16,7 @@ import { PhoneQr } from "./components/PhoneQr";
 import { BracketGame } from "./BracketGame";
 import { ReelGame } from "./ReelGame";
 import { SwipeGame } from "./SwipeGame";
+import { Winner } from "./Winner";
 
 function Heading({ top, muted, detail }: { top: ReactNode; muted: ReactNode; detail?: ReactNode }) {
   return (
@@ -48,7 +49,7 @@ export async function RoomLobby({ code: raw }: { code: string }) {
 
   const me = await getRoomIdentity();
   const member = me ? r.members.find((m) => m.memberId === me.id && m.joined) : undefined;
-  const game = GAMES.find((g) => g.id === r.game)!;
+  const game = { name: GAMES.find((g) => g.id === r.game)?.name ?? "Plus one" };
   const what = `${r.kind === "movie" ? "Movie" : "Series"} · ${game.name} · hosted by ${r.host}`;
 
   if (!member) {
@@ -88,13 +89,23 @@ export async function RoomLobby({ code: raw }: { code: string }) {
     return (
       <div className="flex flex-col gap-10">
         <LiveRoom code={code} />
-        <div className="flex items-center justify-between gap-6">
+        <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-3">
           <span className="text-small text-muted">
             Room {code} · {r.kind === "movie" ? "Movie" : "Series"} · {game.name}
           </span>
-          <LeaveRoom code={code} leave={leaveRoom} host={host} />
+          <div className="flex items-center gap-4">
+            {r.game === "plusone" && <CopyRoomLink code={code} />}
+            <LeaveRoom code={code} leave={leaveRoom} host={host} />
+          </div>
         </div>
-        {r.game === "swipe" ? (
+        {r.game === "plusone" ? (
+          <Winner
+            r={r}
+            host={host}
+            detail={`Plus one · Room ${code} · hosted by ${r.host}`}
+            headline={(name) => [name, "together."]}
+          />
+        ) : r.game === "swipe" ? (
           <SwipeGame r={r} meId={me!.id} />
         ) : r.game === "bracket" ? (
           <BracketGame r={r} meId={me!.id} />

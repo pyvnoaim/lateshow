@@ -7,7 +7,7 @@ import { useEffect, useState, useTransition } from "react";
 import { buttonStyles } from "@/components/ui/button";
 import { ago } from "@/lib/ago";
 import { ListBox } from "./ListBox";
-import { useExtension } from "./useExtension";
+import { useExtension } from "@/components/useExtension";
 
 /** `posters`: small poster urls of what it brought (a few), `titles`: how many films and series in all */
 export type PastImport = {
