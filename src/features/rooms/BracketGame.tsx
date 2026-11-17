@@ -46,8 +46,8 @@ export async function BracketGame({ r, meId }: { r: Room; meId: string }) {
       <Winner
         r={r}
         host={host}
-        detail={total > 1 ? `Won the final ${forWinner} to ${total - forWinner}.` : "Won the final."}
-        headline={(name) => [`${name}.`, "That's tonight."]}
+        eyebrow="That's tonight"
+        detail={total > 1 ? `Won the final ${forWinner} to ${total - forWinner}` : "Won the final"}
       />
     );
   }

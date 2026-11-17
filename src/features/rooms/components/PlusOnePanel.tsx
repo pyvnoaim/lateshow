@@ -50,13 +50,14 @@ export function PlusOnePanel({
   const ready = Boolean(ext?.version && ext.keyId);
 
   return (
-    <section className="flex flex-col gap-5 pt-6">
-      <div className="flex flex-col gap-2">
-        <h2 className="text-section leading-none font-bold">Watch in sync</h2>
-        <p className="max-w-search text-body text-pretty text-muted">
+    // laptops only: phones aren't in Plus one v1
+    <section className="hidden flex-col gap-4 pt-2 sm:flex">
+      <div className="flex flex-col gap-1">
+        <h2 className="text-body font-bold">Watch in sync</h2>
+        <p className="text-label text-pretty text-muted">
           {synced
-            ? "This browser follows the room. Open the episode on Netflix, everyone plays and pauses together."
-            : "Each of you on a laptop with the extension and your own Netflix. Play, pause and skip for everyone."}
+            ? "This browser follows the room. Open it on Netflix, everyone plays and pauses together."
+            : "Each on your own laptop and Netflix. One pause pauses everyone."}
         </p>
       </div>
       <div className="flex flex-wrap items-center gap-4">
@@ -80,13 +81,13 @@ export function PlusOnePanel({
         ) : ready ? (
           <button
             type="button"
-            className={buttonStyles("primary", "md")}
+            className={buttonStyles("glass", "md")}
             onClick={() => window.postMessage({ type: "lateshow:plusone-join", code }, location.origin)}
           >
-            Watch in sync
+            Join with this browser
           </button>
         ) : (
-          <Link href="/settings" className={buttonStyles("primary", "md")}>
+          <Link href="/settings" className={buttonStyles("glass", "md")}>
             {ext.version ? "Connect the extension" : "Get the extension"}
           </Link>
         )}
@@ -94,7 +95,7 @@ export function PlusOnePanel({
       </div>
       {error && <p className="text-small text-muted">{error}</p>}
       {host && (
-        <div className="flex items-center gap-6">
+        <div className="flex items-center gap-5">
           <span className="text-label text-muted">Pause and skip</span>
           <SegmentedTabs
             label="Who may pause and skip"

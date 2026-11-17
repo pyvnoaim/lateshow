@@ -21,8 +21,14 @@ export async function SwipeGame({ r, meId }: { r: Room; meId: string }) {
       <Winner
         r={r}
         host={host}
-        detail={`All ${members.length} of you said yes.`}
-        headline={(name) => ["It's a match.", `${name}.`]}
+        eyebrow="It's a match"
+        detail={
+          members.length === 1
+            ? "You said yes"
+            : members.length === 2
+              ? "Both of you said yes"
+              : `All ${members.length} of you said yes`
+        }
       />
     );
   }

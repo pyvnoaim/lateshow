@@ -1,7 +1,6 @@
 import { ArrowUpRight } from "lucide-react";
 import Image from "next/image";
-import type { ReactNode } from "react";
-import { Scramble } from "@/features/rooms/components/Scramble";
+import { Avatar } from "@/components/Avatar";
 import { buttonStyles } from "@/components/ui/button";
 import { getWatchLinks } from "@/lib/justwatch";
 import { getLanguage } from "@/lib/region";
@@ -10,24 +9,29 @@ import type { getRoom } from "@/lib/rooms/queries";
 import { getSeasonInfo } from "@/lib/library/inProgress";
 import { nextEpisode, parseEpisodeKeys } from "@/lib/library/progress";
 import { getTitleLibrary } from "@/lib/library/queries";
-import { getEnglishName, getTitle, img, type Title } from "@/lib/tmdb";
+import { getEnglishName, getTitle, img, titleMeta, type Title } from "@/lib/tmdb";
+import { Scramble } from "./components/Scramble";
 import { PlusOnePanel } from "./components/PlusOnePanel";
 import { PlayAgain } from "./components/RoomButtons";
 
 export type Room = NonNullable<Awaited<ReturnType<typeof getRoom>>>;
 
-/** The end of any game: the poster, a headline, Watch on, Play again for the host, then watching it in sync. */
+/**
+ * The end of any game: the poster, who's in, a small eyebrow, the title large, Watch on, Play again for the host,
+ * then watching it in sync when it's on Netflix. Phones get it centered with full-width buttons.
+ */
 export async function Winner({
   r,
   host,
+  eyebrow,
   detail,
-  headline,
 }: {
   r: Room;
   host: boolean;
+  /** "It's a match", in the accent above the title */
+  eyebrow: string;
+  /** beside the faces: "All 3 of you said yes" */
   detail: string;
-  /** Two lines, the second muted. Gets the title's name. */
-  headline: (name: string) => [ReactNode, ReactNode];
 }) {
   const lang = await getLanguage();
   const t = await getTitle(r.kind, String(r.winner), lang);
@@ -36,25 +40,38 @@ export async function Winner({
   const link = links.find((l) => l.included) ?? links[0];
   const name = t.title ?? t.name ?? "";
   const netflix = await netflixTarget(r, t, link, lang);
-  // the line with the title's name arrives letter by letter, the rest is there at once
-  const reveal = (line: ReactNode) =>
-    typeof line === "string" && name && line.includes(name) ? <Scramble text={line} /> : line;
-  const [top, muted] = headline(name).map(reveal);
+  const meta = [r.kind === "movie" ? "Movie" : "Series", titleMeta(t, r.kind)].filter(Boolean).join(" · ");
+  const members = r.members.filter((m) => m.joined);
   return (
-    <div className="flex flex-col gap-10 sm:flex-row sm:items-center sm:gap-14">
-      <div className="relative aspect-poster w-40 shrink-0 pop overflow-hidden rounded-banner bg-raised shadow-2xl sm:w-72">
+    <div className="flex flex-col items-center gap-8 text-center sm:flex-row sm:items-center sm:gap-16 sm:text-left">
+      <div className="relative aspect-poster w-56 shrink-0 pop overflow-hidden rounded-banner bg-raised shadow-2xl sm:w-80">
         {t.poster_path && (
           <Image src={img(t.poster_path, "w780")!} alt="" fill sizes="320px" className="object-cover" />
         )}
       </div>
-      <div className="flex rise flex-col gap-6">
-        <span className="text-label text-muted">{detail}</span>
-        <h1 className="text-page leading-none font-bold break-words">
-          {top}
-          <br />
-          <span className="text-muted">{muted}</span>
-        </h1>
-        <div className="flex flex-wrap items-center gap-4">
+      <div className="flex w-full rise flex-col items-center gap-8 sm:items-start">
+        <div className="flex items-center gap-3">
+          <div className="flex">
+            {members.map((m, i) => (
+              <Avatar
+                key={m.memberId}
+                name={m.name}
+                image={m.image}
+                size="sm"
+                className={i > 0 ? "-ml-2 ring-2 ring-bg" : "ring-2 ring-bg"}
+              />
+            ))}
+          </div>
+          <span className="text-label text-muted">{detail}</span>
+        </div>
+        <div className="flex flex-col gap-3">
+          <span className="text-label font-semibold text-accent">{eyebrow}</span>
+          <h1 className="text-page leading-none font-bold text-balance break-words">
+            <Scramble text={name} />
+          </h1>
+          {meta && <span className="text-body text-muted">{meta}</span>}
+        </div>
+        <div className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center sm:gap-4">
           {link && (
             <a href={link.url} target="_blank" rel="noopener noreferrer" className={buttonStyles("primary", "md")}>
               {link.included ? "Watch" : "Rent or buy"} on {link.service}
@@ -63,7 +80,9 @@ export async function Winner({
           )}
           {host && r.game !== "plusone" && <PlayAgain code={r.code} again={playAgain} />}
         </div>
-        <PlusOnePanel code={r.code} host={host} control={r.control} setControl={setControl} netflix={netflix} />
+        {netflix && (
+          <PlusOnePanel code={r.code} host={host} control={r.control} setControl={setControl} netflix={netflix} />
+        )}
       </div>
     </div>
   );

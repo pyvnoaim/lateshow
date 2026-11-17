@@ -100,12 +100,7 @@ export async function RoomLobby({ code: raw }: { code: string }) {
         </div>
         {r.game === "plusone" ? (
           <>
-            <Winner
-              r={r}
-              host={host}
-              detail={`Plus one · Room ${code} · hosted by ${r.host}`}
-              headline={(name) => [name, "together."]}
-            />
+            <Winner r={r} host={host} eyebrow="Plus one" detail={`Room ${code} · hosted by ${r.host}`} />
             {/* everyone who can see and move this player: someone you don't know here, close the room */}
             <section className="flex flex-col gap-5">
               <h2 className="text-section leading-none font-bold">In the room</h2>
