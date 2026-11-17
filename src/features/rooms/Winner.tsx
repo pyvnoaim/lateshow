@@ -39,7 +39,7 @@ export async function Winner({
   const links = await getWatchLinks(r.kind, t.id, english, r.country ?? "DE");
   const link = links.find((l) => l.included) ?? links[0];
   const name = t.title ?? t.name ?? "";
-  const netflix = await netflixTarget(r, t, link, lang);
+  const netflix = await netflixTarget(r, t, links.find((l) => l.service === "Netflix"), lang);
   const meta = [r.kind === "movie" ? "Movie" : "Series", titleMeta(t, r.kind)].filter(Boolean).join(" · ");
   const members = r.members.filter((m) => m.joined);
   return (
