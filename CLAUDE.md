@@ -146,7 +146,7 @@ pure logic extracted with a `*.test.ts` beside it, no barrel files, move code to
 - Every page: press feel, shaped skeletons (no spinners for loading; rooms' small braille Spinner means waiting on people, not loading), reserved image space + blur-up, optimistic toggles, tabular nums,
   visible focus ring, empty states with one action, Esc closes overlays, `/` opens search.
 - Screenshot desktop and phone after every UI change before calling it done.
-- Drafts canvases: none open. The extension install, popup and Settings drafts (2026-11-15) are built and their canvases deleted.
+- Drafts canvases: Watch together (2026-11-17, https://claude.ai/artifact/1dLKm6tLEqBfMa92VTQ4Un): room, popup, player pill, pill states. The extension install, popup and Settings drafts (2026-11-15) are built and their canvases deleted.
 
 ## Built
 
