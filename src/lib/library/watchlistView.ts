@@ -36,6 +36,8 @@ export type WatchlistItem = {
   /** On other services: "On Apple TV", or "Rent on Videobuster, Apple TV Store". */
   rentOn?: string;
   friends: string[];
+  /** a movie in cinemas now (opened in the last 60 days) or opening there later */
+  inCinemas: boolean;
 };
 
 const day = (iso: string) =>
@@ -54,6 +56,8 @@ export async function getWatchlistView(userId: string, country: string, lang: st
   ]);
   const now = new Date();
   const today = now.toISOString().slice(0, 10);
+  // ponytail: "still in cinemas" = opened in the last 60 days, TMDB has no end date for a run
+  const runStart = new Date(now.getTime() - 60 * 86_400_000).toISOString().slice(0, 10);
 
   const items = await Promise.all(
     rows.map(async (row): Promise<WatchlistItem | null> => {
@@ -109,6 +113,7 @@ export async function getWatchlistView(userId: string, country: string, lang: st
               ? `On ${others.slice(0, 2).join(", ")}`
               : `Rent on ${[...new Set(rentNames)].slice(0, 2).join(", ")}`,
         friends: friendsWant.get(`${row.mediaType}-${t.id}`) ?? [],
+        inCinemas: !!cinema && cinema >= runStart,
       };
     }),
   );

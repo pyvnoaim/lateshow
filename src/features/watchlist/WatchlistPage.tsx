@@ -47,7 +47,8 @@ export async function WatchlistPage({ searchParams }: { searchParams: Promise<Pa
   const { code, name: country, lang } = await getRegion();
   const all = await getWatchlistView(session.user.id, code, lang);
 
-  const kind = one(p.type) === "movie" ? "movie" : one(p.type) === "series" ? "tv" : "all";
+  const type = one(p.type);
+  const kind = type === "movie" ? "movie" : type === "series" ? "tv" : type === "cinema" ? "cinema" : "all";
   const genre = one(p.genre) ?? null;
   const sort: Sort = SORTS.find((s) => s === one(p.sort)) ?? "leaving";
   const href = (patch: Partial<{ type: string | null; genre: string | null; sort: string | null }>) => {
@@ -56,7 +57,8 @@ export async function WatchlistPage({ searchParams }: { searchParams: Promise<Pa
     return q ? `/watchlist?${q}` : "/watchlist";
   };
 
-  const byKind = all.filter((i) => kind === "all" || i.type === kind);
+  const inCinemas = all.filter((i) => i.inCinemas);
+  const byKind = kind === "cinema" ? inCinemas : all.filter((i) => kind === "all" || i.type === kind);
   const counts = new Map<string, number>();
   for (const i of byKind) if (i.genre) counts.set(i.genre, (counts.get(i.genre) ?? 0) + 1);
   const shown = byKind.filter((i) => !genre || i.genre === genre);
@@ -120,11 +122,12 @@ export async function WatchlistPage({ searchParams }: { searchParams: Promise<Pa
             </span>
           </h1>
           <SegmentedTabs
-            label="Movies or series"
+            label="Movies, series or in cinemas"
             items={[
               ["all", "All", null],
               ["movie", "Movies", "movie"],
               ["tv", "Series", "series"],
+              ...(inCinemas.length > 0 || kind === "cinema" ? [["cinema", "In cinemas", "cinema"]] : []),
             ].map(([key, label, value]) => ({
               key: key!,
               label: label!,
