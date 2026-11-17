@@ -70,16 +70,24 @@ export function CopyRoomLink({ code }: { code: string }) {
   );
 }
 
-export function StartRoom({ code, start }: { code: string; start: (code: string) => Promise<void> }) {
+export function StartRoom({
+  code,
+  start,
+  label = "Start",
+}: {
+  code: string;
+  start: (code: string) => Promise<void>;
+  label?: string;
+}) {
   const [pending, startTransition] = useTransition();
   return (
     <button
       type="button"
       disabled={pending}
       onClick={() => startTransition(() => start(code))}
-      className={buttonStyles("primary", "md")}
+      className={buttonStyles("primary", "md", "w-full sm:w-auto")}
     >
-      {pending ? "Starting" : "Start"}
+      {pending ? "Starting" : label}
     </button>
   );
 }

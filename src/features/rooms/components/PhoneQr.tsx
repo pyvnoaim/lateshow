@@ -23,15 +23,15 @@ export function PhoneQr({ code, load }: { code: string; load: (code: string) => 
   }, [code, load]);
   if (!svg) return null;
   return (
-    <div className="ml-auto flex items-center gap-5 rounded-banner glass-cell py-4 pr-6 pl-4">
+    <div className="flex w-56 shrink-0 flex-col gap-3 pt-30">
       {/* uqr output: a plain SVG made on our server from our own URL */}
       <div
         role="img"
         aria-label="QR code to open this room on your phone"
-        className="size-32 shrink-0 overflow-hidden rounded-thumb bg-fg"
+        className="size-50 overflow-hidden rounded-banner bg-fg"
         dangerouslySetInnerHTML={{ __html: svg }}
       />
-      <div className="flex max-w-56 flex-col gap-1.5">
+      <div className="flex flex-col gap-1.5 pt-1">
         <span className="text-body font-semibold">Continue on your phone</span>
         <span className="text-small leading-normal text-muted">
           Scan with the camera. You land in this room, already signed in.

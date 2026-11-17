@@ -31,6 +31,8 @@ function Heading({ top, muted, detail }: { top: ReactNode; muted: ReactNode; det
   );
 }
 
+const START: Record<string, string> = { swipe: "Start swiping", bracket: "Start the bracket" };
+
 /** /rooms/<code>: join it, then the live lobby. The game itself starts here in the next build step. */
 export async function RoomLobby({ code: raw }: { code: string }) {
   await connection(); // per request: a room's state (and whether it expired) is live, never prerendered
@@ -133,51 +135,63 @@ export async function RoomLobby({ code: raw }: { code: string }) {
   return (
     <div className="flex flex-col gap-section">
       <LiveRoom code={code} />
-      <Heading detail={what} top="Waiting for" muted="everyone." />
-
-      <div className="flex flex-wrap items-end gap-10">
-        <div className="flex flex-col gap-2">
-          <span className="text-small text-muted">Room code</span>
-          <span className="text-page leading-none font-bold tracking-widest">{code}</span>
-        </div>
-        <CopyRoomLink code={code} />
-        {me && !me.guest && <PhoneQr code={code} load={phoneQr} />}
-      </div>
-
-      <section className="flex flex-col gap-5">
-        <h2 className="text-section leading-none font-bold">In the room</h2>
-        <ul className="flex flex-wrap gap-6">
-          {[...joined, ...invited].map((m) => (
-            <li key={m.memberId} className="flex w-22 pop flex-col items-center gap-2.5 text-center">
-              <Avatar name={m.name} image={m.image} size="lg" muted={!m.joined} />
-              <span className="w-full truncate text-small">{m.name}</span>
-              <span className="flex items-center gap-1.5 text-caption text-muted">
-                {!m.joined && <Spinner />}
-                {m.memberId === r.hostId
-                  ? "Host"
-                  : m.joined
-                    ? m.memberId.startsWith("guest:")
-                      ? "Guest"
-                      : "Ready"
-                    : "Invited"}
-              </span>
-            </li>
-          ))}
-        </ul>
-      </section>
-
-      <div className="flex flex-wrap items-center gap-6">
-        {host && r.status === "lobby" && <StartRoom code={code} start={startRoom} />}
-        {!host && r.status === "lobby" && (
-          <span className="flex items-center gap-2.5 text-body text-muted">
-            <Spinner />
-            Waiting for {r.host} to start.
-          </span>
-        )}
+      <div className="flex items-center justify-between gap-6">
+        <span className="text-label text-muted">{what}</span>
         <LeaveRoom code={code} leave={leaveRoom} host={host} />
-        {host && r.status === "lobby" && (
-          <span className="text-small text-muted">You can start without everyone. Late joiners jump in.</span>
-        )}
+      </div>
+      <div className="flex gap-24">
+        <div className="flex min-w-0 flex-1 rise flex-col gap-12">
+          <h1 className="text-page leading-none font-bold text-balance">
+            Waiting for <span className="text-muted">everyone.</span>
+          </h1>
+          <div className="flex flex-col gap-3">
+            <span className="text-label text-muted">Room code</span>
+            <div className="flex items-center justify-between gap-7 sm:justify-start">
+              <span className="text-page leading-none font-bold tracking-widest nums sm:text-hero">{code}</span>
+              <CopyRoomLink code={code} />
+            </div>
+            <span className="text-label text-muted">Friends enter it under Rooms, or open the link.</span>
+          </div>
+          <section className="flex flex-col gap-5">
+            <h2 className="text-label text-muted">
+              <span className="font-semibold text-fg">{joined.length} here</span>
+              {invited.length > 0 && ` · ${invited.length} invited`}
+            </h2>
+            <ul className="grid grid-cols-4 gap-3 sm:flex sm:flex-wrap sm:gap-7">
+              {[...joined, ...invited].map((m) => (
+                <li key={m.memberId} className="flex pop flex-col items-center gap-2 text-center sm:w-18">
+                  <Avatar name={m.name} image={m.image} size="lg" muted={!m.joined} />
+                  <span className={`w-full truncate text-small ${m.joined ? "" : "text-muted"}`}>{m.name}</span>
+                  <span className="-mt-1 flex items-center gap-1.5 text-caption text-muted">
+                    {!m.joined && <Spinner />}
+                    {m.memberId === r.hostId
+                      ? "Host"
+                      : m.joined
+                        ? m.memberId.startsWith("guest:")
+                          ? "Guest"
+                          : "Ready"
+                        : "Invited"}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          </section>
+          <div className="flex flex-col items-center gap-3 sm:flex-row sm:gap-5">
+            {host && r.status === "lobby" && (
+              <>
+                <StartRoom code={code} start={startRoom} label={START[r.game] ?? "Start"} />
+                <span className="text-small text-muted">Late joiners jump in.</span>
+              </>
+            )}
+            {!host && r.status === "lobby" && (
+              <span className="flex items-center gap-2.5 text-body text-muted">
+                <Spinner />
+                Waiting for {r.host} to start.
+              </span>
+            )}
+          </div>
+        </div>
+        {me && !me.guest && <PhoneQr code={code} load={phoneQr} />}
       </div>
     </div>
   );
