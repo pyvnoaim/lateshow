@@ -3,7 +3,7 @@ import { cache } from "react";
 import { getSession } from "@/lib/auth";
 import { and, count, desc, eq, gte, isNotNull, isNull, lt, max, or, sql, sum } from "drizzle-orm";
 import { db } from "@/lib/db/client";
-import { importBatch, rating, watched, watchlist } from "@/lib/db/schema";
+import { importBatch, plays, rating, rewatch, watched, watchlist } from "@/lib/db/schema";
 import type { MediaType } from "@/lib/tmdb";
 import type { Unsure } from "@/lib/library/matching";
 
@@ -41,8 +41,9 @@ export async function getWatchlist(userId: string) {
   return db.select().from(watchlist).where(eq(watchlist.userId, userId)).orderBy(desc(watchlist.addedAt));
 }
 
+/** Every viewing, newest first, rewatches as their own rows (`rewatch` true). */
 export async function getHistory(userId: string, limit = 50) {
-  return db.select().from(watched).where(eq(watched.userId, userId)).orderBy(desc(watched.watchedAt)).limit(limit);
+  return db.select().from(plays).where(eq(plays.userId, userId)).orderBy(desc(plays.watchedAt)).limit(limit);
 }
 
 export async function getStats(userId: string) {
@@ -51,41 +52,45 @@ export async function getStats(userId: string) {
     .from(watched)
     .where(eq(watched.userId, userId))
     .groupBy(watched.mediaType);
+  // watch time counts every viewing, the counts each title or episode once
+  const [again] = await db
+    .select({ minutes: sum(watched.minutes) })
+    .from(rewatch)
+    .innerJoin(watched, eq(watched.id, rewatch.watchedId))
+    .where(eq(rewatch.userId, userId));
   const of = (t: MediaType) => rows.find((r) => r.mediaType === t);
   return {
     movies: of("movie")?.items ?? 0,
     episodes: of("tv")?.items ?? 0,
-    minutes: rows.reduce((total, r) => total + Number(r.minutes ?? 0), 0),
+    minutes: rows.reduce((total, r) => total + Number(r.minutes ?? 0), Number(again?.minutes ?? 0)),
   };
 }
 
 /** Watch time per row from `since` up to `until`, for the year heatmap. */
 export async function getWatchTimes(userId: string, since: Date, until?: Date) {
   return db
-    .select({ at: watched.watchedAt, minutes: watched.minutes })
-    .from(watched)
-    .where(
-      and(eq(watched.userId, userId), gte(watched.watchedAt, since), until ? lt(watched.watchedAt, until) : undefined),
-    );
+    .select({ at: plays.watchedAt, minutes: plays.minutes })
+    .from(plays)
+    .where(and(eq(plays.userId, userId), gte(plays.watchedAt, since), until ? lt(plays.watchedAt, until) : undefined));
 }
 
 /** Everything watched from `since` up to `until`, newest first: one heatmap day's titles. */
 export async function getWatchedBetween(userId: string, since: Date, until: Date) {
   return db
     .select()
-    .from(watched)
-    .where(and(eq(watched.userId, userId), gte(watched.watchedAt, since), lt(watched.watchedAt, until)))
-    .orderBy(desc(watched.watchedAt));
+    .from(plays)
+    .where(and(eq(plays.userId, userId), gte(plays.watchedAt, since), lt(plays.watchedAt, until)))
+    .orderBy(desc(plays.watchedAt));
 }
 
 /** The years (UTC) this user watched something in, newest first, so the heatmap offers only those. */
 export async function getWatchYears(userId: string) {
   // ponytail: reads every row of the user through the (user_id, watched_at) index. Fine for a big import, cache if not
-  const year = sql<string>`strftime('%Y', ${watched.watchedAt} / 1000, 'unixepoch')`;
+  const year = sql<string>`strftime('%Y', ${plays.watchedAt} / 1000, 'unixepoch')`;
   const rows = await db
     .selectDistinct({ year })
-    .from(watched)
-    .where(and(eq(watched.userId, userId), isNotNull(watched.watchedAt)))
+    .from(plays)
+    .where(and(eq(plays.userId, userId), isNotNull(plays.watchedAt)))
     .orderBy(desc(year));
   return rows.map((r) => Number(r.year));
 }
@@ -93,15 +98,15 @@ export async function getWatchYears(userId: string) {
 /**
  * The last titles watched, each once (a binge of one show is one title), most recent first. Title and poster come from
  * the newest row (SQLite takes bare columns from the max() row).
- * ponytail: only the newest 500 rows are looked at (index read, not a scan of a big import). Fewer titles if those are one long binge.
+ * ponytail: only the newest 500 viewings are looked at. Fewer titles if those are one long binge.
  */
 export async function getRecentTitles(userId: string, limit = 12) {
   const latest = db
     .select()
-    .from(watched)
+    .from(plays)
     // a title marked "A while ago" (no date) isn't recent
-    .where(and(eq(watched.userId, userId), isNotNull(watched.watchedAt)))
-    .orderBy(desc(watched.watchedAt))
+    .where(and(eq(plays.userId, userId), isNotNull(plays.watchedAt)))
+    .orderBy(desc(plays.watchedAt))
     .limit(500)
     .as("latest");
   const last = max(latest.watchedAt);
@@ -121,12 +126,12 @@ export async function getRecentTitles(userId: string, limit = 12) {
 
 /** Shows you watched episodes of, most recent first. */
 export async function getRecentShows(userId: string, limit = 5) {
-  const last = max(watched.watchedAt);
+  const last = max(plays.watchedAt);
   return db
-    .select({ tmdbId: watched.tmdbId, title: watched.title, last })
-    .from(watched)
-    .where(and(eq(watched.userId, userId), eq(watched.mediaType, "tv")))
-    .groupBy(watched.tmdbId)
+    .select({ tmdbId: plays.tmdbId, title: plays.title, last })
+    .from(plays)
+    .where(and(eq(plays.userId, userId), eq(plays.mediaType, "tv")))
+    .groupBy(plays.tmdbId)
     .orderBy(desc(last))
     .limit(limit);
 }

@@ -2,7 +2,7 @@ import "server-only";
 import { and, count, desc, eq, gt, gte, inArray, or } from "drizzle-orm";
 import { user } from "@/lib/db/auth-schema";
 import { db } from "@/lib/db/client";
-import { friendship, invite, watched, watchlist } from "@/lib/db/schema";
+import { friendship, invite, plays, watched, watchlist } from "@/lib/db/schema";
 import { groupByTitle } from "./activity";
 import { pair } from "./rules";
 
@@ -63,7 +63,7 @@ export async function getFriends(userId: string) {
     ids.map(async (id) => {
       const person = people.find((p) => p.id === id)!;
       const [last] = person.shareActivity
-        ? await db.select().from(watched).where(eq(watched.userId, id)).orderBy(desc(watched.watchedAt)).limit(1)
+        ? await db.select().from(plays).where(eq(plays.userId, id)).orderBy(desc(plays.watchedAt)).limit(1)
         : [];
       return { ...person, last: last ?? null };
     }),
@@ -119,9 +119,9 @@ export async function getFriendsWatched(userId: string, days = 7) {
   const friends = await sharingFriends(userId);
   if (friends.size === 0) return [];
   const rows = await db
-    .select({ userId: watched.userId, mediaType: watched.mediaType, tmdbId: watched.tmdbId, at: watched.watchedAt })
-    .from(watched)
-    .where(and(inArray(watched.userId, [...friends.keys()]), gte(watched.watchedAt, since)));
+    .select({ userId: plays.userId, mediaType: plays.mediaType, tmdbId: plays.tmdbId, at: plays.watchedAt })
+    .from(plays)
+    .where(and(inArray(plays.userId, [...friends.keys()]), gte(plays.watchedAt, since)));
   // undated rows ("A while ago") never pass the date filter, the flatMap only tells TypeScript
   return groupByTitle(rows.flatMap((r) => (r.at ? [{ ...r, at: r.at, name: friends.get(r.userId)! }] : [])));
 }

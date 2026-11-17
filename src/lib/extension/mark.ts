@@ -1,9 +1,10 @@
 import "server-only";
-import { and, eq, inArray, isNotNull } from "drizzle-orm";
+import { and, eq, inArray, isNotNull, or } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/lib/db/client";
-import { watched, watchlist } from "@/lib/db/schema";
+import { plays, rewatch, watched, watchlist } from "@/lib/db/schema";
 import { placeEpisodes } from "@/lib/library/importing";
+import { isRewatch } from "@/lib/library/rewatch";
 import { linksFor, match, pick, remember, row, type Candidate, type Match } from "@/lib/library/matching";
 import { getAiredEpisodes, getRuntime } from "@/lib/tmdb";
 
@@ -19,7 +20,7 @@ const markBody = z.object({
 });
 
 export type MarkResult =
-  | { status: "marked"; title: string; season?: number; episode?: number; ids: number[] }
+  | { status: "marked"; title: string; season?: number; episode?: number; ids: number[]; rewatch?: boolean }
   | { status: "already"; title: string }
   | { status: "pick"; candidates: Candidate[] }
   | { status: "unknown" };
@@ -27,7 +28,8 @@ export type MarkResult =
 /**
  * Marks a finished title for this user with its real time and `via`. A title it knows (by the site's id) or can tell
  * clearly goes in at once, an unclear one comes back to pick from (the pick is remembered), an episode is placed by
- * its number and name. A watch already there stays as it is: `ids` holds only what this mark created, for Undo.
+ * its number and name. An episode already watched more than 2 days away from this becomes a rewatch, closer it's the
+ * same viewing and nothing changes. `ids` holds only what this mark created, for Undo (a rewatch's as a negative id).
  */
 export async function markFromExtension(userId: string, raw: unknown): Promise<MarkResult> {
   const body = markBody.parse(raw);
@@ -64,8 +66,15 @@ export async function markFromExtension(userId: string, raw: unknown): Promise<M
       })),
     )
     .onConflictDoNothing()
-    .returning({ id: watched.id });
-  if (!created.length) return { status: "already", title: m.title };
+    .returning({ id: watched.id, season: watched.season, episode: watched.episode });
+  const again = await rewatches(
+    userId,
+    m,
+    parts.filter((p) => !created.some((c) => c.season === p.season && c.episode === p.episode)),
+    at,
+    body.via,
+  );
+  if (!created.length && !again.length) return { status: "already", title: m.title };
   // like marking it in the app: it leaves the watchlist
   await db
     .delete(watchlist)
@@ -75,12 +84,70 @@ export async function markFromExtension(userId: string, raw: unknown): Promise<M
     status: "marked",
     title: m.title,
     ...(m.type === "tv" && { season: first.season, episode: first.episode }),
-    ids: created.map((c) => c.id),
+    ids: [...created.map((c) => c.id), ...again.map((id) => -id)],
+    ...(!created.length && { rewatch: true }),
   };
+}
+
+/** The rewatches among parts already watched: each gets a row unless one of its viewings is within 2 days of `at`. */
+async function rewatches(
+  userId: string,
+  m: Match,
+  parts: { season: number; episode: number }[],
+  at: Date,
+  via: string,
+) {
+  if (!parts.length) return [];
+  const seen = await db
+    .select({ id: plays.id, season: plays.season, episode: plays.episode, at: plays.watchedAt })
+    .from(plays)
+    .where(
+      and(
+        eq(plays.userId, userId),
+        eq(plays.mediaType, m.type),
+        eq(plays.tmdbId, m.id),
+        or(...parts.map((p) => and(eq(plays.season, p.season), eq(plays.episode, p.episode)))),
+      ),
+    );
+  const fresh = parts.flatMap((p) => {
+    const views = seen.filter((v) => v.season === p.season && v.episode === p.episode);
+    const first = views.find((v) => v.id > 0);
+    return first &&
+      isRewatch(
+        at,
+        views.map((v) => v.at),
+      )
+      ? [first.id]
+      : [];
+  });
+  if (!fresh.length) return [];
+  const rows = await db
+    .insert(rewatch)
+    .values(fresh.map((watchedId) => ({ watchedId, userId, watchedAt: at, via })))
+    .returning({ id: rewatch.id });
+  return rows.map((r) => r.id);
 }
 
 /** Undo in the extension's toast: removes exactly what that mark created (rows the extension made, by id) */
 export async function undoMark(userId: string, raw: unknown) {
-  const { ids } = z.object({ ids: z.array(z.number().int().positive()).min(1).max(3) }).parse(raw);
-  await db.delete(watched).where(and(eq(watched.userId, userId), inArray(watched.id, ids), isNotNull(watched.via)));
+  const { ids } = z
+    .object({
+      ids: z
+        .array(
+          z
+            .number()
+            .int()
+            .refine((n) => n !== 0),
+        )
+        .min(1)
+        .max(3),
+    })
+    .parse(raw);
+  const firsts = ids.filter((id) => id > 0);
+  const again = ids.filter((id) => id < 0).map((id) => -id);
+  if (firsts.length)
+    await db
+      .delete(watched)
+      .where(and(eq(watched.userId, userId), inArray(watched.id, firsts), isNotNull(watched.via)));
+  if (again.length) await db.delete(rewatch).where(and(eq(rewatch.userId, userId), inArray(rewatch.id, again)));
 }

@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Lateshow",
-  "version": "0.7.5",
+  "version": "0.7.6",
   "description": "Brings your watch history from streaming sites into Lateshow.",
   "icons": {
     "128": "icon-128.png"

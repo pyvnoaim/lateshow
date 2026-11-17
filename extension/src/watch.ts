@@ -72,7 +72,7 @@ function show(via: Via, row: ImportRow, at: string, a: Answer) {
   if (a.status === "marked")
     toast({
       title: "Marked as watched",
-      meta: label(a),
+      meta: a.rewatch ? `${label(a)} · Rewatch` : label(a),
       undo: () =>
         void chrome.runtime
           .sendMessage<{ ok: boolean }>({ type: "lateshow:undo", ids: a.ids })

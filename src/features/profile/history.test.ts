@@ -28,6 +28,11 @@ describe("historyEntries", () => {
     expect(historyEntries([ep(1, 1, 2, "a"), ep(1, 1, 1, "b")], month)[0][1]).toHaveLength(2);
   });
 
+  it("keeps a rewatch apart from first watches of the same show", () => {
+    const again = { ...ep(1, 1, 3), rewatch: true };
+    expect(historyEntries([{ ...ep(1, 1, 4), rewatch: true }, again, ep(1, 2, 1)], label)[0][1]).toHaveLength(2);
+  });
+
   it("never merges movies", () => {
     expect(historyEntries([movie(9), movie(9)], label)[0][1]).toHaveLength(2);
   });

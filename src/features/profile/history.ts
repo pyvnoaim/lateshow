@@ -7,6 +7,7 @@ type HistoryRow = {
   season: number;
   episode: number;
   watchedAt: Date | null; // null: "A while ago", no date
+  rewatch?: boolean;
 };
 
 /**
@@ -21,7 +22,9 @@ export function historyEntries<T extends HistoryRow>(rows: T[], label: (d: Date 
     if (group?.[0] !== day) groups.push((group = [day, []]));
     const last = group[1].at(-1);
     const prev = last?.episodes.at(-1);
-    const run = r.mediaType === "tv" && prev?.mediaType === "tv" && prev.tmdbId === r.tmdbId;
+    // a rewatch and a first watch of one show stay apart, so the line can say "Rewatch"
+    const run =
+      r.mediaType === "tv" && prev?.mediaType === "tv" && prev.tmdbId === r.tmdbId && !prev.rewatch === !r.rewatch;
     // same calendar day too: under a month heading, a show watched weekly stays one line per episode
     // (two undated rows count as the same day: a show marked "A while ago" is one line)
     if (run && watchDay(prev.watchedAt?.getTime()) === watchDay(r.watchedAt?.getTime())) last!.episodes.push(r);

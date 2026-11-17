@@ -491,6 +491,7 @@ function HistoryList({ entries }: { entries: { row: WatchedRow; episodes: Watche
                 <span className="block truncate text-body font-medium">{r.title}</span>
                 <span className="block text-small text-muted nums">
                   {episodesLabel(episodes)}
+                  {r.rewatch && " · Rewatch"}
                   {/* the extension saw you finish it there */}
                   {r.via && ` · on ${r.via}`}
                 </span>

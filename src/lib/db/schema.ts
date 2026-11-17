@@ -1,5 +1,5 @@
-import { sql } from "drizzle-orm";
-import { index, integer, primaryKey, sqliteTable, text, uniqueIndex } from "drizzle-orm/sqlite-core";
+import { eq, sql } from "drizzle-orm";
+import { index, integer, primaryKey, sqliteTable, sqliteView, text, uniqueIndex } from "drizzle-orm/sqlite-core";
 import { user } from "./auth-schema";
 import type { Playback } from "@/lib/rooms/playback";
 
@@ -36,6 +36,66 @@ export const watched = sqliteTable(
     index("watched_by_import").on(t.importId),
   ],
 );
+
+/**
+ * Every viewing after the first of a movie or episode (`watched` stays one row per episode = "seen it"). Only the
+ * extension adds these, a viewing within 2 days of an earlier one is the same one (`isRewatch`). Unmarking the
+ * episode takes its rewatches along.
+ */
+export const rewatch = sqliteTable(
+  "rewatch",
+  {
+    id: integer("id").primaryKey({ autoIncrement: true }),
+    watchedId: integer("watched_id")
+      .notNull()
+      .references(() => watched.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    watchedAt: integer("watched_at", { mode: "timestamp_ms" }).notNull(),
+    via: text("via"),
+  },
+  (t) => [index("rewatch_by_time").on(t.userId, t.watchedAt), index("rewatch_of").on(t.watchedId)],
+);
+
+/**
+ * Every viewing, one row each: the first watch plus each rewatch, for whatever reads by date (history, heatmap, stats
+ * time, recently watched). A rewatch's id is negative so the two never collide (Undo tells them apart by it).
+ */
+export const plays = sqliteView("plays").as((qb) => {
+  const cols = {
+    mediaType: watched.mediaType,
+    tmdbId: watched.tmdbId,
+    season: watched.season,
+    episode: watched.episode,
+    title: watched.title,
+    posterPath: watched.posterPath,
+    minutes: watched.minutes,
+  };
+  return qb
+    .select({
+      id: watched.id,
+      userId: watched.userId,
+      ...cols,
+      watchedAt: watched.watchedAt,
+      via: watched.via,
+      rewatch: sql<boolean>`0`.mapWith(Boolean).as("rewatch"),
+    })
+    .from(watched)
+    .unionAll(
+      qb
+        .select({
+          id: sql<number>`-${rewatch.id}`.as("id"),
+          userId: rewatch.userId,
+          ...cols,
+          watchedAt: rewatch.watchedAt,
+          via: rewatch.via,
+          rewatch: sql<boolean>`1`.mapWith(Boolean).as("rewatch"),
+        })
+        .from(rewatch)
+        .innerJoin(watched, eq(watched.id, rewatch.watchedId)),
+    );
+});
 
 /**
  * Your matches from a site's own id to a TMDB title ("prime:amzn1.dv.gti…" to a series), from imports and your picks,
