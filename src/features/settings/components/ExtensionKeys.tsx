@@ -58,6 +58,13 @@ export function ExtensionKeys({
   // the extension is here but its key isn't one of yours (never connected, disconnected, another account)
   const offerConnect = state !== "done" && (asked || (ext?.version != null && !here));
   const offerAdd = ext != null && ext.version == null && !asked;
+  // Zen and Firefox check for updates about once a day, a click on the signed file updates now. Chrome's store
+  // updates by itself and its newest version may still be in review, so it's never offered there
+  const offerUpdate =
+    ext?.kind === "firefox" &&
+    ext.version != null &&
+    latest != null &&
+    ext.version.localeCompare(latest.version, undefined, { numeric: true }) < 0;
 
   const logo = (
     // the icon's glass screen with its light, as on the extension's popup
@@ -84,6 +91,19 @@ export function ExtensionKeys({
         </Invite>
       )}
       {state === "done" && <p className="text-body text-fg">Connected. You can close this tab.</p>}
+      {offerUpdate && (
+        <Invite
+          glow
+          icon={logo}
+          title={`Lateshow ${latest.version} is out`}
+          text={`This browser has ${ext.version}. Update now, or it updates by itself within a day.`}
+        >
+          <a href={latest.link} className={buttonStyles("primary", "sm")}>
+            <Download size={16} strokeWidth={2} aria-hidden />
+            Update
+          </a>
+        </Invite>
+      )}
       {offerAdd && ext.kind === "firefox" && latest && (
         <Invite
           glow
