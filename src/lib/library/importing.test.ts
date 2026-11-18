@@ -18,6 +18,9 @@ import {
   watchMonths,
 } from "./importing";
 
+// the rows without their real times (`at`, checked in "a sync's real times and rewatches"), everything else exact
+const noAt = <T>(x: T): T => JSON.parse(JSON.stringify(x, (k, v: unknown) => (k === "at" ? undefined : v))) as T;
+
 describe("parseCsv", () => {
   it("handles quotes, commas, escaped quotes, CRLF and a BOM", () => {
     const text = '﻿Name,Year\r\n"Crouching Tiger, Hidden Dragon",2000\r\n"The ""Thing""",1982\r\n';
@@ -313,14 +316,14 @@ describe("Prime Video history data (the extension)", () => {
   it("reads seasons as shows with their episodes, movies as films, with the day", () => {
     const { rows, skipped } = readPrimeHistory(days);
     expect(skipped).toBe(0);
-    expect(rows.find((r) => r.title === "Highschool of the Dead")?.episodes).toMatchObject([
+    expect(noAt(rows.find((r) => r.title === "Highschool of the Dead")?.episodes)).toEqual([
       { season: undefined, episode: 1, name: "Spring of the DEAD", date: "2026-11-15" },
       { season: undefined, episode: 2, name: "Shadow of the DEAD", date: "2026-11-15" },
     ]);
-    expect(rows.find((r) => r.title === "South Park")?.episodes).toMatchObject([
+    expect(noAt(rows.find((r) => r.title === "South Park")?.episodes)).toEqual([
       { season: 26, episode: 3, name: "Japanese Toilet", date: "2026-07-04" },
     ]);
-    expect(rows.find((r) => r.type === "movie")).toMatchObject({
+    expect(noAt(rows.find((r) => r.type === "movie"))).toEqual({
       title: "Zodiac",
       type: "movie",
       list: "watched",
@@ -492,7 +495,7 @@ describe("readNetflixHistory", () => {
       ep(80000003, "Year in Review", "Season 2024", "2026-10-04"), // a year, not a season
     ]);
     expect(skipped).toBe(3);
-    expect(rows).toMatchObject([
+    expect(noAt(rows)).toEqual([
       {
         title: "BoJack Horseman",
         type: "tv",
@@ -538,7 +541,7 @@ describe("readNetflixHistory with Netflix's metadata", () => {
       },
     ]);
     expect(skipped).toBe(2);
-    expect(rows).toMatchObject([
+    expect(noAt(rows)).toEqual([
       {
         title: "BoJack Horseman",
         type: "tv",
@@ -546,8 +549,8 @@ describe("readNetflixHistory with Netflix's metadata", () => {
         refs: ["netflix:70300800"],
         date: "2026-11-12",
         episodes: [
-          { season: 5, episode: 1, name: "Episode 1", date: "2026-11-10" },
-          { season: 5, episode: 6, name: "Free Churro", date: "2026-11-12" },
+          { season: 5, episode: 1, name: "Episode 1", date: "2026-11-10", finished: true },
+          { season: 5, episode: 6, name: "Free Churro", date: "2026-11-12", finished: true },
         ],
       },
     ]);
@@ -715,15 +718,20 @@ describe("a sync's real times and rewatches", () => {
     const ep = (time: number) => ({ gti: "e1", title: { text: "Episode 1: Welcome to Margrave" }, time });
     const days = [
       { titles: [{ title: { text: "REACHER - SEASON 01" }, gti: "s1", children: [ep(t("2026-11-17T22:16:00Z"))] }] },
-      { titles: [{ title: { text: "REACHER - SEASON 01" }, gti: "s1", children: [ep(t("2026-11-12T20:00:00Z"))] }] },
+      { titles: [{ title: { text: "REACHER - SEASON 01" }, gti: "s1", children: [ep(t("2026-10-12T20:00:00Z"))] }] },
     ];
     // not known as finished: once, the first time
-    expect(readPrimeHistory(days).rows[0].episodes).toMatchObject([{ episode: 1, at: t("2026-11-12T20:00:00Z") }]);
+    expect(readPrimeHistory(days).rows[0].episodes).toMatchObject([{ episode: 1, at: t("2026-10-12T20:00:00Z") }]);
     // finished: only the newest viewing carries it (Prime knows where you stopped last, not each time)
     const eps = readPrimeHistory(days, new Set(["e1"])).rows[0].episodes!;
     expect(eps.map((e) => [e.at, e.finished])).toEqual([
-      [t("2026-11-12T20:00:00Z"), undefined],
+      [t("2026-10-12T20:00:00Z"), undefined],
       [t("2026-11-17T22:16:00Z"), true],
+    ]);
+    // started Thursday, finished Tuesday: one viewing, on the day you finished it, never a rewatch of itself
+    const resumed = [days[0], { titles: [{ ...days[1].titles[0], children: [ep(t("2026-11-12T20:00:00Z"))] }] }];
+    expect(readPrimeHistory(resumed, new Set(["e1"])).rows[0].episodes).toMatchObject([
+      { episode: 1, date: "2026-11-17", at: t("2026-11-17T22:16:00Z"), finished: true },
     ]);
   });
 
@@ -742,17 +750,20 @@ describe("a sync's real times and rewatches", () => {
     const { rows } = readNetflixHistory([
       ep(t("2026-11-17T20:00:00Z")),
       film(t("2026-11-16T20:00:00Z")),
-      ep(t("2026-11-10T20:00:00Z")),
-      film(t("2026-11-01T20:00:00Z")),
+      ep(t("2026-10-10T20:00:00Z")),
+      film(t("2026-10-01T20:00:00Z")),
     ]);
     expect(rows.find((r) => r.type === "tv")!.episodes!.map((e) => [e.date, e.finished])).toEqual([
-      ["2026-11-10", undefined],
+      ["2026-10-10", undefined],
       ["2026-11-17", true],
     ]);
     expect(rows.filter((r) => r.type === "movie").map((r) => [r.date, r.finished])).toEqual([
-      ["2026-11-01", undefined],
+      ["2026-10-01", undefined],
       ["2026-11-16", true],
     ]);
+    // a first read of everything: each once, the first time, nothing marked finished
+    const all = readNetflixHistory([ep(t("2026-11-17T20:00:00Z")), ep(t("2026-10-10T20:00:00Z"))], false);
+    expect(all.rows[0].episodes!.map((e) => [e.date, e.finished])).toEqual([["2026-10-10", undefined]]);
   });
 
   it("Crunchyroll: another dub the same day is one viewing, its newest viewing on another day comes along", () => {
@@ -775,9 +786,9 @@ describe("a sync's real times and rewatches", () => {
     const { rows } = readCrunchyrollHistory([
       e("a", "2026-11-01T18:00:00Z"),
       e("b", "2026-11-01T19:00:00Z"),
-      e("c", "2026-11-15T18:00:00Z"),
+      e("c", "2026-11-25T18:00:00Z"),
     ]);
-    expect(rows[0].episodes!.map((x) => x.date)).toEqual(["2026-11-01", "2026-11-15"]);
-    expect(rows[0].episodes![1].at).toBe(t("2026-11-15T18:00:00Z"));
+    expect(rows[0].episodes!.map((x) => x.date)).toEqual(["2026-11-01", "2026-11-25"]);
+    expect(rows[0].episodes![1].at).toBe(t("2026-11-25T18:00:00Z"));
   });
 });

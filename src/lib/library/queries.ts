@@ -4,7 +4,7 @@ import { getSession } from "@/lib/auth";
 import { and, count, desc, eq, gte, isNotNull, isNull, lt, max, or, sql, sum } from "drizzle-orm";
 import { db } from "@/lib/db/client";
 import { plays } from "@/lib/library/plays";
-import { importBatch, rating, watched, watchlist } from "@/lib/db/schema";
+import { importBatch, rating, rewatch, watched, watchlist } from "@/lib/db/schema";
 import type { MediaType } from "@/lib/tmdb";
 import type { Unsure } from "@/lib/library/matching";
 
@@ -248,16 +248,24 @@ export async function getImports(userId: string) {
     .where(eq(watchlist.userId, userId))
     .groupBy(watchlist.importId)
     .as("listed");
+  // a sync's rewatches are watches it brought too: a run with only those still shows, so it can be removed
+  const again = db
+    .select({ id: rewatch.importId, n: count().as("again") })
+    .from(rewatch)
+    .where(eq(rewatch.userId, userId))
+    .groupBy(rewatch.importId)
+    .as("again");
   const rows = await db
     .select({
       id: importBatch.id,
       source: importBatch.source,
       createdAt: importBatch.createdAt,
-      watches: watches.n,
+      watches: sql<number>`coalesce(${watches.n}, 0) + coalesce(${again.n}, 0)`,
       listed: listed.n,
     })
     .from(importBatch)
     .leftJoin(watches, eq(watches.id, importBatch.id))
+    .leftJoin(again, eq(again.id, importBatch.id))
     .leftJoin(listed, eq(listed.id, importBatch.id))
     .where(eq(importBatch.userId, userId))
     .orderBy(desc(importBatch.createdAt));
@@ -270,7 +278,19 @@ export async function getImports(userId: string) {
       poster: watched.posterPath,
     })
     .from(watched)
-    .where(and(eq(watched.userId, userId), isNotNull(watched.importId)));
+    .where(and(eq(watched.userId, userId), isNotNull(watched.importId)))
+    .union(
+      db
+        .selectDistinct({
+          id: rewatch.importId,
+          type: watched.mediaType,
+          tmdbId: watched.tmdbId,
+          poster: watched.posterPath,
+        })
+        .from(rewatch)
+        .innerJoin(watched, eq(watched.id, rewatch.watchedId))
+        .where(and(eq(rewatch.userId, userId), isNotNull(rewatch.importId))),
+    );
   const byImport = new Map<string, { count: number; posters: string[] }>();
   for (const t of titles) {
     const b = byImport.get(t.id!) ?? { count: 0, posters: [] };

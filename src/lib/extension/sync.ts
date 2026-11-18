@@ -1,7 +1,7 @@
 import "server-only";
 import { z } from "zod";
 import type { ImportRow } from "@/lib/library/importing";
-import { runBatch, startImportFor } from "@/lib/library/importRun";
+import { dropEmptyRuns, runBatch, startImportFor } from "@/lib/library/importRun";
 
 // what the extension reads by itself (Sync in its popup)
 const body = z.object({
@@ -17,6 +17,7 @@ const body = z.object({
  */
 export async function syncFromExtension(userId: string, raw: unknown) {
   const b = body.parse(raw);
+  if (!b.importId) dropEmptyRuns(userId, b.source);
   const importId = b.importId ?? (await startImportFor(userId, b.source));
   // runBatch checks the run is this user's and every row
   const r = await runBatch(userId, b.rows as ImportRow[], importId, b.source);

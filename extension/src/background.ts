@@ -413,7 +413,11 @@ async function autoSync() {
   for (const site of due) await startSync(site);
 }
 
+// One alarm for both: the background starts anew with every tick, and an alarm created again starts counting again,
+// so an hourly one beside it would never fire. autoSync only reads two stored times unless a site is due.
 chrome.alarms.create("flush", { periodInMinutes: 5 });
-chrome.alarms.create("auto", { periodInMinutes: 60 });
-chrome.alarms.onAlarm.addListener((a) => void (a.name === "auto" ? autoSync() : flush()));
+chrome.alarms.onAlarm.addListener(() => {
+  void flush();
+  void autoSync();
+});
 void flush();

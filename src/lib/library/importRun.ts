@@ -1,6 +1,6 @@
 import "server-only";
 import { randomBytes } from "node:crypto";
-import { and, eq, gt, inArray, isNotNull, isNull, or } from "drizzle-orm";
+import { and, eq, gt, isNotNull, isNull, lt, notExists, or, sql } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/lib/db/client";
 import { importBatch as imports, rating, rewatch, watched, watchlist } from "@/lib/db/schema";
@@ -101,8 +101,9 @@ export async function save(userId: string, matches: Match[], importId: string, v
               eq(watched.episode, p.episode),
               // past the end of that day (noon + 12 h), or none
               // or an import's noon on that day, when a sync now knows the real time
+              // (a finished viewing from a sync is no date for "A while ago": that one becomes a rewatch below)
               or(
-                isNull(watched.watchedAt),
+                via && p.finished ? undefined : isNull(watched.watchedAt),
                 gt(watched.watchedAt, new Date(at.getTime() + 12 * 3_600_000)),
                 p.at ? eq(watched.watchedAt, at) : undefined,
               ),
@@ -116,7 +117,9 @@ export async function save(userId: string, matches: Match[], importId: string, v
           const at = p.finished && !p.undated ? when(p, m) : undefined;
           return at ? [{ ...p, at }] : [];
         });
-        rewatches += addRewatches(tx, userId, m, again, via, importId).length;
+        const n = addRewatches(tx, userId, m, again, via, importId).length;
+        if (m.type === "movie") films += n;
+        else rewatches += n;
       }
       if (added && m.type === "movie") films++;
       else if (added) {
@@ -157,7 +160,7 @@ export async function save(userId: string, matches: Match[], importId: string, v
         .run().changes;
     }
   });
-  // a rewatch counts with the episodes it brought
+  // a rewatch counts with the episodes (or films) it brought
   return { watched: films + series, films, series, episodes: episodes + rewatches, watchlist: l, missed };
 }
 
@@ -187,26 +190,19 @@ export function addRewatches(
   const firsts = tx
     .select({ id: watched.id, at: watched.watchedAt, season: watched.season, episode: watched.episode })
     .from(watched)
-    .where(
-      and(
-        eq(watched.userId, userId),
-        eq(watched.mediaType, m.type),
-        eq(watched.tmdbId, m.id),
-        or(...parts.map((p) => and(eq(watched.season, p.season), eq(watched.episode, p.episode)))),
-      ),
-    )
-    .all();
+    .where(and(eq(watched.userId, userId), eq(watched.mediaType, m.type), eq(watched.tmdbId, m.id)))
+    .all()
+    // every row of the title, picked here: an OR per part is too deep for SQLite past 1000 episodes (One Piece)
+    .filter((f) => parts.some((p) => p.season === f.season && p.episode === f.episode));
   if (!firsts.length) return [];
+  // by user, picked here: an id list past SQLite's variable limit would fail the same way
+  const ids1 = new Set(firsts.map((f) => f.id));
   const later = tx
     .select({ of: rewatch.watchedId, at: rewatch.watchedAt })
     .from(rewatch)
-    .where(
-      inArray(
-        rewatch.watchedId,
-        firsts.map((f) => f.id),
-      ),
-    )
-    .all();
+    .where(eq(rewatch.userId, userId))
+    .all()
+    .filter((l) => ids1.has(l.of));
   const ids: number[] = [];
   for (const p of parts) {
     const f = firsts.find((x) => x.season === p.season && x.episode === p.episode);
@@ -229,6 +225,37 @@ export async function startImportFor(userId: string, source: ImportSource): Prom
   const id = randomBytes(12).toString("base64url");
   await db.insert(imports).values({ id, userId, source: z.enum(SOURCES).parse(source) });
   return id;
+}
+
+/**
+ * A daily sync mostly finds nothing: before a new run starts, this source's earlier runs that hold nothing (no
+ * watches, rewatches, watchlist entries or ratings, nothing waiting, nothing skipped) go, so they don't pile up.
+ * The newest stays until the next one, Settings reads "last synced" from it.
+ */
+export function dropEmptyRuns(userId: string, source: ImportSource) {
+  const holds = (t: typeof watched | typeof rewatch | typeof watchlist | typeof rating) =>
+    notExists(
+      db
+        .select({ x: sql`1` })
+        .from(t)
+        .where(eq(t.importId, imports.id)),
+    );
+  db.delete(imports)
+    .where(
+      and(
+        eq(imports.userId, userId),
+        eq(imports.source, source),
+        // not one that only just started (a file import between its first batches)
+        lt(imports.createdAt, new Date(Date.now() - 600_000)),
+        isNull(imports.open),
+        isNull(imports.skipped),
+        holds(watched),
+        holds(rewatch),
+        holds(watchlist),
+        holds(rating),
+      ),
+    )
+    .run();
 }
 
 /** The run's id, if it's yours */
@@ -293,8 +320,9 @@ export async function runBatch(
   };
 }
 
-// a skipped title, whatever day it was read on
-export const skipKey = (r: ImportRow) => `${r.type}|${r.title}|${r.year ?? ""}`;
+// A skipped title as it was read: with its day (a show's latest), so a sync reading the same days again doesn't ask
+// twice, and watching more of it asks again
+export const skipKey = (r: ImportRow) => openKey(r);
 
 /** Remembers a skipped unclear row with its import (which must be yours, checked by the caller) */
 export function rememberSkip(importId: string, r: ImportRow) {

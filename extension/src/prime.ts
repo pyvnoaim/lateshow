@@ -116,20 +116,28 @@ const readHistory: ReadHistory = async (onProgress, since, opts) => {
 /**
  * Each season's page in these days, once, read for what it says you finished (`primeProgress`). Best effort: a page
  * that doesn't load says nothing, so its episodes come in as before (never as rewatches).
+ * A sync reads the last week again every day: viewings already known as finished are remembered (`primeDone`, by
+ * episode and time, only for the days being read), and a season with nothing else in it isn't loaded again.
  * ponytail: 40 seasons at most per sync (a page is about 1 MB). A sync reads days, not months, so it's never near that.
  */
 async function seasonProgress(days: Day[], onProgress: (n: number, all: number) => void) {
-  const seasons = new Map<string, string[]>();
+  const seasons = new Map<string, { gti: string; key: string }[]>();
   for (const t of days.flatMap((d) => d.titles ?? []))
     if (t.children?.length && t.title?.href) {
       const href = t.title.href.split("?")[0];
-      seasons.set(href, [...(seasons.get(href) ?? []), ...t.children.flatMap((e) => (e.gti ? [e.gti] : []))]);
+      const eps = t.children.flatMap((e) => (e.gti ? [{ gti: e.gti, key: `${e.gti}|${e.time ?? 0}` }] : []));
+      seasons.set(href, [...(seasons.get(href) ?? []), ...eps]);
     }
-  const pages = [...seasons].slice(0, 40);
+  const known = new Set(((await chrome.storage.local.get("primeDone")).primeDone as string[] | undefined) ?? []);
   const done = new Set<string>();
   const started = new Set<string>();
-  for (const [i, [href, gtis]] of pages.entries()) {
-    onProgress(i + 1, pages.length);
+  const pages = [...seasons].filter(([, eps]) => {
+    if (!eps.every((e) => known.has(e.key))) return true;
+    for (const e of eps) done.add(e.gti);
+    return false;
+  });
+  for (const [i, [href, eps]] of pages.slice(0, 40).entries()) {
+    onProgress(i + 1, Math.min(pages.length, 40));
     try {
       const html = await (await pageFetch(href, { credentials: "include" })).text();
       const doc = new DOMParser().parseFromString(html, "text/html");
@@ -142,7 +150,10 @@ async function seasonProgress(days: Day[], onProgress: (n: number, all: number) 
           }
         },
       );
-      const p = primeProgress(data, gtis);
+      const p = primeProgress(
+        data,
+        eps.map((e) => e.gti),
+      );
       for (const g of p.done) done.add(g);
       for (const g of p.started) started.add(g);
     } catch {
@@ -150,6 +161,10 @@ async function seasonProgress(days: Day[], onProgress: (n: number, all: number) 
     }
     await pause(250);
   }
+  // only what's in the days being read, so the list stays a week long
+  await chrome.storage.local.set({
+    primeDone: [...seasons.values()].flatMap((eps) => eps.filter((e) => done.has(e.gti)).map((e) => e.key)),
+  });
   return { done, started };
 }
 

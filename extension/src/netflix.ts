@@ -95,7 +95,7 @@ const readHistory: ReadHistory = async (onProgress, since, opts) => {
     }),
   );
   const newest = Math.max(0, ...items.map((v) => v.date ?? 0));
-  const read = readNetflixHistory(kept);
+  const read = readNetflixHistory(kept, since > 0);
   // My List along (a sync with the popup's switch on), best effort
   if (opts?.watchlist)
     read.rows.push(

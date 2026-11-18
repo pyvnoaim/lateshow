@@ -45,12 +45,17 @@ Read `node_modules/next/dist/docs/` before using Next APIs (see AGENTS.md).
   5 minutes counts as over.
   Since 2026-11-18 (0.7.7): a sync reads from 7 days before `synced[site]` again (`OVERLAP`: what was only started
   then, rewatches, anything dropped; the server ignores what it has, a skipped unclear title is remembered in
-  `import_batch.skipped` so it isn't asked twice) · each site synced before syncs by itself once a day (alarm "auto",
-  `autoAt`, popup switch "Sync every day", `settings.autoSync`) · rows carry the real time (`at`, ms) instead of noon,
+  `import_batch.skipped` with its day, so the same days don't ask twice and watching more asks again) · each site synced before syncs by itself once a day (`autoSync` on the
+  one "flush" alarm: the background restarts with every tick and an alarm created again counts from zero, so never a
+  second slower alarm, `autoAt`, popup switch "Sync every day", `settings.autoSync`) · rows carry the real time (`at`, ms) instead of noon,
   an import's noon on that day is replaced by it · `finished` on an episode or film = the site says you finished that
   viewing, only its newest one (sites know where you stopped last): Prime from season pages (episodes only, films
   reset to not started), Netflix from the bookmark, Crunchyroll's history is fully watched only. A finished later
-  viewing on another day comes along as its own entry and becomes a rewatch.
+  viewing on another day comes along as its own entry and becomes a rewatch, unless it's within 14 days of the first
+  listing in the same read: that's one viewing finished later (`finishedLater`), dated when you finished. A first
+  read of everything (`since` 0) never sends `finished`. Prime remembers finished viewings (`primeDone`) so the
+  daily re-read doesn't load season pages again. Empty runs of a source go when its next sync starts
+  (`dropEmptyRuns`), a run with only rewatches shows in Settings › Import.
   Sites, what the readers use:
   Netflix: AUI API `["aui","viewingActivity",page,50]` (form `param={"guid"}` + its `x-netflix.request.routing`
   headers, else BLOCKED), then `/nq/website/memberapi/release/metadata?movieid=<show or film>` per title for real

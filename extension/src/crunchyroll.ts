@@ -90,7 +90,7 @@ const readHistory: ReadHistory = async (onProgress, since, opts) => {
       profiles?: { profile_name?: string; is_selected?: boolean }[];
     } | null
   )?.profiles?.find((p) => p.is_selected)?.profile_name;
-  const read = readCrunchyrollHistory(kept);
+  const read = readCrunchyrollHistory(kept, since > 0);
   // the watchlist along (a sync with the popup's switch on): every page of it, best effort
   if (opts?.watchlist) {
     const items: CrunchyrollWatchlistItem[] = [];
