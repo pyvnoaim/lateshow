@@ -211,7 +211,7 @@ lists (/l/<id>, see Todo), update bar after a deploy (`UpdateBar`: build id from
       `CHROME_STORE_URL` in `src/lib/site.ts` (set 2026-11-17). CI asks the store (fetchStatus
       crxVersion) whether a version is there, not Firefox's updates.json.
       Listing text isn't uploaded by CI: change STORE.md and paste it in the dashboard (fields lock while a version is
-      in review: ⋮ › Cancel review, edit, Submit). 0.7.4 (Plus one text) published 2026-11-18, 0.7.6 uploaded by CI and in review 2026-11-18.
+      in review: ⋮ › Cancel review, edit, Submit). 0.7.7 published Unlisted 2026-11-18 (CI uploads, Google publishes once it passes).
 - [ ] Later: genre/mood row, imports from TMDB account and Trakt (both have ids).
 - [ ] Watch together, named "Plus one" (2026-11-17, Watch2Gether is taken). Pill "+2 · In sync", room "Plus one · KQTZ",
       "Bring a plus one". Decided 2026-11-17: "Open on Netflix" links straight to the episode (Netflix id from JustWatch
