@@ -1,0 +1,49 @@
+{
+  "props": {
+    "widgets": [
+      { "widgetType": "header" },
+      {
+        "widgetType": "watch-history",
+        "content": {
+          "content": {
+            "nextToken": "token-2",
+            "titles": [
+              {
+                "date": "November 15, 2026",
+                "titles": [
+                  {
+                    "titleType": "season",
+                    "time": 1794772800000,
+                    "gti": "amzn1.dv.gti.season",
+                    "title": { "text": "The Boys - Season 1", "href": "/detail/0ABC/ref=atv_wh" },
+                    "children": [
+                      {
+                        "titleType": "episode",
+                        "time": 1794772800000,
+                        "gti": "amzn1.dv.gti.e2",
+                        "title": { "text": "Episode 2: Cherry" }
+                      },
+                      {
+                        "titleType": "episode",
+                        "time": 1794769200000,
+                        "gti": "amzn1.dv.gti.e1",
+                        "title": { "text": "Episode 1: The Name of the Game" }
+                      }
+                    ]
+                  },
+                  {
+                    "titleType": "movie",
+                    "time": 1794765600000,
+                    "gti": "amzn1.dv.gti.m",
+                    "title": { "text": "Zodiac", "href": "/detail/0DEF/ref=atv_wh" },
+                    "children": []
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      }
+    ]
+  }
+}

@@ -1,6 +1,6 @@
 // What every site's history reader shares: one read at a time, the result kept in storage (so closing the card or a
 // reload loses nothing) until Lateshow has it, and how a site's own page is asked for data with your sign-in there.
-import type { ImportRow } from "@/lib/library/importing";
+import { Outdated, type ImportRow } from "@/lib/library/importing";
 
 /** `step`: a later step of the read in words (Netflix checking what you finished), shown instead of the pages */
 export type Progress = { pages: number; titles: number; oldest: string; at: number; step?: string };
@@ -37,13 +37,21 @@ export const pageFetch: typeof fetch = (() => {
 /** JSON from the site, or an error that says what came back (so a changed site shows up as something to fix) */
 export async function getJson(url: string, headers: Record<string, string> = {}) {
   const res = await pageFetch(url, { credentials: "include", headers: { accept: "application/json", ...headers } });
-  const text = await res.text();
+  return answer(res, await res.text());
+}
+
+// an address or request the site no longer knows, or a page where data was: the site changed, not your sign-in
+const GONE = [400, 404, 410, 412];
+
+/** A site's answer as data. Signed out, too many requests or the site down: an error to try again later */
+export function answer(res: Response, text: string): unknown {
+  const said = `${res.status} (${res.headers.get("content-type") ?? "no type"}): ${text.slice(0, 60)}`;
+  if (GONE.includes(res.status)) throw new Outdated(`the site answered ${said}`);
+  if (!res.ok) throw new Error(`The site answered ${said}`);
   try {
-    if (!res.ok) throw new Error();
     return JSON.parse(text) as unknown;
   } catch {
-    const type = res.headers.get("content-type") ?? "no type";
-    throw new Error(`The site answered ${res.status} (${type}) instead of data: ${text.slice(0, 60)}`);
+    throw new Outdated(`the site answered ${said} instead of data`);
   }
 }
 
@@ -80,6 +88,8 @@ export async function autoRead(readHistory: ReadHistory, since: number, watchlis
       });
       return;
     } catch (e) {
+      // a changed site stays changed: no more tries, the popup says the reader needs an update
+      if (e instanceof Outdated) return void send({ type: "lateshow:sync-error", outdated: e.detail });
       if (attempt >= 3) return void send({ type: "lateshow:sync-error", message: (e as Error).message });
       await pause(4000);
     }

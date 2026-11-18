@@ -869,3 +869,57 @@ export function watchMonths(rows: ImportRow[]): { month: string; count: number }
   }
   return out;
 }
+
+// --- the extension's readers: a site whose data changed shape says so ("needs an update") instead of importing nothing
+
+/** A site answered in a shape its reader doesn't know: the reader needs an update, not your sign-in */
+export class Outdated extends Error {
+  constructor(readonly detail: string) {
+    super(`This reader needs an update (${detail}). Nothing was changed.`);
+  }
+}
+
+/**
+ * A read where not one entry could be read, from at least 5 (a few odd ones are normal: Crunchyroll's gone dubs,
+ * Netflix's nameless entries): the site's entries changed shape.
+ * ponytail: catches all of a site's entries breaking, not one field of some, the parser tests catch that.
+ */
+export function checkRead<R extends { rows: unknown[]; skipped: number }>(read: R): R {
+  if (!read.rows.length && read.skipped >= 5) throw new Outdated(`none of ${read.skipped} entries could be read`);
+  return read;
+}
+
+/** Prime's watch-history widget somewhere inside its page data (its place moves: props.widgets, init.preparations…) */
+export function primeWidget(o: unknown, seen = new Set<object>()): PrimeWidget | null {
+  if (!o || typeof o !== "object" || seen.has(o)) return null;
+  seen.add(o);
+  if ((o as PrimeWidget).widgetType === "watch-history") return o as PrimeWidget;
+  for (const v of Object.values(o)) {
+    const hit = primeWidget(v, seen);
+    if (hit) return hit;
+  }
+  return null;
+}
+export type PrimeWidget = {
+  widgetType?: string;
+  content?: { content?: { titles?: { date?: string; titles?: PrimeTitle[] }[]; nextToken?: string } };
+};
+
+/** One page of Netflix's viewing activity out of its AUI answer */
+export function netflixPage(answer: unknown): { vhSize?: number; viewedItems?: NetflixViewed[] } {
+  const value = (
+    answer as {
+      jsonGraph?: { aui?: { viewingActivity?: { value?: { vhSize?: number; viewedItems?: NetflixViewed[] } } } };
+    } | null
+  )?.jsonGraph?.aui?.viewingActivity?.value;
+  if (!value || (value.viewedItems && !Array.isArray(value.viewedItems)))
+    throw new Outdated("Netflix's viewing activity has no list");
+  return value;
+}
+
+/** One page of Crunchyroll's watch history */
+export function crunchyrollPage(answer: unknown): { data: CrunchyrollEntry[]; meta?: { next_page?: string } } {
+  const page = answer as { data?: unknown; meta?: { next_page?: string } } | null;
+  if (!Array.isArray(page?.data)) throw new Outdated("Crunchyroll's watch history has no list");
+  return page as { data: CrunchyrollEntry[]; meta?: { next_page?: string } };
+}

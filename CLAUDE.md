@@ -82,6 +82,11 @@ Read `node_modules/next/dist/docs/` before using Next APIs (see AGENTS.md).
   Something you removed here comes back while it's still on the site's list (or switch watchlists off).
   Profiles: only yours marks (Netflix userInfo name, Crunchyroll /accounts/v1/me/multiprofile `is_selected`, Prime
   page data `activeProfile.name`), the first that finishes something is yours, the popup changes it.
+  A site that changed shape (2026-11-18, 0.7.8): `Outdated` in importing.ts (a moved list, 400/404/410/412, HTML
+  instead of JSON, none of 5+ entries readable = `checkRead`) ends a sync at once, the popup says "The Prime Video
+  reader needs an update" without Try again, Settings shows the same. Signed out or 5xx stays a normal error.
+  Fixtures: one whole answer per site in `src/lib/library/fixtures/` (`siteData.test.ts`), swap in a fresh capture
+  when a site changes.
   Netflix and Prime need Widevine: Zen and Helium have none, so marking those two works only in Chrome.
   Signed for keeps (Firefox): unlisted at addons.mozilla.org (source code: Yes, the source zip).
   Raise "version" in manifest.template.json before each upload.

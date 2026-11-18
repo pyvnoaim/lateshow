@@ -3,37 +3,28 @@
 // it marks what you finish (watch.ts), with what prime-main.ts notes from the player's own answers. Read only:
 // Prime's remove action is never called.
 import {
+  checkRead,
+  Outdated,
   primeProgress,
   primeSince,
   primeTitle,
   readPrimeHistory,
+  primeWidget,
   readPrimeWatchlist,
   type ImportRow,
   type PrimeTitle,
   type PrimeWatchlistCard,
+  type PrimeWidget,
 } from "@/lib/library/importing";
 import { showCard } from "./card";
 import { getJson, historyPage, pageFetch, pause, reader, type ReadHistory } from "./reader";
 import { watch, type Clock } from "./watch";
 
 type Day = { date?: string; titles?: PrimeTitle[] };
-type Widget = { widgetType?: string; content?: { content?: { titles?: Day[]; nextToken?: string } } };
 
 const PAGE = "/api/getWatchHistorySettingsPage";
 // like Prime's own page asks: without these it may answer with an HTML page
 const HEADERS = { "x-requested-with": "XMLHttpRequest" };
-
-/** The watch-history widget somewhere inside Prime's data (its place moves: props.widgets, init.preparations…). */
-function findWidget(o: unknown, seen = new Set<object>()): Widget | null {
-  if (!o || typeof o !== "object" || seen.has(o)) return null;
-  seen.add(o);
-  if ((o as Widget).widgetType === "watch-history") return o as Widget;
-  for (const v of Object.values(o)) {
-    const hit = findWidget(v, seen);
-    if (hit) return hit;
-  }
-  return null;
-}
 
 /** The latest watch time in these days (ms), 0 for none */
 const newestIn = (days: Day[]) =>
@@ -46,18 +37,19 @@ const newestIn = (days: Day[]) =>
 
 /** `since` (ms): only what came after it ("Read new"), paging stops once a day is older */
 const readHistory: ReadHistory = async (onProgress, since, opts) => {
-  let widget: Widget | null = null;
+  let widget: PrimeWidget | null = null;
   for (const s of document.querySelectorAll('script[type="application/json"], script[type="text/template"]')) {
     try {
-      widget = findWidget(JSON.parse(s.textContent ?? ""));
+      widget = primeWidget(JSON.parse(s.textContent ?? ""));
     } catch {
       continue;
     }
     if (widget) break;
   }
   // not embedded in this page: ask for the first page
-  widget ??= findWidget(await getJson(PAGE, HEADERS));
-  if (!widget) throw new Error("No watch history found here. Open your Prime Video watch history and try again.");
+  widget ??= primeWidget(await getJson(PAGE, HEADERS));
+  // this only runs on the history page, so no widget = Prime moved it
+  if (!widget) throw new Outdated("no watch history in Prime's page data");
   const days = [...(widget.content?.content?.titles ?? [])];
   let token = widget.content?.content?.nextToken;
   // how far back it got (Prime doesn't say how much there is in all)
@@ -74,9 +66,10 @@ const readHistory: ReadHistory = async (onProgress, since, opts) => {
   const pastLast = () => since > 0 && newestIn(days.slice(-1)) <= since;
   for (let page = 1; token && page < 500 && !pastLast(); page++) {
     await pause(250); // gently, one page at a time
-    const next = findWidget(
+    const next = primeWidget(
       await getJson(`${PAGE}?widgetArgs=${encodeURIComponent(JSON.stringify({ nextToken: token }))}`, HEADERS),
     );
+    if (!next) throw new Outdated("no watch history in Prime's next page");
     days.push(...(next?.content?.content?.titles ?? []));
     token = next?.content?.content?.nextToken;
     report(page + 1);
@@ -107,7 +100,7 @@ const readHistory: ReadHistory = async (onProgress, since, opts) => {
       }))
       .filter((d) => d.titles.length);
   }
-  const read = readPrimeHistory(kept, finished);
+  const read = checkRead(readPrimeHistory(kept, finished));
   // the watchlist along (a sync with the popup's switch on), best effort
   if (opts?.watchlist) read.rows.push(...readPrimeWatchlist(await watchlist().catch(() => [])));
   return { ...read, oldest: kept.at(-1)?.date ?? "", newest: newestIn(days), profile: activeProfile() };

@@ -159,10 +159,15 @@ function syncCard(s: SyncState) {
     return card;
   }
   if (s.phase === "error") {
-    head.append(el("span", "", `${s.site} didn't sync`));
-    const again = el("button", "pill", "Try again");
-    again.addEventListener("click", () => void chrome.runtime.sendMessage({ type: "lateshow:sync", site: s.site }));
-    card.append(head, el("p", "note", s.message ?? ""), again);
+    head.append(el("span", "", s.outdated ? `The ${s.site} reader needs an update` : `${s.site} didn't sync`));
+    const said = s.outdated ? `${s.outdated[0].toUpperCase()}${s.outdated.slice(1)}. Nothing was changed.` : s.message;
+    card.append(head, el("p", "note", said ?? ""));
+    // a changed site stays changed until the next version: no Try again then
+    if (!s.outdated) {
+      const again = el("button", "pill", "Try again");
+      again.addEventListener("click", () => void chrome.runtime.sendMessage({ type: "lateshow:sync", site: s.site }));
+      card.append(again);
+    }
     return card;
   }
   const r = s.result ?? { episodes: 0, films: 0, series: 0, unsure: 0, notFound: 0 };

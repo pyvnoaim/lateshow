@@ -1,0 +1,24 @@
+{
+  "jsonGraph": {
+    "aui": {
+      "viewingActivity": {
+        "$type": "atom",
+        "value": {
+          "vhSize": 2,
+          "viewedItems": [
+            {
+              "movieID": 70300801,
+              "date": 1794772800000,
+              "title": "Season 1: \"BoJack Horseman: The BoJack Horseman Story, Chapter One\"",
+              "episodeTitle": "BoJack Horseman: The BoJack Horseman Story, Chapter One",
+              "seasonDescriptor": "Season 1",
+              "series": 70300800,
+              "seriesTitle": "BoJack Horseman"
+            },
+            { "movieID": 80117401, "date": 1794686400000, "title": "Okja" }
+          ]
+        }
+      }
+    }
+  }
+}

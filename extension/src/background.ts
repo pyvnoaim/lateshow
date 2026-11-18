@@ -68,6 +68,8 @@ export type SyncState = {
   total?: number;
   result?: { episodes: number; films: number; series: number; watchlist?: number; unsure: number; notFound: number };
   message?: string;
+  /** what changed when the site's data changed shape (`Outdated`): the reader needs an update, trying again won't help */
+  outdated?: string;
   /** the site's profile it synced */
   profile?: string | null;
   /** sites waiting their turn (Sync clicked while one ran), first is next */
@@ -229,6 +231,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
     rows?: unknown[];
     newest?: number;
     message?: string;
+    outdated?: string;
     profile?: string | null;
   };
   if (msg.type === "lateshow:mark") {
@@ -263,7 +266,16 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
         await importRows(mine, msg.rows ?? [], msg.newest ?? 0, (msg.profile as string | null | undefined) ?? null);
       if (msg.type === "lateshow:sync-error") {
         await endJob(mine);
-        await setState({ site: mine.site, phase: "error", message: msg.message ?? "Reading stopped." });
+        await setState(
+          msg.outdated
+            ? {
+                site: mine.site,
+                phase: "error",
+                outdated: msg.outdated,
+                message: `The ${mine.site} reader needs an update (${msg.outdated}). Nothing was changed.`,
+              }
+            : { site: mine.site, phase: "error", message: msg.message ?? "Reading stopped." },
+        );
       }
     });
     return true;

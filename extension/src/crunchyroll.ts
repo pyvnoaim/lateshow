@@ -4,6 +4,8 @@
 // (watch.ts): the episode from the address, its details from the API, the video's position from the player frame
 // (frame-video.ts). Read only on Crunchyroll's side.
 import {
+  checkRead,
+  crunchyrollPage,
   readCrunchyrollHistory,
   readCrunchyrollWatchlist,
   type CrunchyrollEntry,
@@ -52,8 +54,8 @@ const readHistory: ReadHistory = async (onProgress, since, opts) => {
   let next: string | undefined = `/content/v2/${account}/watch-history?locale=en-US&page_size=100`;
   // ponytail: 500 pages cap (100 entries each), so a loop in Crunchyroll's paging can't run forever
   for (let pages = 1; next && pages <= 500; pages++) {
-    const page = (await api(next)) as Page;
-    entries.push(...(page.data ?? []));
+    const page = crunchyrollPage(await api(next));
+    entries.push(...page.data);
     onProgress({ pages, titles: entries.length, oldest: shortDay(entries.at(-1)?.date_played), at: Date.now() });
     // "Read new": a page that reaches back past the last import is the last one needed
     if (since && Date.parse(entries.at(-1)?.date_played ?? "") <= since) break;
@@ -90,7 +92,7 @@ const readHistory: ReadHistory = async (onProgress, since, opts) => {
       profiles?: { profile_name?: string; is_selected?: boolean }[];
     } | null
   )?.profiles?.find((p) => p.is_selected)?.profile_name;
-  const read = readCrunchyrollHistory(kept, since > 0);
+  const read = checkRead(readCrunchyrollHistory(kept, since > 0));
   // the watchlist along (a sync with the popup's switch on): every page of it, best effort
   if (opts?.watchlist) {
     const items: CrunchyrollWatchlistItem[] = [];

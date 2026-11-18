@@ -1,0 +1,25 @@
+{
+  "total": 2,
+  "meta": { "next_page": "/content/v2/acc/watch-history?page=2&page_size=100" },
+  "data": [
+    {
+      "id": "GEVUZ1",
+      "date_played": "2026-11-15T20:00:00Z",
+      "fully_watched": true,
+      "panel": {
+        "type": "episode",
+        "title": "Scum",
+        "episode_metadata": {
+          "series_id": "GP5HJ84P7",
+          "series_title": "Gachiakuta",
+          "season_number": 1,
+          "episode_number": 1,
+          "sequence_number": 1,
+          "episode_air_date": "2025-07-06T00:00:00Z",
+          "identifier": "GP5HJ84P7|S00352501|E1"
+        }
+      }
+    },
+    { "id": "GEVUZ2", "date_played": "2026-11-15T20:30:00Z", "fully_watched": false }
+  ]
+}

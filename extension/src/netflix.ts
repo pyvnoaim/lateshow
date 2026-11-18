@@ -3,6 +3,8 @@
 // (readNetflixHistory, tested). On a player page it marks what you finish (watch.ts): the episode from the address,
 // its season, number and Netflix's own "watched to the end" point from Netflix's metadata. Read only on Netflix's side.
 import {
+  checkRead,
+  netflixPage,
   readNetflixHistory,
   readNetflixWatchlist,
   type ImportRow,
@@ -10,14 +12,11 @@ import {
   type NetflixViewed,
 } from "@/lib/library/importing";
 import { showCard } from "./card";
-import { getJson, historyPage, pageFetch, pause, reader, type ReadHistory } from "./reader";
+import { answer, getJson, historyPage, pageFetch, pause, reader, type ReadHistory } from "./reader";
 import { plusOne } from "./plusone";
 import { watch, type Clock } from "./watch";
 
 type Ids = { guid: string | null; build: string | null; name?: string | null };
-type Answer = {
-  jsonGraph?: { aui?: { viewingActivity?: { value?: { vhSize?: number; viewedItems?: NetflixViewed[] } } } };
-};
 
 /** The profile and build ids from the page script (netflix-main.ts) */
 function ask(): Promise<Ids> {
@@ -58,13 +57,7 @@ async function page(n: number, { guid, build }: Ids) {
     },
     body: "param=" + encodeURIComponent(JSON.stringify({ guid })),
   });
-  const text = await res.text();
-  try {
-    if (!res.ok) throw new Error();
-    return (JSON.parse(text) as Answer).jsonGraph?.aui?.viewingActivity?.value ?? {};
-  } catch {
-    throw new Error(`Netflix answered ${res.status} instead of data: ${text.slice(0, 60)}`);
-  }
+  return netflixPage(answer(res, await res.text()));
 }
 
 const shortDay = (ms?: number) =>
@@ -95,7 +88,7 @@ const readHistory: ReadHistory = async (onProgress, since, opts) => {
     }),
   );
   const newest = Math.max(0, ...items.map((v) => v.date ?? 0));
-  const read = readNetflixHistory(kept, since > 0);
+  const read = checkRead(readNetflixHistory(kept, since > 0));
   // My List along (a sync with the popup's switch on), best effort
   if (opts?.watchlist)
     read.rows.push(
