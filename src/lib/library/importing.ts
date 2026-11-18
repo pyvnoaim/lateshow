@@ -22,6 +22,10 @@ export type ImportRow = {
   refs?: string[];
   /** Netflix, Prime Video: the episodes you watched of this series (season unknown when the file names none) */
   episodes?: NetflixEpisode[];
+  /** a film, from a sync: the real time you watched it (ms), kept instead of noon on `date` */
+  at?: number;
+  /** a film, from a sync: the site says you finished this viewing, so a repeat counts as a rewatch */
+  finished?: true;
 };
 
 /** Where an import came from: shown with it in Settings, so it can be removed as a whole */
@@ -40,6 +44,8 @@ export type NetflixEpisode = {
   airDate?: string;
   absolute?: number;
   undated?: true;
+  /** from a sync: the real time you watched it (ms), kept instead of noon on `date` */
+  at?: number;
   /** the site says you finished this viewing (not just started it), so a repeat of an episode counts as a rewatch */
   finished?: true;
 };
@@ -295,9 +301,18 @@ function readPrime(recs: Record<string, string>[]): { rows: ImportRow[]; skipped
     const date = day(r["Date Watched"]);
     const gti = r["Global Title Identifier"]?.trim();
     const ref = gti ? `prime:${gti}` : undefined;
+    const at = Number(r.At) || undefined;
     if (r.Type !== "Series") {
       if (!films.has(norm(title)))
-        films.set(norm(title), { title, year, type: "movie", list: "watched", date, ...(ref && { refs: [ref] }) });
+        films.set(norm(title), {
+          title,
+          year,
+          type: "movie",
+          list: "watched",
+          date,
+          ...(at && { at }),
+          ...(ref && { refs: [ref] }),
+        });
       continue;
     }
     const s = /^(.*?)[\s,:-]*\b(?:(?:season|staffel|series)\s+|s)(\d+)$/i.exec(title);
@@ -320,8 +335,19 @@ function readPrime(recs: Record<string, string>[]): { rows: ImportRow[]; skipped
       );
     show.date = date; // latest day
     if (ref && !show.refs?.includes(ref)) show.refs = [...(show.refs ?? []), ref]; // a season's id
-    if (!show.episodes!.some((x) => x.season === season && x.episode === episode && norm(x.name) === norm(name)))
-      show.episodes!.push({ season, episode, name, date, ...(r.Finished && { finished: true as const }) });
+    // each episode once, the first time. A later viewing you finished comes along too: it may be a rewatch
+    const first = show.episodes!.find(
+      (x) => x.season === season && x.episode === episode && norm(x.name) === norm(name),
+    );
+    if (!first || (r.Finished && first.date !== date))
+      show.episodes!.push({
+        season,
+        episode,
+        name,
+        date,
+        ...(at && { at }),
+        ...(r.Finished && { finished: true as const }),
+      });
   }
   return { rows: [...shows.values(), ...films.values()], skipped };
 }
@@ -372,12 +398,20 @@ export function readCrunchyrollHistory(entries: CrunchyrollEntry[]): { rows: Imp
   const seen = new Set<string>(); // episodes you have, across dubs
   const films = new Map<string, ImportRow>();
   let skipped = 0;
+  const sorted = done.toSorted((a, b) => (a.date_played ?? "").localeCompare(b.date_played ?? ""));
+  // every entry here is one you watched to the end, so an episode's newest viewing on another day may be a rewatch
+  const last = new Map<string, CrunchyrollEntry>();
+  for (const e of sorted) if (meta(e)) last.set(key(e), e);
+  const firstDay = new Map<string, string | undefined>();
   // oldest first: the first time you watched each one wins
-  for (const e of done.toSorted((a, b) => (a.date_played ?? "").localeCompare(b.date_played ?? ""))) {
-    const date = watchDay(e.date_played ? Date.parse(e.date_played) : undefined);
+  for (const e of sorted) {
+    const ms = e.date_played ? Date.parse(e.date_played) : undefined;
+    const date = watchDay(ms);
+    const at = ms ? { at: ms } : {};
     if (e.panel?.type === "movie") {
       const title = e.panel.movie_metadata?.movie_listing_title ?? e.panel.title;
-      if (title && !films.has(norm(title))) films.set(norm(title), { title, type: "movie", list: "watched", date });
+      if (title && !films.has(norm(title)))
+        films.set(norm(title), { title, type: "movie", list: "watched", date, ...at, finished: true });
       continue;
     }
     const m = meta(e);
@@ -397,15 +431,17 @@ export function readCrunchyrollHistory(entries: CrunchyrollEntry[]): { rows: Imp
           episodes: [],
         }),
       );
-    if (seen.has(key(e))) continue; // another dub of one you have
-    seen.add(key(e));
     const undated = (stamps.get(`${m.series_id}|${e.date_played}`)?.size ?? 0) >= BULK;
+    // another dub of one you have, unless it's its newest viewing on another day
+    if (seen.has(key(e)) && (undated || last.get(key(e)) !== e || firstDay.get(key(e)) === date)) continue;
+    if (!seen.has(key(e))) firstDay.set(key(e), undated ? undefined : date);
+    seen.add(key(e));
     if (!undated) show.date = date; // latest day
     show.episodes!.push({
       season: m.season_number,
       episode: m.episode_number ?? undefined,
       name: e.panel?.title || `Episode ${m.episode_number ?? ""}`.trim(),
-      ...(undated ? { undated: true as const } : { date }),
+      ...(undated ? { undated: true as const } : { date, ...at, finished: true as const }),
       airDate: day(m.episode_air_date),
       ...(Number.isInteger(m.sequence_number) && { absolute: m.sequence_number }),
     });
@@ -437,8 +473,13 @@ export function readNetflixHistory(items: NetflixViewed[]): { rows: ImportRow[];
   const shows = new Map<number, ImportRow>();
   const films = new Map<number, ImportRow>();
   let skipped = 0;
+  // Netflix knows where you stopped last, so "finished" only speaks for a title's newest viewing
+  const newest = new Map<number, number>();
+  for (const v of items) if (v.movieID) newest.set(v.movieID, Math.max(newest.get(v.movieID) ?? 0, v.date ?? 0));
   for (const v of items.toReversed()) {
     const date = watchDay(v.date);
+    const at = v.date ? { at: v.date } : {};
+    const finished = v.finished === true && v.movieID && v.date === newest.get(v.movieID);
     // Netflix sometimes sends a name of only spaces: such an entry can't be matched, it's counted as skipped
     const seriesTitle = v.seriesTitle?.trim();
     const title = v.title?.trim();
@@ -459,11 +500,30 @@ export function readNetflixHistory(items: NetflixViewed[]): { rows: ImportRow[];
       const name = v.episodeTitle?.trim() || title || "";
       const same = (e: { season?: number; episode?: number; name: string }) =>
         e.season === season && (v.episode !== undefined ? e.episode === v.episode : norm(e.name) === norm(name));
-      if (name && !show.episodes!.some(same))
-        show.episodes!.push({ season, ...(v.episode !== undefined && { episode: v.episode }), name, date });
+      // each episode once, the first time. A later viewing you finished comes along too: it may be a rewatch
+      const first = show.episodes!.find(same);
+      if (name && (!first || (finished && first.date !== date)))
+        show.episodes!.push({
+          season,
+          ...(v.episode !== undefined && { episode: v.episode }),
+          name,
+          date,
+          ...at,
+          ...(finished && { finished: true as const }),
+        });
     } else if (v.movieID && title && !v.series) {
-      if (!films.has(v.movieID))
-        films.set(v.movieID, { title, type: "movie", list: "watched", date, refs: [`netflix:${v.movieID}`] });
+      const first = films.get(v.movieID);
+      // a film once, and its newest viewing again if you finished it on another day (-id: a key of its own)
+      if (!first || (finished && first.date !== date))
+        films.set(first ? -v.movieID : v.movieID, {
+          title,
+          type: "movie",
+          list: "watched",
+          date,
+          ...at,
+          ...(finished && { finished: true as const }),
+          refs: [`netflix:${v.movieID}`],
+        });
     } else skipped++;
   }
   return { rows: [...shows.values(), ...films.values()], skipped };
@@ -639,6 +699,10 @@ export function readPrimeHistory(
   finished = new Set<string>(),
 ): { rows: ImportRow[]; skipped: number } {
   const at = (ms?: number) => watchDay(ms) ?? "";
+  // Prime's progress is where you stopped last, so it only speaks for an episode's newest viewing
+  const newest = new Map<string, number>();
+  for (const e of days.flatMap((d) => (d.titles ?? []).flatMap((t) => t.children ?? [])))
+    if (e.gti) newest.set(e.gti, Math.max(newest.get(e.gti) ?? 0, e.time ?? 0));
   const recs = days.flatMap((d) =>
     (d.titles ?? []).flatMap((t) =>
       t.children?.length
@@ -648,7 +712,8 @@ export function readPrimeHistory(
             Title: t.title?.text ?? "",
             "Episode Title": e.title?.text ?? "",
             "Global Title Identifier": t.gti ?? "",
-            Finished: e.gti && finished.has(e.gti) ? "1" : "",
+            Finished: e.gti && finished.has(e.gti) && (e.time ?? 0) === newest.get(e.gti) ? "1" : "",
+            At: String(e.time ?? t.time ?? ""),
           }))
         : [
             {
@@ -657,6 +722,7 @@ export function readPrimeHistory(
               Title: t.title?.text ?? "",
               "Episode Title": "",
               "Global Title Identifier": t.gti ?? "",
+              At: String(t.time ?? ""),
             },
           ],
     ),
@@ -676,11 +742,11 @@ const loose = (s: string) => norm(s.replace(/\([^)]*\)/g, " "));
 export function placeEpisodes<A extends { season: number; episode: number; name: string; airDate?: string }>(
   episodes: NetflixEpisode[],
   aired: A[],
-): { placed: (A & { date?: string; undated?: true; finished?: true })[]; missed: number } {
+): { placed: (A & { date?: string; undated?: true; finished?: true; at?: number })[]; missed: number } {
   const names = new Map(aired.map((a) => [a, loose(a.name)])); // once, not per lookup
   // in airing order without specials: where an absolute number lands
   const regular = aired.filter((a) => a.season > 0).toSorted((x, y) => x.season - y.season || x.episode - y.episode);
-  const placed: (A & { date?: string; undated?: true; finished?: true })[] = [];
+  const placed: (A & { date?: string; undated?: true; finished?: true; at?: number })[] = [];
   let missed = 0;
   for (const e of episodes) {
     // the air date first, if exactly one episode aired that day (or, across time zones, within a day)
@@ -707,6 +773,7 @@ export function placeEpisodes<A extends { season: number; episode: number; name:
         ...hit,
         date: e.date,
         ...(e.undated && { undated: true as const }),
+        ...(e.at && { at: e.at }),
         ...(e.finished && { finished: true as const }),
       });
     else missed++;

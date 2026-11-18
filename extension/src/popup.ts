@@ -28,6 +28,8 @@ type Settings = {
   autoMark?: Partial<Record<string, boolean>>;
   profiles?: Partial<Record<string, string>>;
   watchlists?: boolean;
+  /** each site syncs by itself once a day (on unless switched off) */
+  autoSync?: boolean;
 };
 
 const app = document.getElementById("app")!;
@@ -310,26 +312,29 @@ function siteList(settings: Settings, synced: Record<string, number>, busy: stri
     line.append(badge(s), text, sync, sw);
     sec.append(line);
   }
-  // one switch for all sites: their watchlists come along with a sync
-  const lists = settings.watchlists !== false;
-  const sw = el("button", `switch ${lists ? "on" : ""}`);
-  sw.setAttribute("role", "switch");
-  sw.setAttribute("aria-checked", String(lists));
-  sw.setAttribute("aria-label", "Bring watchlists along");
-  sw.append(el("span", "knob"));
-  sw.addEventListener("click", async () => {
-    const cur = (await store<Settings>("settings")) ?? {};
-    await chrome.storage.local.set({ settings: { ...cur, watchlists: !lists } });
-  });
-  const listLine = el("div", "site");
-  const listText = el("div", "text");
-  listText.append(
-    el("span", "", "Bring watchlists along"),
-    el("span", "sub", "A sync also adds what's on the site's watchlist"),
-  );
-  listLine.append(listText, sw);
+  // switches for all sites: a sync by itself once a day, and their watchlists along with a sync
   const opts = el("section", "sites");
-  opts.append(listLine);
+  const options = [
+    ["autoSync", "Sync every day", "By itself, in a background tab that closes again"],
+    ["watchlists", "Bring watchlists along", "A sync also adds what's on the site's watchlist"],
+  ] as const;
+  for (const [name, label, sub] of options) {
+    const on = settings[name] !== false;
+    const sw = el("button", `switch ${on ? "on" : ""}`);
+    sw.setAttribute("role", "switch");
+    sw.setAttribute("aria-checked", String(on));
+    sw.setAttribute("aria-label", label);
+    sw.append(el("span", "knob"));
+    sw.addEventListener("click", async () => {
+      const cur = (await store<Settings>("settings")) ?? {};
+      await chrome.storage.local.set({ settings: { ...cur, [name]: !on } });
+    });
+    const line = el("div", "site");
+    const text = el("div", "text");
+    text.append(el("span", "", label), el("span", "sub", sub));
+    line.append(text, sw);
+    opts.append(line);
+  }
   const foot = el("p", "note center", "Sync reads what's new in the background. Switch: mark what you finish there.");
   return [sec, opts, foot];
 }

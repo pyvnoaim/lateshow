@@ -36,8 +36,18 @@ export async function save(userId: string, matches: Match[], importId: string, v
     date?: string;
     undated?: true;
     finished?: true;
+    at?: number;
   }[][] = await pool(seen, 8, async (m) => {
-    if (m.type === "movie") return [{ season: 0, episode: 0, minutes: await getRuntime(m.id).catch(() => 0) }];
+    if (m.type === "movie")
+      return [
+        {
+          season: 0,
+          episode: 0,
+          minutes: await getRuntime(m.id).catch(() => 0),
+          ...(m.row.at && { at: m.row.at }),
+          ...(m.row.finished && { finished: true as const }),
+        },
+      ];
     const aired = await getAiredEpisodes(m.id).catch(() => []);
     if (!m.row.episodes) return aired;
     const placed = placeEpisodes(m.row.episodes, aired);
@@ -68,11 +78,7 @@ export async function save(userId: string, matches: Match[], importId: string, v
             minutes: Math.min(p.minutes, 1000),
             importId,
             // undated: a season marked watched in one go, the day isn't known ("A while ago")
-            ...(p.undated
-              ? { watchedAt: null }
-              : (p.date ?? m.row.date)
-                ? { watchedAt: new Date(`${p.date ?? m.row.date}T12:00:00Z`) }
-                : {}),
+            ...(p.undated ? { watchedAt: null } : when(p, m) ? { watchedAt: when(p, m) } : {}),
           })),
         )
         .onConflictDoNothing()
@@ -85,7 +91,7 @@ export async function save(userId: string, matches: Match[], importId: string, v
         if (!day) continue;
         const at = new Date(`${day}T12:00:00Z`);
         tx.update(watched)
-          .set({ watchedAt: at })
+          .set({ watchedAt: when(p, m) })
           .where(
             and(
               eq(watched.userId, userId),
@@ -94,7 +100,12 @@ export async function save(userId: string, matches: Match[], importId: string, v
               eq(watched.season, p.season),
               eq(watched.episode, p.episode),
               // past the end of that day (noon + 12 h), or none
-              or(isNull(watched.watchedAt), gt(watched.watchedAt, new Date(at.getTime() + 12 * 3_600_000))),
+              // or an import's noon on that day, when a sync now knows the real time
+              or(
+                isNull(watched.watchedAt),
+                gt(watched.watchedAt, new Date(at.getTime() + 12 * 3_600_000)),
+                p.at ? eq(watched.watchedAt, at) : undefined,
+              ),
             ),
           )
           .run();
@@ -102,8 +113,8 @@ export async function save(userId: string, matches: Match[], importId: string, v
       // after the days above are settled, so the same viewing on a corrected day is never a rewatch of itself
       if (via) {
         const again = parts[i].flatMap((p) => {
-          const day = p.date ?? m.row.date;
-          return p.finished && day ? [{ ...p, at: new Date(`${day}T12:00:00Z`) }] : [];
+          const at = p.finished && !p.undated ? when(p, m) : undefined;
+          return at ? [{ ...p, at }] : [];
         });
         rewatches += addRewatches(tx, userId, m, again, via, importId).length;
       }
@@ -148,6 +159,13 @@ export async function save(userId: string, matches: Match[], importId: string, v
   });
   // a rewatch counts with the episodes it brought
   return { watched: films + series, films, series, episodes: episodes + rewatches, watchlist: l, missed };
+}
+
+/** When a part was watched: the site's real time (a sync), else noon on its day, none without a day */
+function when(p: { date?: string; at?: number }, m: Match) {
+  if (p.at) return new Date(p.at);
+  const day = p.date ?? m.row.date;
+  return day ? new Date(`${day}T12:00:00Z`) : undefined;
 }
 
 type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
@@ -243,7 +261,19 @@ export async function runBatch(
   const links = await linksFor(userId, rows);
   const results = await pool(rows, 8, (r) => match(r, links));
   const matches = results.filter((r): r is Match => r !== null && "id" in r);
-  const unsure = results.filter((r): r is Unsure => r !== null && "candidates" in r);
+  let unsure = results.filter((r): r is Unsure => r !== null && "candidates" in r);
+  // a sync reads the last days again: what you skipped before isn't asked again (a file import asks, you chose it)
+  if (via && unsure.length) {
+    const skipped = new Set(
+      (
+        await db
+          .select({ skipped: imports.skipped })
+          .from(imports)
+          .where(and(eq(imports.userId, userId), isNotNull(imports.skipped)))
+      ).flatMap((b) => b.skipped ?? []),
+    );
+    unsure = unsure.filter((u) => !skipped.has(skipKey(u.row)));
+  }
   const saved = await save(userId, matches, importId, via);
   remember(userId, matches);
   // a title asked about before and read again now (the next sync) is settled by this answer, not asked twice
@@ -261,6 +291,20 @@ export async function runBatch(
     notFound: results.filter((r) => r === null).length,
     unsure,
   };
+}
+
+// a skipped title, whatever day it was read on
+export const skipKey = (r: ImportRow) => `${r.type}|${r.title}|${r.year ?? ""}`;
+
+/** Remembers a skipped unclear row with its import (which must be yours, checked by the caller) */
+export function rememberSkip(importId: string, r: ImportRow) {
+  db.transaction((tx) => {
+    const b = tx.select({ skipped: imports.skipped }).from(imports).where(eq(imports.id, importId)).get();
+    tx.update(imports)
+      .set({ skipped: [...new Set([...(b?.skipped ?? []), skipKey(r)])] })
+      .where(eq(imports.id, importId))
+      .run();
+  });
 }
 
 // which unclear row is which (a pick or skip sends the row back)

@@ -84,6 +84,10 @@ const HISTORY: Record<string, string> = {
   Crunchyroll: "https://www.crunchyroll.com/history",
 };
 const BATCH = 40;
+// A sync reads this far back before the last one again: what was only started then and finished since, a rewatch,
+// anything a sync dropped. Lateshow ignores what it already has, so reading twice adds nothing twice.
+const OVERLAP = 7 * 86_400_000;
+const DAY = 86_400_000;
 
 const local = <T>(k: string) => chrome.storage.local.get(k).then((r) => r[k] as T | undefined);
 // the queue rides along in the state, so the popup and Settings show "Queued" without asking twice
@@ -127,7 +131,12 @@ async function startSync(site: string) {
   const tab = await chrome.tabs.create({ url: HISTORY[site], active: false });
   if (!tab.id) return setState({ site, phase: "error", message: "The history page didn't open." });
   await chrome.storage.local.set({
-    job: { site, tabId: tab.id, since: synced[site] ?? 0, started: Date.now() } satisfies Job,
+    job: {
+      site,
+      tabId: tab.id,
+      since: synced[site] ? Math.max(1, synced[site] - OVERLAP) : 0,
+      started: Date.now(),
+    } satisfies Job,
   });
   await setState({ site, phase: "reading", read: 0 });
   // a page that never answers (signed out there, the site changed) doesn't keep the sync running forever
@@ -383,6 +392,28 @@ async function joinRoom(code: string): Promise<{ ok: true } | { ok: false; messa
   }
 }
 
+/**
+ * Once a day each site you've synced before syncs by itself (the popup's switch turns it off), so what you watched
+ * on the TV shows up without pressing anything. A site never synced waits for your first Sync (it sets the profile).
+ * `autoAt`: when it last tried, so a site that's signed out is asked once a day, not every hour.
+ */
+async function autoSync() {
+  const settings = (await local<{ autoSync?: boolean }>("settings")) ?? {};
+  if (settings.autoSync === false || !(await local<string>("key"))) return;
+  const [syncedAt, autoAt] = await Promise.all([
+    local<Record<string, number>>("syncedAt"),
+    local<Record<string, number>>("autoAt"),
+  ]);
+  const due = Object.keys(HISTORY).filter(
+    (site) => syncedAt?.[site] && Date.now() - Math.max(syncedAt[site], autoAt?.[site] ?? 0) > DAY,
+  );
+  if (!due.length) return;
+  await chrome.storage.local.set({ autoAt: { ...autoAt, ...Object.fromEntries(due.map((s) => [s, Date.now()])) } });
+  // one at a time: the first starts, the rest queue behind it
+  for (const site of due) await startSync(site);
+}
+
 chrome.alarms.create("flush", { periodInMinutes: 5 });
-chrome.alarms.onAlarm.addListener(() => void flush());
+chrome.alarms.create("auto", { periodInMinutes: 60 });
+chrome.alarms.onAlarm.addListener((a) => void (a.name === "auto" ? autoSync() : flush()));
 void flush();

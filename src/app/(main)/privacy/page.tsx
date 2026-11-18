@@ -99,8 +99,10 @@ export default function PrivacyPage() {
                 after the room closes.
               </li>
               <li>
-                When you press Sync (or Import on a history page), it sends that site&apos;s watch history since the
-                last sync (titles, seasons, episodes, days) and, unless you switch it off, the titles on its watchlist.
+                When you press Sync (or Import on a history page), and once a day by itself for a site you synced before
+                (a switch in the extension turns that off), it sends that site&apos;s watch history since a week before
+                the last sync (titles, seasons, episodes, when you watched them and whether you finished them) and,
+                unless you switch it off, the titles on its watchlist.
               </li>
             </ul>
             It reads no other site, no browsing history and no passwords, and sends nothing to anyone but Lateshow. What

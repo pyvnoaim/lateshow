@@ -7,7 +7,7 @@ import { getSession } from "@/lib/auth";
 import { db } from "@/lib/db/client";
 import { importBatch as imports, rating, rewatch, watched, watchlist } from "@/lib/db/schema";
 import type { ImportRow, ImportSource } from "./importing";
-import { keepOpen, openKey, ownBatch, runBatch, save, startImportFor } from "./importRun";
+import { keepOpen, openKey, ownBatch, rememberSkip, runBatch, save, startImportFor } from "./importRun";
 import { pick, remember, row, type BatchResult, type Match } from "./matching";
 
 export type { BatchResult, Candidate, Saved, Unsure } from "./matching";
@@ -39,6 +39,8 @@ export async function importPick(rawRow: ImportRow, rawPick: z.input<typeof pick
   const picked: Match = { row: r, id: p.id, type: p.type, title: p.title, posterPath: p.posterPath };
   const saved = await save(userId, [picked], importId);
   remember(userId, [picked]); // your pick: the next import knows this title
+  // no site id to remember it by (a Crunchyroll film): at least a sync reading it again doesn't ask again
+  if (!r.refs?.length) rememberSkip(importId, r);
   await keepOpen(importId, (open) => open.filter((u) => openKey(u.row) !== openKey(r)));
   refresh();
   return saved;
@@ -50,6 +52,7 @@ export async function importSkip(rawRow: ImportRow, rawImportId: string) {
   const importId = await ownBatch(userId, rawImportId);
   const r = row.parse(rawRow);
   await keepOpen(importId, (open) => open.filter((u) => openKey(u.row) !== openKey(r)));
+  rememberSkip(importId, r);
   refresh();
 }
 

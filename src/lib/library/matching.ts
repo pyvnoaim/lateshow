@@ -13,6 +13,12 @@ import { norm, pickMatch, placeEpisodes, type Hit, type ImportRow } from "./impo
 
 // The browser sends rows read from your export, never the file. Batches stay small so each call is a few seconds.
 const day = z.string().regex(/^\d{4}-\d{2}-\d{2}$/);
+// a real watch time (ms) from a sync: this century, not in the future
+const time = z
+  .number()
+  .int()
+  .min(946_684_800_000)
+  .refine((n) => n <= Date.now() + 300_000);
 export const row = z.object({
   title: z.string().trim().min(1).max(300),
   year: z.number().int().min(1870).max(2100).optional(),
@@ -39,10 +45,13 @@ export const row = z.object({
         absolute: z.number().int().min(1).max(100000).optional(),
         undated: z.literal(true).optional(),
         finished: z.literal(true).optional(),
+        at: time.optional(),
       }),
     )
     .max(5000)
     .optional(),
+  at: time.optional(),
+  finished: z.literal(true).optional(),
 });
 export const pick = z.object({
   id: z.number().int().positive(),

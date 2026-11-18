@@ -313,14 +313,14 @@ describe("Prime Video history data (the extension)", () => {
   it("reads seasons as shows with their episodes, movies as films, with the day", () => {
     const { rows, skipped } = readPrimeHistory(days);
     expect(skipped).toBe(0);
-    expect(rows.find((r) => r.title === "Highschool of the Dead")?.episodes).toEqual([
+    expect(rows.find((r) => r.title === "Highschool of the Dead")?.episodes).toMatchObject([
       { season: undefined, episode: 1, name: "Spring of the DEAD", date: "2026-11-15" },
       { season: undefined, episode: 2, name: "Shadow of the DEAD", date: "2026-11-15" },
     ]);
-    expect(rows.find((r) => r.title === "South Park")?.episodes).toEqual([
+    expect(rows.find((r) => r.title === "South Park")?.episodes).toMatchObject([
       { season: 26, episode: 3, name: "Japanese Toilet", date: "2026-07-04" },
     ]);
-    expect(rows.find((r) => r.type === "movie")).toEqual({
+    expect(rows.find((r) => r.type === "movie")).toMatchObject({
       title: "Zodiac",
       type: "movie",
       list: "watched",
@@ -492,7 +492,7 @@ describe("readNetflixHistory", () => {
       ep(80000003, "Year in Review", "Season 2024", "2026-10-04"), // a year, not a season
     ]);
     expect(skipped).toBe(3);
-    expect(rows).toEqual([
+    expect(rows).toMatchObject([
       {
         title: "BoJack Horseman",
         type: "tv",
@@ -538,7 +538,7 @@ describe("readNetflixHistory with Netflix's metadata", () => {
       },
     ]);
     expect(skipped).toBe(2);
-    expect(rows).toEqual([
+    expect(rows).toMatchObject([
       {
         title: "BoJack Horseman",
         type: "tv",
@@ -705,5 +705,79 @@ describe("Prime: finished or only started", () => {
     const placed = placeEpisodes(eps, aired).placed;
     expect(placed.find((p) => p.episode === 1)?.finished).toBe(true);
     expect(placed.find((p) => p.episode === 2)?.finished).toBeUndefined();
+  });
+});
+
+describe("a sync's real times and rewatches", () => {
+  const t = (iso: string) => Date.parse(iso);
+
+  it("Prime: keeps the time, and a finished later viewing of an episode comes along as its own entry", () => {
+    const ep = (time: number) => ({ gti: "e1", title: { text: "Episode 1: Welcome to Margrave" }, time });
+    const days = [
+      { titles: [{ title: { text: "REACHER - SEASON 01" }, gti: "s1", children: [ep(t("2026-11-17T22:16:00Z"))] }] },
+      { titles: [{ title: { text: "REACHER - SEASON 01" }, gti: "s1", children: [ep(t("2026-11-12T20:00:00Z"))] }] },
+    ];
+    // not known as finished: once, the first time
+    expect(readPrimeHistory(days).rows[0].episodes).toMatchObject([{ episode: 1, at: t("2026-11-12T20:00:00Z") }]);
+    // finished: only the newest viewing carries it (Prime knows where you stopped last, not each time)
+    const eps = readPrimeHistory(days, new Set(["e1"])).rows[0].episodes!;
+    expect(eps.map((e) => [e.at, e.finished])).toEqual([
+      [t("2026-11-12T20:00:00Z"), undefined],
+      [t("2026-11-17T22:16:00Z"), true],
+    ]);
+  });
+
+  it("Netflix: only the newest finished viewing of an episode or film is added again", () => {
+    const ep = (date: number) => ({
+      movieID: 7,
+      series: 1,
+      seriesTitle: "Dark",
+      title: "Secrets",
+      season: 1,
+      episode: 1,
+      date,
+      finished: true,
+    });
+    const film = (date: number) => ({ movieID: 9, title: "Okja", date, finished: true });
+    const { rows } = readNetflixHistory([
+      ep(t("2026-11-17T20:00:00Z")),
+      film(t("2026-11-16T20:00:00Z")),
+      ep(t("2026-11-10T20:00:00Z")),
+      film(t("2026-11-01T20:00:00Z")),
+    ]);
+    expect(rows.find((r) => r.type === "tv")!.episodes!.map((e) => [e.date, e.finished])).toEqual([
+      ["2026-11-10", undefined],
+      ["2026-11-17", true],
+    ]);
+    expect(rows.filter((r) => r.type === "movie").map((r) => [r.date, r.finished])).toEqual([
+      ["2026-11-01", undefined],
+      ["2026-11-16", true],
+    ]);
+  });
+
+  it("Crunchyroll: another dub the same day is one viewing, its newest viewing on another day comes along", () => {
+    const e = (id: string, date_played: string) => ({
+      id,
+      date_played,
+      fully_watched: true,
+      panel: {
+        type: "episode",
+        title: "Izuku Midoriya: Origin",
+        episode_metadata: {
+          series_id: "S",
+          series_title: "My Hero Academia",
+          season_number: 1,
+          episode_number: 1,
+          identifier: "S|1|1",
+        },
+      },
+    });
+    const { rows } = readCrunchyrollHistory([
+      e("a", "2026-11-01T18:00:00Z"),
+      e("b", "2026-11-01T19:00:00Z"),
+      e("c", "2026-11-15T18:00:00Z"),
+    ]);
+    expect(rows[0].episodes!.map((x) => x.date)).toEqual(["2026-11-01", "2026-11-15"]);
+    expect(rows[0].episodes![1].at).toBe(t("2026-11-15T18:00:00Z"));
   });
 });

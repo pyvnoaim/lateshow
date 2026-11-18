@@ -111,6 +111,8 @@ export const importBatch = sqliteTable(
     createdAt: integer("created_at", { mode: "timestamp_ms" }).default(now).notNull(),
     /** the unclear titles still waiting for your pick (matching's Unsure[]), so leaving the page doesn't lose them */
     open: text("open", { mode: "json" }).$type<unknown[]>(),
+    /** unclear titles you skipped (`skipKey`): a sync reads the last days again and must not ask for them twice */
+    skipped: text("skipped", { mode: "json" }).$type<string[]>(),
   },
   (t) => [index("import_batch_by_user").on(t.userId)],
 );
