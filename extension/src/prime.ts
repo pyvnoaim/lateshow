@@ -100,7 +100,13 @@ const readHistory: ReadHistory = async (onProgress, since, opts) => {
       }))
       .filter((d) => d.titles.length);
   }
-  const read = checkRead(readPrimeHistory(kept, finished));
+  const read = readPrimeHistory(kept, finished);
+  // trailers count as skipped there, but were read fine: a week of only those isn't a changed site
+  const trailers = kept
+    .flatMap((d) => d.titles ?? [])
+    .flatMap((t) => (t.children?.length ? t.children.map((e) => `${t.title?.text} ${e.title?.text}`) : [t.title?.text]))
+    .filter((text) => /\btrailer\b/i.test(text ?? "")).length;
+  checkRead({ ...read, skipped: read.skipped - trailers });
   // the watchlist along (a sync with the popup's switch on), best effort
   if (opts?.watchlist) read.rows.push(...readPrimeWatchlist(await watchlist().catch(() => [])));
   return { ...read, oldest: kept.at(-1)?.date ?? "", newest: newestIn(days), profile: activeProfile() };

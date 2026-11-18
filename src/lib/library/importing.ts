@@ -907,12 +907,14 @@ export type PrimeWidget = {
 
 /** One page of Netflix's viewing activity out of its AUI answer */
 export function netflixPage(answer: unknown): { vhSize?: number; viewedItems?: NetflixViewed[] } {
-  const value = (
+  const activity = (
     answer as {
       jsonGraph?: { aui?: { viewingActivity?: { value?: { vhSize?: number; viewedItems?: NetflixViewed[] } } } };
     } | null
-  )?.jsonGraph?.aui?.viewingActivity?.value;
-  if (!value || (value.viewedItems && !Array.isArray(value.viewedItems)))
+  )?.jsonGraph?.aui?.viewingActivity;
+  // no viewingActivity = Netflix moved it. One without a value is an empty history (a new profile)
+  const value = activity?.value ?? {};
+  if (!activity || (value.viewedItems && !Array.isArray(value.viewedItems)))
     throw new Outdated("Netflix's viewing activity has no list");
   return value;
 }

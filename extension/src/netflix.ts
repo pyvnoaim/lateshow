@@ -88,7 +88,9 @@ const readHistory: ReadHistory = async (onProgress, since, opts) => {
     }),
   );
   const newest = Math.max(0, ...items.map((v) => v.date ?? 0));
-  const read = checkRead(readNetflixHistory(kept, since > 0));
+  const read = readNetflixHistory(kept, since > 0);
+  // what you only started counts as skipped there, but was read fine: a week of only that isn't a changed site
+  checkRead({ ...read, skipped: read.skipped - kept.filter((v) => v.finished === false).length });
   // My List along (a sync with the popup's switch on), best effort
   if (opts?.watchlist)
     read.rows.push(
