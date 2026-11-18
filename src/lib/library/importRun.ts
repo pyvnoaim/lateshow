@@ -1,14 +1,15 @@
 import "server-only";
 import { randomBytes } from "node:crypto";
-import { and, eq, gt, isNotNull, isNull, or } from "drizzle-orm";
+import { and, eq, gt, inArray, isNotNull, isNull, or } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/lib/db/client";
-import { importBatch as imports, rating, watched, watchlist } from "@/lib/db/schema";
+import { importBatch as imports, rating, rewatch, watched, watchlist } from "@/lib/db/schema";
 import { getAiredEpisodes, getRuntime } from "@/lib/tmdb";
 import { pool } from "@/lib/pool";
 import { placeEpisodes, type ImportRow, type ImportSource } from "./importing";
 import { linksFor, match, remember, row, type BatchResult, type Match, type Saved, type Unsure } from "./matching";
 import { fromScore } from "./rating";
+import { isRewatch } from "./rewatch";
 
 /*
  * What an import does, for a user the caller has already established: Settings' actions (your session) and the
@@ -20,29 +21,35 @@ import { fromScore } from "./rating";
  * Saves matches. Already there stays as it is, so importing twice adds nothing. Watched beats watchlist.
  * A watched series means all of it: every episode aired so far, unless the row lists its episodes (Netflix).
  * Ratings come along (loved, liked, not for me). `missed`: Netflix episodes whose name TMDB doesn't know.
+ * `via` (a sync from the extension): an episode the site says you finished, already watched on another day, is a
+ * rewatch. Files never add rewatches: they can't tell finished from started.
  */
-export async function save(userId: string, matches: Match[], importId: string): Promise<Saved> {
+export async function save(userId: string, matches: Match[], importId: string, via?: string): Promise<Saved> {
   const seen = matches.filter((m) => m.row.list === "watched");
   const listed = matches.filter((m) => m.row.list === "watchlist");
   // runtimes so imported titles count in your hours (cached, most are looked up once)
   let missed = 0;
-  const parts: { season: number; episode: number; minutes: number; date?: string; undated?: true }[][] = await pool(
-    seen,
-    8,
-    async (m) => {
-      if (m.type === "movie") return [{ season: 0, episode: 0, minutes: await getRuntime(m.id).catch(() => 0) }];
-      const aired = await getAiredEpisodes(m.id).catch(() => []);
-      if (!m.row.episodes) return aired;
-      const placed = placeEpisodes(m.row.episodes, aired);
-      missed += placed.missed;
-      return placed.placed;
-    },
-  );
+  const parts: {
+    season: number;
+    episode: number;
+    minutes: number;
+    date?: string;
+    undated?: true;
+    finished?: true;
+  }[][] = await pool(seen, 8, async (m) => {
+    if (m.type === "movie") return [{ season: 0, episode: 0, minutes: await getRuntime(m.id).catch(() => 0) }];
+    const aired = await getAiredEpisodes(m.id).catch(() => []);
+    if (!m.row.episodes) return aired;
+    const placed = placeEpisodes(m.row.episodes, aired);
+    missed += placed.missed;
+    return placed.placed;
+  });
   // what came over: films, series and their episodes (watched = films + series)
   let films = 0;
   let series = 0;
   let episodes = 0;
   let l = 0;
+  let rewatches = 0;
   db.transaction((tx) => {
     seen.forEach((m, i) => {
       if (!parts[i].length) return;
@@ -92,6 +99,14 @@ export async function save(userId: string, matches: Match[], importId: string): 
           )
           .run();
       }
+      // after the days above are settled, so the same viewing on a corrected day is never a rewatch of itself
+      if (via) {
+        const again = parts[i].flatMap((p) => {
+          const day = p.date ?? m.row.date;
+          return p.finished && day ? [{ ...p, at: new Date(`${day}T12:00:00Z`) }] : [];
+        });
+        rewatches += addRewatches(tx, userId, m, again, via, importId).length;
+      }
       if (added && m.type === "movie") films++;
       else if (added) {
         series++;
@@ -131,7 +146,62 @@ export async function save(userId: string, matches: Match[], importId: string): 
         .run().changes;
     }
   });
-  return { watched: films + series, films, series, episodes, watchlist: l, missed };
+  // a rewatch counts with the episodes it brought
+  return { watched: films + series, films, series, episodes: episodes + rewatches, watchlist: l, missed };
+}
+
+type Tx = Parameters<Parameters<typeof db.transaction>[0]>[0];
+
+/**
+ * Rewatches of what's already watched: each viewing gets a row unless one of that episode's viewings (the first, the
+ * rewatches, one added just before in this call) is within 2 days. Inside the caller's transaction, so two of the
+ * same viewing arriving together can't both add it. Returns the new rewatch ids.
+ */
+export function addRewatches(
+  tx: Tx,
+  userId: string,
+  m: { type: "movie" | "tv"; id: number },
+  parts: { season: number; episode: number; at: Date }[],
+  via: string,
+  importId?: string,
+): number[] {
+  if (!parts.length) return [];
+  const firsts = tx
+    .select({ id: watched.id, at: watched.watchedAt, season: watched.season, episode: watched.episode })
+    .from(watched)
+    .where(
+      and(
+        eq(watched.userId, userId),
+        eq(watched.mediaType, m.type),
+        eq(watched.tmdbId, m.id),
+        or(...parts.map((p) => and(eq(watched.season, p.season), eq(watched.episode, p.episode)))),
+      ),
+    )
+    .all();
+  if (!firsts.length) return [];
+  const later = tx
+    .select({ of: rewatch.watchedId, at: rewatch.watchedAt })
+    .from(rewatch)
+    .where(
+      inArray(
+        rewatch.watchedId,
+        firsts.map((f) => f.id),
+      ),
+    )
+    .all();
+  const ids: number[] = [];
+  for (const p of parts) {
+    const f = firsts.find((x) => x.season === p.season && x.episode === p.episode);
+    if (!f || !isRewatch(p.at, [f.at, ...later.filter((l) => l.of === f.id).map((l) => l.at)])) continue;
+    const r = tx
+      .insert(rewatch)
+      .values({ watchedId: f.id, userId, watchedAt: p.at, via, importId })
+      .returning({ id: rewatch.id })
+      .get();
+    later.push({ of: f.id, at: p.at });
+    ids.push(r.id);
+  }
+  return ids;
 }
 
 const SOURCES = ["Prime Video", "Letterboxd", "IMDb", "Netflix", "Crunchyroll"] as const satisfies ImportSource[];
@@ -156,7 +226,13 @@ export async function ownBatch(userId: string, raw: unknown) {
 }
 
 /** One batch of rows from an export: matched ones are saved, unclear ones come back with candidates (and wait with the import). */
-export async function runBatch(userId: string, raw: ImportRow[], rawImportId: string): Promise<BatchResult> {
+/** `via`: a sync from the extension (rewatches allowed, see `save`) */
+export async function runBatch(
+  userId: string,
+  raw: ImportRow[],
+  rawImportId: string,
+  via?: string,
+): Promise<BatchResult> {
   const importId = await ownBatch(userId, rawImportId);
   // a batch holds at most 6000 episodes in all, so one call can't keep the server matching names for long
   const rows = z
@@ -168,7 +244,7 @@ export async function runBatch(userId: string, raw: ImportRow[], rawImportId: st
   const results = await pool(rows, 8, (r) => match(r, links));
   const matches = results.filter((r): r is Match => r !== null && "id" in r);
   const unsure = results.filter((r): r is Unsure => r !== null && "candidates" in r);
-  const saved = await save(userId, matches, importId);
+  const saved = await save(userId, matches, importId, via);
   remember(userId, matches);
   // a title asked about before and read again now (the next sync) is settled by this answer, not asked twice
   const seen = new Set(rows.map(openKey));

@@ -3,6 +3,7 @@
 // it marks what you finish (watch.ts), with what prime-main.ts notes from the player's own answers. Read only:
 // Prime's remove action is never called.
 import {
+  primeProgress,
   primeSince,
   primeTitle,
   readPrimeHistory,
@@ -80,12 +81,77 @@ const readHistory: ReadHistory = async (onProgress, since, opts) => {
     token = next?.content?.content?.nextToken;
     report(page + 1);
   }
-  const kept = since ? primeSince(days, since) : days;
-  const read = readPrimeHistory(kept);
+  let kept = since ? primeSince(days, since) : days;
+  // what's new since the last sync: Prime lists every episode you start, its season pages say which you finished.
+  // A first read of everything skips this (hundreds of pages, and nothing in it can be a rewatch yet)
+  const finished = new Set<string>();
+  if (since) {
+    const { done, started } = await seasonProgress(kept, (n, all) =>
+      onProgress({
+        pages: 0,
+        titles: kept.reduce((k, d) => k + (d.titles?.length ?? 0), 0),
+        oldest: "",
+        at: Date.now(),
+        step: `Checking what you finished · ${n} of ${all}`,
+      }),
+    );
+    for (const gti of done) finished.add(gti);
+    kept = kept
+      .map((d) => ({
+        ...d,
+        titles: (d.titles ?? []).flatMap((t) => {
+          if (!t.children?.length) return [t];
+          const children = t.children.filter((e) => !e.gti || !started.has(e.gti));
+          return children.length ? [{ ...t, children }] : [];
+        }),
+      }))
+      .filter((d) => d.titles.length);
+  }
+  const read = readPrimeHistory(kept, finished);
   // the watchlist along (a sync with the popup's switch on), best effort
   if (opts?.watchlist) read.rows.push(...readPrimeWatchlist(await watchlist().catch(() => [])));
   return { ...read, oldest: kept.at(-1)?.date ?? "", newest: newestIn(days), profile: activeProfile() };
 };
+
+/**
+ * Each season's page in these days, once, read for what it says you finished (`primeProgress`). Best effort: a page
+ * that doesn't load says nothing, so its episodes come in as before (never as rewatches).
+ * ponytail: 40 seasons at most per sync (a page is about 1 MB). A sync reads days, not months, so it's never near that.
+ */
+async function seasonProgress(days: Day[], onProgress: (n: number, all: number) => void) {
+  const seasons = new Map<string, string[]>();
+  for (const t of days.flatMap((d) => d.titles ?? []))
+    if (t.children?.length && t.title?.href) {
+      const href = t.title.href.split("?")[0];
+      seasons.set(href, [...(seasons.get(href) ?? []), ...t.children.flatMap((e) => (e.gti ? [e.gti] : []))]);
+    }
+  const pages = [...seasons].slice(0, 40);
+  const done = new Set<string>();
+  const started = new Set<string>();
+  for (const [i, [href, gtis]] of pages.entries()) {
+    onProgress(i + 1, pages.length);
+    try {
+      const html = await (await pageFetch(href, { credentials: "include" })).text();
+      const doc = new DOMParser().parseFromString(html, "text/html");
+      const data = [...doc.querySelectorAll('script[type="application/json"], script[type="text/template"]')].flatMap(
+        (s) => {
+          try {
+            return [JSON.parse(s.textContent ?? "") as unknown];
+          } catch {
+            return [];
+          }
+        },
+      );
+      const p = primeProgress(data, gtis);
+      for (const g of p.done) done.add(g);
+      for (const g of p.started) started.add(g);
+    } catch {
+      // unread: these episodes stay as the history has them
+    }
+    await pause(250);
+  }
+  return { done, started };
+}
 
 // The watchlist as its page asks for it: the list as data, then /api/paginateCollection with the page container's
 // token for the rest (the fixed fields are the page's own, 2026-11-16)

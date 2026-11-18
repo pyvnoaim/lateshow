@@ -40,6 +40,8 @@ export type NetflixEpisode = {
   airDate?: string;
   absolute?: number;
   undated?: true;
+  /** the site says you finished this viewing (not just started it), so a repeat of an episode counts as a rewatch */
+  finished?: true;
 };
 
 /** Reads CSV: quoted fields, "" inside quotes, commas and newlines in titles, CRLF, a leading BOM. */
@@ -319,7 +321,7 @@ function readPrime(recs: Record<string, string>[]): { rows: ImportRow[]; skipped
     show.date = date; // latest day
     if (ref && !show.refs?.includes(ref)) show.refs = [...(show.refs ?? []), ref]; // a season's id
     if (!show.episodes!.some((x) => x.season === season && x.episode === episode && norm(x.name) === norm(name)))
-      show.episodes!.push({ season, episode, name, date });
+      show.episodes!.push({ season, episode, name, date, ...(r.Finished && { finished: true as const }) });
   }
   return { rows: [...shows.values(), ...films.values()], skipped };
 }
@@ -580,9 +582,35 @@ export type PrimeTitle = {
   titleType?: string; // "movie", "season", "episode"
   time?: number; // ms
   gti?: string;
-  title?: { text?: string };
+  title?: { text?: string; href?: string };
   children?: PrimeTitle[];
 };
+
+/**
+ * What a Prime season page (its JSON scripts, parsed) says about these episodes: `done` = finished (Prime's
+ * FeatureFinished, or 85% and more, about where credits start), `started` = stopped earlier. Episodes the page says
+ * nothing about are in neither (older viewings lose their progress, a changed page too): they stay as before.
+ */
+export function primeProgress(pages: unknown[], gtis: string[]) {
+  const done = new Set<string>();
+  const started = new Set<string>();
+  type Playback = { playbackStatus?: string; progress?: number };
+  type Actions = Record<string, { primaryActions?: { payload?: { playback?: Playback } }[] }>;
+  for (const page of pages) {
+    const body = (page as { init?: { preparations?: { body?: Record<string, unknown> } } })?.init?.preparations?.body;
+    for (const part of ["atf", "btf"]) {
+      const actions = (body?.[part] as { state?: { action?: Record<string, Actions> } })?.state?.action?.[part];
+      for (const gti of gtis) {
+        const p = actions?.[gti]?.primaryActions?.find((a) => a.payload?.playback)?.payload?.playback;
+        if (!p) continue;
+        if (p.playbackStatus === "FeatureFinished" || (p.progress ?? 0) >= 0.85) done.add(gti);
+        else if (p.playbackStatus === "FeatureInProgress") started.add(gti);
+      }
+    }
+  }
+  for (const gti of done) started.delete(gti);
+  return { done, started };
+}
 
 /**
  * Prime Video's watch history as the extension reads it (days newest first, each with its titles, a season with its
@@ -605,7 +633,11 @@ export function primeSince<D extends { titles?: PrimeTitle[] }>(days: D[], since
     .filter((d) => d.titles.length);
 }
 
-export function readPrimeHistory(days: { titles?: PrimeTitle[] }[]): { rows: ImportRow[]; skipped: number } {
+/** `finished`: episode ids Prime says you finished (`primeProgress`), they may count as rewatches */
+export function readPrimeHistory(
+  days: { titles?: PrimeTitle[] }[],
+  finished = new Set<string>(),
+): { rows: ImportRow[]; skipped: number } {
   const at = (ms?: number) => watchDay(ms) ?? "";
   const recs = days.flatMap((d) =>
     (d.titles ?? []).flatMap((t) =>
@@ -616,6 +648,7 @@ export function readPrimeHistory(days: { titles?: PrimeTitle[] }[]): { rows: Imp
             Title: t.title?.text ?? "",
             "Episode Title": e.title?.text ?? "",
             "Global Title Identifier": t.gti ?? "",
+            Finished: e.gti && finished.has(e.gti) ? "1" : "",
           }))
         : [
             {
@@ -643,11 +676,11 @@ const loose = (s: string) => norm(s.replace(/\([^)]*\)/g, " "));
 export function placeEpisodes<A extends { season: number; episode: number; name: string; airDate?: string }>(
   episodes: NetflixEpisode[],
   aired: A[],
-): { placed: (A & { date?: string; undated?: true })[]; missed: number } {
+): { placed: (A & { date?: string; undated?: true; finished?: true })[]; missed: number } {
   const names = new Map(aired.map((a) => [a, loose(a.name)])); // once, not per lookup
   // in airing order without specials: where an absolute number lands
   const regular = aired.filter((a) => a.season > 0).toSorted((x, y) => x.season - y.season || x.episode - y.episode);
-  const placed: (A & { date?: string; undated?: true })[] = [];
+  const placed: (A & { date?: string; undated?: true; finished?: true })[] = [];
   let missed = 0;
   for (const e of episodes) {
     // the air date first, if exactly one episode aired that day (or, across time zones, within a day)
@@ -669,7 +702,13 @@ export function placeEpisodes<A extends { season: number; episode: number; name:
       aired.find(same) ??
       (e.season !== undefined ? aired.find((a) => a.season === e.season && a.episode === num) : undefined) ??
       (e.absolute ? regular[e.absolute - 1] : undefined);
-    if (hit) placed.push({ ...hit, date: e.date, ...(e.undated && { undated: true as const }) });
+    if (hit)
+      placed.push({
+        ...hit,
+        date: e.date,
+        ...(e.undated && { undated: true as const }),
+        ...(e.finished && { finished: true as const }),
+      });
     else missed++;
   }
   return { placed, missed };

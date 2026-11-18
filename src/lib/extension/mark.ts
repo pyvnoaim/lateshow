@@ -1,10 +1,10 @@
 import "server-only";
-import { and, eq, inArray, isNotNull, or } from "drizzle-orm";
+import { and, eq, inArray, isNotNull } from "drizzle-orm";
 import { z } from "zod";
 import { db } from "@/lib/db/client";
 import { rewatch, watched, watchlist } from "@/lib/db/schema";
 import { placeEpisodes } from "@/lib/library/importing";
-import { isRewatch } from "@/lib/library/rewatch";
+import { addRewatches } from "@/lib/library/importRun";
 import { linksFor, match, pick, remember, row, type Candidate, type Match } from "@/lib/library/matching";
 import { getAiredEpisodes, getRuntime } from "@/lib/tmdb";
 
@@ -67,12 +67,16 @@ export async function markFromExtension(userId: string, raw: unknown): Promise<M
     )
     .onConflictDoNothing()
     .returning({ id: watched.id, season: watched.season, episode: watched.episode });
-  const again = rewatches(
-    userId,
-    m,
-    parts.filter((p) => !created.some((c) => c.season === p.season && c.episode === p.episode)),
-    at,
-    body.via,
+  const again = db.transaction((tx) =>
+    addRewatches(
+      tx,
+      userId,
+      m,
+      parts
+        .filter((p) => !created.some((c) => c.season === p.season && c.episode === p.episode))
+        .map((p) => ({ ...p, at })),
+      body.via,
+    ),
   );
   if (!created.length && !again.length) return { status: "already", title: m.title };
   // like marking it in the app: it leaves the watchlist
@@ -87,47 +91,6 @@ export async function markFromExtension(userId: string, raw: unknown): Promise<M
     ids: [...created.map((c) => c.id), ...again.map((id) => -id)],
     ...(!created.length && { rewatch: true }),
   };
-}
-
-/**
- * The rewatches among parts already watched: each gets a row unless one of its viewings is within 2 days of `at`.
- * One synchronous transaction, so two marks of one viewing arriving together can't both add it.
- */
-function rewatches(userId: string, m: Match, parts: { season: number; episode: number }[], at: Date, via: string) {
-  if (!parts.length) return [];
-  return db.transaction((tx) => {
-    const firsts = tx
-      .select({ id: watched.id, at: watched.watchedAt })
-      .from(watched)
-      .where(
-        and(
-          eq(watched.userId, userId),
-          eq(watched.mediaType, m.type),
-          eq(watched.tmdbId, m.id),
-          or(...parts.map((p) => and(eq(watched.season, p.season), eq(watched.episode, p.episode)))),
-        ),
-      )
-      .all();
-    if (!firsts.length) return [];
-    const later = tx
-      .select({ of: rewatch.watchedId, at: rewatch.watchedAt })
-      .from(rewatch)
-      .where(
-        inArray(
-          rewatch.watchedId,
-          firsts.map((f) => f.id),
-        ),
-      )
-      .all();
-    const fresh = firsts.filter((f) => isRewatch(at, [f.at, ...later.filter((l) => l.of === f.id).map((l) => l.at)]));
-    if (!fresh.length) return [];
-    return tx
-      .insert(rewatch)
-      .values(fresh.map((f) => ({ watchedId: f.id, userId, watchedAt: at, via })))
-      .returning({ id: rewatch.id })
-      .all()
-      .map((r) => r.id);
-  });
 }
 
 /** Undo in the extension's toast: removes exactly what that mark created (rows the extension made, by id) */

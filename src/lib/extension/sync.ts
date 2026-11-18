@@ -19,7 +19,7 @@ export async function syncFromExtension(userId: string, raw: unknown) {
   const b = body.parse(raw);
   const importId = b.importId ?? (await startImportFor(userId, b.source));
   // runBatch checks the run is this user's and every row
-  const r = await runBatch(userId, b.rows as ImportRow[], importId);
+  const r = await runBatch(userId, b.rows as ImportRow[], importId, b.source);
   return {
     importId,
     films: r.films,

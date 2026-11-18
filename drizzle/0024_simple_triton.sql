@@ -1,0 +1,1 @@
+ALTER TABLE `rewatch` ADD `import_id` text;

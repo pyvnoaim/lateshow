@@ -4,6 +4,7 @@ import {
   parseCsv,
   pickMatch,
   placeEpisodes,
+  primeProgress,
   primeSince,
   primeTitle,
   readCrunchyrollHistory,
@@ -642,5 +643,67 @@ describe("watchDay", () => {
     expect(watchDay(new Date(2026, 10, 17, 1, 30).getTime())).toBe("2026-11-16");
     expect(watchDay(new Date(2026, 10, 17, 5, 0).getTime())).toBe("2026-11-17");
     expect(watchDay(undefined)).toBeUndefined();
+  });
+});
+
+describe("Prime: finished or only started", () => {
+  // a season page's data as Prime embeds it: episodes by id under atf (the one to resume) and btf (the list)
+  const play = (playbackStatus: string, progress?: number) => ({
+    primaryActions: [{}, { payload: { playback: { playbackStatus, progress } } }],
+  });
+  const page = {
+    init: {
+      preparations: {
+        body: {
+          atf: { state: { action: { atf: { e5: play("FeatureInProgress", 0.904) } } } },
+          btf: {
+            state: {
+              action: {
+                btf: {
+                  e1: play("FeatureFinished", 1),
+                  e2: play("FeatureInProgress", 0.11),
+                  e5: play("FeatureInProgress", 0.9),
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+  };
+
+  it("finished = Prime says so or 85% and more, started = stopped earlier, unknown = neither", () => {
+    const { done, started } = primeProgress([page], ["e1", "e2", "e5", "e9"]);
+    expect([...done].sort()).toEqual(["e1", "e5"]);
+    expect([...started]).toEqual(["e2"]);
+    expect(primeProgress([{ something: "else" }, null], ["e1"]).done.size).toBe(0);
+  });
+
+  it("carries finished through the rows to the placed episodes", () => {
+    const { rows } = readPrimeHistory(
+      [
+        {
+          titles: [
+            {
+              title: { text: "REACHER (TV) - SEASON 01" },
+              gti: "s1",
+              time: Date.UTC(2026, 10, 17, 22),
+              children: [
+                { gti: "e1", title: { text: "Episode 1: Welcome to Margrave" }, time: Date.UTC(2026, 10, 17, 22) },
+                { gti: "e9", title: { text: "Episode 2: First Dance" }, time: Date.UTC(2026, 10, 17, 23) },
+              ],
+            },
+          ],
+        },
+      ],
+      new Set(["e1"]),
+    );
+    const eps = rows[0].episodes!;
+    expect(eps.find((e) => e.episode === 1)?.finished).toBe(true);
+    expect(eps.find((e) => e.episode === 2)?.finished).toBeUndefined();
+    const aired = [1, 2].map((n) => ({ season: 1, episode: n, name: `x${n}` }));
+    const placed = placeEpisodes(eps, aired).placed;
+    expect(placed.find((p) => p.episode === 1)?.finished).toBe(true);
+    expect(placed.find((p) => p.episode === 2)?.finished).toBeUndefined();
   });
 });

@@ -5,7 +5,7 @@ import { refresh } from "next/cache";
 import { z } from "zod";
 import { getSession } from "@/lib/auth";
 import { db } from "@/lib/db/client";
-import { importBatch as imports, rating, watched, watchlist } from "@/lib/db/schema";
+import { importBatch as imports, rating, rewatch, watched, watchlist } from "@/lib/db/schema";
 import type { ImportRow, ImportSource } from "./importing";
 import { keepOpen, openKey, ownBatch, runBatch, save, startImportFor } from "./importRun";
 import { pick, remember, row, type BatchResult, type Match } from "./matching";
@@ -70,6 +70,9 @@ export async function removeImport(rawId: string) {
       .run();
     tx.delete(rating)
       .where(and(eq(rating.userId, userId), eq(rating.importId, id)))
+      .run();
+    tx.delete(rewatch)
+      .where(and(eq(rewatch.userId, userId), eq(rewatch.importId, id)))
       .run();
     tx.delete(imports).where(eq(imports.id, id)).run();
   });

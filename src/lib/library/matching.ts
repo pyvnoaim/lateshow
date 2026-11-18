@@ -38,6 +38,7 @@ export const row = z.object({
         airDate: day.optional(),
         absolute: z.number().int().min(1).max(100000).optional(),
         undated: z.literal(true).optional(),
+        finished: z.literal(true).optional(),
       }),
     )
     .max(5000)

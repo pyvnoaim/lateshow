@@ -39,7 +39,7 @@ export const watched = sqliteTable(
 
 /**
  * Every viewing after the first of a movie or episode (`watched` stays one row per episode = "seen it"). Only the
- * extension adds these, a viewing within 2 days of an earlier one is the same one (`isRewatch`). `plays` lists both.
+ * extension adds these (marking live, or a sync when the site says you finished it), a viewing within 2 days of an earlier one is the same one (`isRewatch`). `plays` lists both.
  */
 export const rewatch = sqliteTable(
   "rewatch",
@@ -53,6 +53,8 @@ export const rewatch = sqliteTable(
       .references(() => user.id, { onDelete: "cascade" }),
     watchedAt: integer("watched_at", { mode: "timestamp_ms" }).notNull(),
     via: text("via"),
+    /** the sync that added it (import_batch.id), null when marked live: Remove takes back only those */
+    importId: text("import_id"),
   },
   (t) => [index("rewatch_by_time").on(t.userId, t.watchedAt), index("rewatch_of").on(t.watchedId)],
 );

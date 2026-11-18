@@ -169,6 +169,13 @@
       "when": 1794951654482,
       "tag": "0023_real_mister_sinister",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "6",
+      "when": 1794993784442,
+      "tag": "0024_simple_triton",
+      "breakpoints": true
     }
   ]
 }
