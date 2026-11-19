@@ -353,7 +353,9 @@ async function render() {
     allow.addEventListener("click", async () => {
       // the browser's prompt doesn't always show from a popup (Zen): then say where the switches are
       const granted = await chrome.permissions.request({ origins: ORIGINS }).catch(() => false);
-      if (granted) return rerender();
+      if (granted) return; // wakes the background, which ends a sync that's past its time (its timer died with a suspended background)
+      void chrome.runtime.sendMessage({ type: "lateshow:wake" }).catch(() => {});
+      rerender();
       app.append(
         el("p", "note", "No prompt? Turn it on by hand: about:addons, Lateshow, Permissions, then every site there."),
       );
@@ -407,6 +409,10 @@ chrome.storage.onChanged.addListener((changes) => {
   const card = app.querySelector<HTMLElement>(".sync[data-phase]");
   if (keys.length === 1 && s && card?.dataset.phase === s.phase && ["reading", "importing"].includes(s.phase))
     return progress(card, s);
+  // wakes the background, which ends a sync that's past its time (its timer died with a suspended background)
+  void chrome.runtime.sendMessage({ type: "lateshow:wake" }).catch(() => {});
   rerender();
 });
+// wakes the background, which ends a sync that's past its time (its timer died with a suspended background)
+void chrome.runtime.sendMessage({ type: "lateshow:wake" }).catch(() => {});
 rerender();

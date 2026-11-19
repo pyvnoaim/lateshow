@@ -116,6 +116,22 @@ async function endJob(job: Job | undefined) {
   if (job) await chrome.tabs.remove(job.tabId).catch(() => {});
 }
 
+// A page that never answers (signed out there, the site changed) doesn't keep the sync running forever. Chrome
+// suspends an idle background and drops its timers, so every start of it checks the job again (below, and the alarm).
+const TIMEOUT = 180_000;
+async function expire() {
+  const j = await local<Job>("job");
+  if (!j) return;
+  const left = j.started + TIMEOUT - Date.now();
+  if (left > 0) return void setTimeout(() => void expire(), left);
+  await endJob(j);
+  await setState({
+    site: j.site,
+    phase: "error",
+    message: `${j.site} didn't answer. Check you're signed in there and on your profile, then try again.`,
+  });
+}
+
 async function startSync(site: string) {
   const running = await local<Job>("job");
   // still reading (the tab), or importing what it read (the tab is gone then, the state says so): one at a time
@@ -141,13 +157,7 @@ async function startSync(site: string) {
     } satisfies Job,
   });
   await setState({ site, phase: "reading", read: 0 });
-  // a page that never answers (signed out there, the site changed) doesn't keep the sync running forever
-  setTimeout(async () => {
-    const j = await local<Job>("job");
-    if (j?.tabId !== tab.id) return;
-    await endJob(j);
-    await setState({ site, phase: "error", message: `${site} didn't answer. Open its history once and try again.` });
-  }, 180_000);
+  void expire();
 }
 
 async function importRows(job: Job, rows: unknown[], newest: number, profile: string | null) {
@@ -431,5 +441,7 @@ chrome.alarms.create("flush", { periodInMinutes: 5 });
 chrome.alarms.onAlarm.addListener(() => {
   void flush();
   void autoSync();
+  void expire();
 });
 void flush();
+void expire();
