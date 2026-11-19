@@ -32,9 +32,9 @@ export function NavIsland({ account }: { account: ReactNode }) {
         aria-label="Lateshow, home"
         className="flex size-9 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-fg/8"
       >
-        <span aria-hidden className="block size-8 mark-round" />
+        <span aria-hidden className="block size-9 mark-round" />
       </Link>
-      <span className="px-1">
+      <span className="hidden px-1 sm:block">
         {/* usePathname inside: Suspense with the same links as fallback, like the top bar (Cache Components) */}
         <Suspense fallback={<NavLinksView path={null} />}>
           <NavLinks />
@@ -50,7 +50,8 @@ export function NavIsland({ account }: { account: ReactNode }) {
         >
           <Search size={18} strokeWidth={1.75} aria-hidden />
         </Link>
-        <span className="flex h-9 min-w-9 items-center justify-center">{account}</span>
+        {/* the top bar's 44 px Sign in would overflow the slot and crowd the edge: held to 36 here */}
+        <span className="flex h-9 min-w-9 items-center justify-center *:h-9">{account}</span>
       </span>
     </div>
   );
