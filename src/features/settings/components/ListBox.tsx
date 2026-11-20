@@ -53,7 +53,8 @@ export function Invite({
   title: string;
   text: string;
   glow?: boolean;
-  children: ReactNode;
+  /** the action, none when there's nothing to do here */
+  children?: ReactNode;
 }) {
   return (
     <div
@@ -66,7 +67,7 @@ export function Invite({
         <span className="text-body font-semibold text-balance">{title}</span>
         <span className="text-small text-pretty text-muted">{text}</span>
       </span>
-      <span className="relative shrink-0">{children}</span>
+      {children && <span className="relative shrink-0">{children}</span>}
     </div>
   );
 }

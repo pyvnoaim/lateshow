@@ -168,7 +168,12 @@ export function ExtensionKeys({
         </ListBox>
       )}
       {shown.length === 0 && ext?.kind === "none" && (
-        <p className="text-small text-muted">The extension runs in Zen, Firefox and Chrome on a computer.</p>
+        // the same box as Add and Connect, without an action: a bare grey line looked like the section failed to load
+        <Invite
+          icon={logo}
+          title="Not for this browser"
+          text="The extension runs in Zen, Firefox and Chrome on a computer."
+        />
       )}
     </div>
   );
