@@ -2,12 +2,17 @@
 
 import { useEffect, useState } from "react";
 
-/** What this browser is, for the extension: it can add the signed one (Zen, Firefox), Chrome's comes later, or none */
-export type Kind = "firefox" | "chrome" | "none";
-function kindOf(ua: string): Kind {
+/**
+ * What this browser is, for the extension: it can add the signed one (Zen, Firefox), Chrome's from the store, a Mac
+ * browser on WebKit that isn't Safari (Lenira: it adds Chrome Web Store extensions), or none.
+ */
+export type Kind = "firefox" | "chrome" | "webkit" | "none";
+/** `safari`: the page has `window.safari`, which only Safari itself gives it. `touch`: an iPad says "Macintosh" too. Pure. */
+export function kindOf(ua: string, safari = false, touch = false): Kind {
   if (/Android|iPhone|iPad|Mobile/.test(ua)) return "none";
   if (/Firefox\//.test(ua)) return "firefox";
   if (/Chrome\//.test(ua)) return "chrome";
+  if (/Macintosh.*Safari\//.test(ua) && !safari && !touch) return "webkit";
   return "none";
 }
 
@@ -20,7 +25,7 @@ export function useExtension() {
       setExt({
         version: d.lateshowExtension ?? null,
         keyId: d.lateshowKey ?? null,
-        kind: kindOf(navigator.userAgent),
+        kind: kindOf(navigator.userAgent, "safari" in window, navigator.maxTouchPoints > 0),
       });
     };
     read();

@@ -131,6 +131,19 @@ export function ExtensionKeys({
           </a>
         </Invite>
       )}
+      {offerAdd && ext.kind === "webkit" && CHROME_STORE_URL && (
+        <Invite
+          glow
+          icon={logo}
+          title="Get the Lateshow extension"
+          text="Free, from the Chrome Web Store. Lenira adds it there. Come back here to connect it."
+        >
+          <a href={CHROME_STORE_URL} target="_blank" rel="noreferrer" className={buttonStyles("primary", "sm")}>
+            <Download size={16} strokeWidth={2} aria-hidden />
+            Add to Lenira
+          </a>
+        </Invite>
+      )}
       {offerAdd && ext.kind === "chrome" && !CHROME_STORE_URL && (
         <p className="text-small text-pretty text-muted">
           For Chrome it&apos;s coming to the Chrome Web Store. Zen and Firefox have it now.
@@ -172,7 +185,7 @@ export function ExtensionKeys({
         <Invite
           icon={logo}
           title="Not for this browser"
-          text="The extension runs in Zen, Firefox and Chrome on a computer."
+          text="The extension runs in Zen, Firefox, Chrome and Lenira on a computer."
         />
       )}
     </div>

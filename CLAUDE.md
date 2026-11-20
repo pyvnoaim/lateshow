@@ -88,6 +88,13 @@ Read `node_modules/next/dist/docs/` before using Next APIs (see AGENTS.md).
   Fixtures: one whole answer per site in `src/lib/library/fixtures/` (`siteData.test.ts`), swap in a fresh capture
   when a site changes.
   Netflix and Prime need Widevine: Zen and Helium have none, so marking those two works only in Chrome.
+  Lenira (the user's own Mac browser on WebKit, ~/dev/lenira, 2026-11-20): it adds the Chrome Web Store build and
+  says Safari in its User-Agent, so Settings tells it from Safari by the missing `window.safari` (`kindOf` "webkit",
+  "Add to Lenira" = the store link). Checked in a WKWebExtension harness with the --chrome build: no manifest errors,
+  the background starts, Lateshow pages get marked, the page-world scripts run on Prime and Crunchyroll, the popup
+  renders. Not yet seen with real accounts there: Connect, a sync, marking (WebKit plays Netflix and Prime with
+  FairPlay, their players may answer differently). Its key shows as "Safari on macOS". Lenira doesn't update store
+  extensions by itself: remove and add again.
   Signed for keeps (Firefox): unlisted at addons.mozilla.org (source code: Yes, the source zip).
   Raise "version" in manifest.template.json before each upload.
   Since 2026-11-15 CI does it (job `extension` in ci.yml): a version not yet in public/extension/updates.json gets
