@@ -52,4 +52,10 @@ describe("deal", () => {
     expect(deal([{ id: 1, genre_ids: [] }], 3, 1, 1)).toHaveLength(1);
     expect(deal([], 3, 1, 1)).toEqual([]);
   });
+
+  it("answers a huge or broken roll at once, as its place in the deck", () => {
+    expect(deal(pool, 3, 1 + 10 * 1e9, 9)).toEqual(deal(pool, 3, 1, 9));
+    expect(deal(pool, 3, Number.NaN, 9)).toEqual(deal(pool, 3, 1, 9));
+    expect(deal(pool, 3, Infinity, 9)).toHaveLength(3);
+  });
 });

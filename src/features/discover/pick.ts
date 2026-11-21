@@ -25,11 +25,13 @@ export function pick<T>(items: T[], count: number, seed: number): T[] {
  */
 export function deal<T extends { genre_ids?: number[] }>(items: T[], count: number, roll: number, seed: number): T[] {
   const order = pick(items, items.length, seed);
-  let deck: T[] = [];
+  let deck = [...order];
   let hand: T[] = [];
-  // ponytail: replays every earlier roll, O(roll x pool), fine for a 100 card pool and human clicking
-  for (let r = 0; r < Math.max(roll, 1); r++) {
-    if (deck.length < count) deck = [...order];
+  // Every roll takes exactly `count` cards, so a pass through the deck is floor(n / count) rolls: replay only this
+  // pass (at most n / count rounds, whatever the URL says).
+  const perPass = Math.max(Math.floor(order.length / count), 1);
+  const at = Number.isSafeInteger(roll) && roll > 0 ? (roll - 1) % perPass : 0;
+  for (let r = 0; r <= at; r++) {
     hand = [];
     const genres = new Set<number | undefined>();
     for (const x of deck) {
