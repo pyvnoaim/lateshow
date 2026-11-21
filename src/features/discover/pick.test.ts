@@ -53,6 +53,12 @@ describe("deal", () => {
     expect(deal([], 3, 1, 1)).toEqual([]);
   });
 
+  it("keeps every other card in place when one leaves the pool", () => {
+    const first = deal(pool, 3, 1, 9);
+    const without = pool.filter((x) => x.id !== deal(pool, 3, 2, 9)[0].id);
+    expect(deal(without, 3, 1, 9)).toEqual(first);
+  });
+
   it("answers a huge or broken roll at once, as its place in the deck", () => {
     expect(deal(pool, 3, 1 + 10 * 1e9, 9)).toEqual(deal(pool, 3, 1, 9));
     expect(deal(pool, 3, Number.NaN, 9)).toEqual(deal(pool, 3, 1, 9));

@@ -23,8 +23,15 @@ export function pick<T>(items: T[], count: number, seed: number): T[] {
  * Roll `roll` (from 1) of a seeded shuffle, dealt like a deck: each roll takes the next cards, so nothing repeats
  * until the deck runs out, then it starts over. Within a roll each pick has a different first genre when it can.
  */
-export function deal<T extends { genre_ids?: number[] }>(items: T[], count: number, roll: number, seed: number): T[] {
-  const order = pick(items, items.length, seed);
+export function deal<T extends { id: number; genre_ids?: number[] }>(
+  items: T[],
+  count: number,
+  roll: number,
+  seed: number,
+): T[] {
+  // Each card's place comes from its own id and the seed, so a card leaving (you watched it) moves no other card.
+  const place = new Map(items.map((x) => [x, random(seed ^ x.id)()]));
+  const order = items.toSorted((a, b) => place.get(a)! - place.get(b)!);
   let deck = [...order];
   let hand: T[] = [];
   // Every roll takes exactly `count` cards, so a pass through the deck is floor(n / count) rolls: replay only this

@@ -5,7 +5,7 @@ import { getMyServiceIds } from "@/lib/settings/queries";
 import { getMyWatchedKeys } from "@/lib/library/queries";
 import { pick } from "./pick";
 
-/** 20 gems a day: a new shuffle of the pool every day, the same one all day, without what you've watched. */
+/** 6 gems a day (3 movies, 3 series): a new shuffle of the pool every day, the same one all day, without what you've watched. */
 export async function HiddenGems() {
   const [{ code, lang }, mine, seen] = await Promise.all([getRegion(), getMyServiceIds(), getMyWatchedKeys()]);
   const { movies, shows } = await getHiddenGems(code, mine, lang).catch(() => ({ movies: [], shows: [] }));

@@ -461,10 +461,9 @@ export async function getGenreTitles(
   return (kind === "all" ? alternate(movies, shows) : [...movies, ...shows]).filter((c) => c.poster_path);
 }
 
-/** Very well rated titles with few votes, on a subscription in the country. A different page each day. */
 /**
  * The pool for "Hidden gems": highly rated titles few people voted on, on a subscription (yours if you picked
- * services), 5 pages each of movies and series. Documentaries, music, reality, talk and news are left out: their
+ * services), 5 pages each of movies and series. Documentaries, music, reality, talk, soaps and news are left out: their
  * small audiences rate them sky high and they'd fill the row. The row shuffles it per day.
  */
 export async function getHiddenGems(country: string, services: number[] = [], lang: string = DEFAULT_LANGUAGE) {
@@ -480,7 +479,8 @@ export async function getHiddenGems(country: string, services: number[] = [], la
   const pages = (type: MediaType, without: string) =>
     Promise.all(
       [1, 2, 3, 4, 5].map((page) =>
-        discover(type, { ...params, without_genres: without, page: String(page) }, country, lang).catch(() => []),
+        // no catch in here: a failed page would be cached as empty for days, the row's catch stays outside the cache
+        discover(type, { ...params, without_genres: without, page: String(page) }, country, lang),
       ),
     ).then((p) => p.flat().filter((c) => c.poster_path));
   const [movies, shows] = await Promise.all([pages("movie", "99|10402"), pages("tv", "99|10763|10764|10766|10767")]);
