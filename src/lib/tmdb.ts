@@ -462,22 +462,29 @@ export async function getGenreTitles(
 }
 
 /** Very well rated titles with few votes, on a subscription in the country. A different page each day. */
-export async function getHiddenGems(country: string, lang: string = DEFAULT_LANGUAGE) {
+/**
+ * The pool for "Hidden gems": highly rated titles few people voted on, on a subscription (yours if you picked
+ * services), 5 pages each of movies and series. Documentaries, music, reality, talk and news are left out: their
+ * small audiences rate them sky high and they'd fill the row. The row shuffles it per day.
+ */
+export async function getHiddenGems(country: string, services: number[] = [], lang: string = DEFAULT_LANGUAGE) {
   "use cache";
   cacheLife("days");
-  const page = (Math.floor(Date.now() / (24 * 60 * 60 * 1000)) % 5) + 1;
   const params = {
     "vote_average.gte": "7.6",
     "vote_count.gte": "150",
     "vote_count.lte": "1500",
     sort_by: "vote_average.desc",
-    page: String(page),
+    ...providerFilter(services),
   };
-  const [movies, shows] = await Promise.all([
-    discover("movie", params, country, lang),
-    discover("tv", params, country, lang),
-  ]);
-  return alternate(movies, shows).filter((c) => c.poster_path);
+  const pages = (type: MediaType, without: string) =>
+    Promise.all(
+      [1, 2, 3, 4, 5].map((page) =>
+        discover(type, { ...params, without_genres: without, page: String(page) }, country, lang).catch(() => []),
+      ),
+    ).then((p) => p.flat().filter((c) => c.poster_path));
+  const [movies, shows] = await Promise.all([pages("movie", "99|10402"), pages("tv", "99|10763|10764|10766|10767")]);
+  return { movies, shows };
 }
 
 /** "2026 · Action, Thriller · 1 h 52 min" or "2008 · Drama, Crime · 5 seasons". */

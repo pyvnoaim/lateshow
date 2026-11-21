@@ -2,13 +2,14 @@ import { Section } from "@/components/ui/Section";
 import { SegmentedTabs } from "@/components/ui/SegmentedTabs";
 import { discoverOnSubscription } from "@/lib/tmdb";
 import { homeHref, readHome, type HomeSearch } from "./params";
-import { pick } from "./pick";
+import { deal } from "./pick";
 import { getRegion } from "@/lib/region";
 import { getMyServiceIds } from "@/lib/settings/queries";
+import { getMyWatchedKeys } from "@/lib/library/queries";
 import { DecideCard } from "./components/DecideCard";
 import { RollButton } from "./components/RollButton";
 
-const PAGES = 5; // picks come from the 100 most popular well rated titles on subscription
+const PAGES = 5; // picks come from the 100 most popular well rated titles on subscription, minus what you watched
 
 /** "Can't decide?": Movie or Series first, then three picks. Each "Give me 3" is a new roll in the URL. */
 export async function Decide({ searchParams }: { searchParams: Promise<HomeSearch> }) {
@@ -16,14 +17,20 @@ export async function Decide({ searchParams }: { searchParams: Promise<HomeSearc
   const type = current.decide === "series" ? "tv" : "movie";
   const roll = Number(current.roll) || 0;
   const mine = await getMyServiceIds();
-  // Fewer results with only your services, so the page wraps around what exists (page 1 always does).
-  const pool =
+  const [pages, seen] =
     roll > 0
-      ? await discoverOnSubscription(type, ((roll - 1) % PAGES) + 1, region.code, mine, region.lang).then((cards) =>
-          cards.length >= 3 ? cards : discoverOnSubscription(type, 1, region.code, mine, region.lang),
-        )
-      : [];
-  const picks = pick(pool, 3, roll);
+      ? await Promise.all([
+          Promise.all(
+            Array.from({ length: PAGES }, (_, i) =>
+              discoverOnSubscription(type, i + 1, region.code, mine, region.lang).catch(() => []),
+            ),
+          ),
+          getMyWatchedKeys(),
+        ])
+      : [[], null];
+  const pool = pages.flat().filter((c) => !seen?.has(`${c.media_type}-${c.id}`));
+  // A new shuffle every day, the same one all day (rolls stay shareable, caches stay warm).
+  const picks = deal(pool, 3, roll, Math.floor(new Date().getTime() / 86_400_000));
 
   return (
     // group: while the next roll loads (RollButton's data-pending) the old picks sink away

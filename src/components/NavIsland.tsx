@@ -50,8 +50,8 @@ export function NavIsland({ account }: { account: ReactNode }) {
         >
           <Search size={18} strokeWidth={1.75} aria-hidden />
         </Link>
-        {/* the top bar's 44 px Sign in would overflow the slot and crowd the edge: held to 36 here */}
-        <span className="flex h-9 min-w-9 items-center justify-center *:h-9">{account}</span>
+        {/* the top bar's 44 px Sign in would overflow the slot and crowd the edge: held to 36 here, the 32 px avatar centered in it */}
+        <span className="flex h-9 min-w-9 items-center justify-center *:flex *:h-9 *:items-center">{account}</span>
       </span>
     </div>
   );

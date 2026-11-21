@@ -295,7 +295,7 @@ lists (/l/<id>, see Todo), update bar after a deploy (`UpdateBar`: build id from
       Robustness throughout: each site's reader is its own module with a saved snapshot of the site's data as a test
       fixture (a site change fails a test, not your import), and the popup says "The Prime reader needs an update"
       instead of failing quietly.
-- [ ] Friends (decided 2026-11-11): mutual, by invite link only (7 days, few uses), no people search.
+- [x] Friends (decided 2026-11-11): mutual, by invite link only (7 days, few uses), no people search.
       Friends see everything by default, one Settings switch hides it. Tables: `user.username`, `friendship`
       (one row per pair, lower id first), `invite`. Access checked in one helper. Build order:
       1 username + `/u/[username]` (done) · 2 invite + accept (done) · 3 Friends tab + friends' profiles + remove + privacy switch (done) ·
