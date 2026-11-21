@@ -4,6 +4,7 @@ import { Container } from "@/components/ui/Container";
 import { PosterGridSkeleton } from "@/components/ui/PosterGrid";
 import { BecauseYouWatched } from "@/features/discover/BecauseYouWatched";
 import { Decide } from "@/features/discover/Decide";
+import { ForYou } from "@/features/discover/ForYou";
 import { HiddenGems } from "@/features/discover/HiddenGems";
 import { FriendsWeek } from "@/features/discover/FriendsWeek";
 import { OutThisWeek } from "@/features/discover/OutThisWeek";
@@ -45,6 +46,9 @@ export default function HomePage({ searchParams }: PageProps<"/">) {
         </Row>
         <Row>
           <WatchlistStreaming />
+        </Row>
+        <Row>
+          <ForYou />
         </Row>
         <Row skeleton>
           <TopTen />

@@ -184,6 +184,16 @@ export async function getSuggestionSeed(userId: string) {
   return seed ? { ...seed, loved: seed.value === 2 } : null;
 }
 
+/** What "For you" blends: titles you loved or liked, loved first, newest first (`value` 2 = love, 1 = like). */
+export async function getTasteSeeds(userId: string, limit = 8) {
+  return db
+    .select({ mediaType: rating.mediaType, tmdbId: rating.tmdbId, value: rating.value })
+    .from(rating)
+    .where(and(eq(rating.userId, userId), gte(rating.value, 1)))
+    .orderBy(desc(rating.value), desc(rating.ratedAt))
+    .limit(limit);
+}
+
 /**
  * What you've watched, "movie-27205" -> how many different episodes (a movie counts 1), for the badge at the start of
  * every poster caption. Null when signed out. One grouped query per request, shared by every poster on the page.
