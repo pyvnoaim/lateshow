@@ -50,6 +50,11 @@ export function TopBar() {
             <AccountButton />
           </Suspense>
         }
+        menu={
+          <Suspense fallback={<div aria-hidden className="size-9" />}>
+            <PhoneMenu />
+          </Suspense>
+        }
       />
     </header>
   );

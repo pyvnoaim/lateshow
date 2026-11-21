@@ -12,7 +12,7 @@ const TOP = 32; // halfway through the bar dissolving (--spacing-handoff): the t
  * directions. It rises out of where the bar was (lower, a touch larger) as the bar fades (`bar-out`), so the bar
  * reads as condensing into it. No blur: a filter on glass smears what is behind it. Hidden (back at the top, where the full bar is) it can't be tabbed into.
  */
-export function NavIsland({ account }: { account: ReactNode }) {
+export function NavIsland({ account, menu }: { account: ReactNode; menu: ReactNode }) {
   const [shown, setShown] = useState(false);
   useEffect(() => {
     const onScroll = () => setShown(scrollY >= TOP);
@@ -24,7 +24,7 @@ export function NavIsland({ account }: { account: ReactNode }) {
   return (
     <div
       inert={!shown}
-      className={`fixed top-3 left-1/2 z-40 flex -translate-x-1/2 items-center gap-4 rounded-full p-1.5 glass-deep transition duration-500 ease-spring motion-reduce:transition-none ${shown ? "translate-y-0 scale-100 opacity-100" : "translate-y-4 scale-105 opacity-0"}`}
+      className={`fixed top-3 left-1/2 z-40 flex -translate-x-1/2 items-center gap-1 rounded-full p-1.5 glass-deep transition duration-500 ease-spring motion-reduce:transition-none sm:gap-4 ${shown ? "translate-y-0 scale-100 opacity-100" : "translate-y-4 scale-105 opacity-0"}`}
     >
       {/* every item sits in a 36 px slot with the same 6 px around: both ends are round and the same distance in */}
       <Link
@@ -51,7 +51,11 @@ export function NavIsland({ account }: { account: ReactNode }) {
           <Search size={18} strokeWidth={1.75} aria-hidden />
         </Link>
         {/* the top bar's 44 px Sign in would overflow the slot and crowd the edge: held to 36 here, the 32 px avatar centered in it */}
-        <span className="flex h-9 min-w-9 items-center justify-center *:flex *:h-9 *:items-center">{account}</span>
+        <span className="hidden h-9 min-w-9 items-center justify-center *:flex *:h-9 *:items-center sm:flex">
+          {account}
+        </span>
+        {/* phones: the menu, like the top bar (profile and sign in live there), held to the 36 px slot */}
+        <span className="flex size-9 items-center justify-center *:size-9 sm:hidden">{menu}</span>
       </span>
     </div>
   );
