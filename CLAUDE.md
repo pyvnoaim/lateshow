@@ -159,7 +159,7 @@ pure logic extracted with a `*.test.ts` beside it, no barrel files, move code to
 
 - Apple TV style: near-black, Inter Tight, tight headlines, no borders or cards, posters carry the color, accent Frost icy
   (#b4c8ea, primary #eef1f6). Logo = `src/app/icon.svg` (dark glass screen, icy light rising),
-  used by `Logo`, apple-icon.png rendered from it.
+  used by `Logo`. Rendered from it: apple-icon.png (full bleed, opaque, iOS rounds it), public/icon-192/512.png (transparent, the manifest's).
 - Premium comes from states, glass, motion and type, never decoration motifs.
 - Switchers are plain text (active white, rest grey). Posters stay clean at rest: with a mouse their actions (list, +)
   show as small glass buttons in the poster's corner on hover (`PosterActions` overlay, chosen 2026-11-13), on touch

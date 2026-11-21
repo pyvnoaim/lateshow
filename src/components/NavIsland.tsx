@@ -26,13 +26,13 @@ export function NavIsland({ account, menu }: { account: ReactNode; menu: ReactNo
       inert={!shown}
       className={`fixed top-3 left-1/2 z-40 flex -translate-x-1/2 items-center gap-1 rounded-full p-1.5 glass-deep transition duration-500 ease-spring motion-reduce:transition-none sm:gap-4 ${shown ? "translate-y-0 scale-100 opacity-100" : "translate-y-4 scale-105 opacity-0"}`}
     >
-      {/* every item sits in a 36 px slot with the same 6 px around: both ends are round and the same distance in */}
+      {/* every item sits in a 36 px slot with the same 6 px around: the logo is 32 px like the avatar, so both ends match */}
       <Link
         href="/"
         aria-label="Lateshow, home"
         className="flex size-9 shrink-0 items-center justify-center rounded-full transition-colors hover:bg-fg/8"
       >
-        <span aria-hidden className="block size-9 mark-round" />
+        <span aria-hidden className="block size-8 mark-round" />
       </Link>
       <span className="hidden px-1 sm:block">
         {/* usePathname inside: Suspense with the same links as fallback, like the top bar (Cache Components) */}
