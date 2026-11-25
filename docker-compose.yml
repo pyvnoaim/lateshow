@@ -1,29 +1,27 @@
-# Portainer stack (Stacks > Add stack > Repository, see README). Portainer clones the repo and builds it here.
-# No published port: Nginx Proxy Manager reaches it as http://lateshow:3000 over the shared `websites` network.
+# Lateshow as it runs in Dokploy (Compose > Raw). Keep this file and the Dokploy copy identical.
+# The image comes from CI (.github/workflows/ci.yml, job deploy) after the checks pass; secrets come from Dokploy's
+# Environment tab, which Dokploy writes to .env next to this file. No ports: the proxy reaches lateshow:3000 over `websites`.
 services:
   lateshow:
-    build: .
-    # Without this a redeploy reuses the image already on the host and ships the old code.
-    pull_policy: build
+    image: ghcr.io/pyvnoaim/lateshow:latest
+    pull_policy: always # each deploy fetches the newest build
     container_name: lateshow
-    # Portainer writes the stack's environment variables to stack.env.
-    env_file:
-      - path: stack.env
-        required: false
+    env_file: .env
+    mem_limit: 1g
     volumes:
-      - data:/data
-      - cache:/app/.next/cache
-    networks:
-      - websites
+      - data:/data # the SQLite database, backed up nightly
+      - cache:/app/.next/cache # resized images
+    networks: [websites]
     init: true
     restart: unless-stopped
-    # Next finishes requests in flight on SIGTERM. Rooms keep connections open, so give it time.
     stop_grace_period: 30s
-
-volumes:
-  data:
-  cache:
 
 networks:
   websites:
     external: true
+
+volumes:
+  data:
+    name: lateshow_data # fixed names, so they stay the same volumes whatever the compose project is called
+  cache:
+    name: lateshow_cache

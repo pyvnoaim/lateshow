@@ -2,7 +2,7 @@
 
 Movies and series: find what to watch, where to stream it, track what you watched.
 Personal, non-commercial (TMDB key terms): no ads, no paid features, ever. Live at https://lateshow.pyvno.xyz (2026-11-11). Buy lateshow.app only if it gets users
-(then change `BETTER_AUTH_URL` in Portainer and `SITE_URL` in `src/lib/site.ts`, add the DNS record and NPM host).
+(then change `BETTER_AUTH_URL` in Dokploy and `SITE_URL` in `src/lib/site.ts`, add the DNS record and the proxy host).
 Read `node_modules/next/dist/docs/` before using Next APIs (see AGENTS.md).
 
 ## Run
@@ -11,10 +11,12 @@ Read `node_modules/next/dist/docs/` before using Next APIs (see AGENTS.md).
 - `.env.local`: `TMDB_TOKEN` (Read Access Token), `BETTER_AUTH_SECRET`, `BETTER_AUTH_URL`. See `.env.example`.
 - DB: `data/lateshow.db` (gitignored). `pnpm db:generate` writes a migration, the server applies pending ones on start
   (`src/instrumentation.ts`, skipped during build). Auth schema via `npx @better-auth/cli generate`.
-- Deploy: Portainer stack from this repo (like quorum), `build: .` + `pull_policy: build`, env vars in Portainer
-  (stack.env), network `websites` (NPM proxies `lateshow:3000`), volumes `/data` + `/app/.next/cache`, `/api/health`.
-  CI (`.github/workflows/ci.yml`): `pnpm check` on every push/PR, main then POSTs the stack webhook (secret
-  `PORTAINER_WEBHOOK`). No GHCR: Packages budget is $0. Build needs no secrets (placeholder auth secret in the Dockerfile).
+- Deploy: Dokploy (project `lateshow`, Compose > Raw, the same file as `docker-compose.yml` here), env vars in its
+  Environment tab, network `websites` (the proxy reaches `lateshow:3000`), volumes `lateshow_data` (/data) +
+  `lateshow_cache` (/app/.next/cache), `/api/health`. CI (`.github/workflows/ci.yml`): `pnpm check` on every push/PR;
+  on main, `deploy` then builds the image to `ghcr.io/pyvnoaim/lateshow` (`:latest` + `:sha-<short>`) and POSTs the
+  secret `DOKPLOY_WEBHOOK`, Dokploy pulls and restarts. The server never builds. Build needs no secrets (placeholder
+  auth secret in the Dockerfile). Rollback: point the image in Dokploy at an older `:sha-` tag and deploy.
   URL for now: https://lateshow.pyvno.xyz (Cloudflare wildcard DNS).
 - Sign in = 6 digit email code (Better Auth emailOTP, 10 min, 5 tries, hashed) + passkeys (@better-auth/passkey).
   Settings › Email changes the address with a code to the new one (emailOTP changeEmail, the current one isn't asked).
